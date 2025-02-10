@@ -1,70 +1,48 @@
 #!/bin/sh
-# Script: install_status.sh
-# Deskripsi:
-# 1. Meng-clone repositori StatusWRTIrfan (jika belum ada)
-# 2. Membuat arsip tar.gz dari direktori usr dan www di dalam repositori
-# 3. Memindahkan arsip html.tar.gz ke folder /usr dan mengekstraknya
-# 4. Memindahkan arsip html2.tar.gz ke folder /www, mengekstraknya, dan mengatur permission file-file cgi
-# 5. Setelah semuanya berhasil, menghapus folder StatusWRTIrfan, html.tar.gz, dan html2.tar.gz
 
-# Masuk ke direktori /root
-cd /root || { echo "Gagal masuk ke /root"; exit 1; }
-
-# Clone repositori (jika direktori StatusWRTIrfan belum ada)
-if [ ! -d "StatusWRTIrfan" ]; then
-    echo "Meng-clone repositori StatusWRTIrfan..."
-    git clone https://github.com/irfanFRizki/StatusWRTIrfan.git || { echo "Gagal meng-clone repositori"; exit 1; }
-else
-    echo "Direktori StatusWRTIrfan sudah ada, melewati cloning..."
-fi
-
-# Buat arsip untuk direktori usr
-echo "Membuat arsip html.tar.gz untuk direktori usr..."
-tar -czvf /root/html.tar.gz /root/StatusWRTIrfan/usr || { echo "Gagal membuat arsip html.tar.gz"; exit 1; }
-
-# Buat arsip untuk direktori www
-echo "Membuat arsip html2.tar.gz untuk direktori www..."
-tar -czvf /root/html2.tar.gz /root/StatusWRTIrfan/www || { echo "Gagal membuat arsip html2.tar.gz"; exit 1; }
-
-# Pindahkan dan ekstrak html.tar.gz ke /usr
-echo "Memindahkan html.tar.gz ke /usr dan mengekstraknya..."
-if [ ! -d "/usr" ]; then
-    mkdir -p /usr
-fi
-mv /root/html.tar.gz /usr/ || { echo "Gagal memindahkan html.tar.gz ke /usr"; exit 1; }
-cd /usr || { echo "Gagal masuk ke /usr"; exit 1; }
-tar -xzvf html.tar.gz || { echo "Gagal mengekstrak html.tar.gz di /usr"; exit 1; }
+# Pindah ke direktori /root dan clone repository
 cd /root
+git clone https://github.com/irfanFRizki/StatusWRTIrfan.git
 
-# Pindahkan dan ekstrak html2.tar.gz ke /www
-echo "Memindahkan html2.tar.gz ke /www dan mengekstraknya..."
-if [ ! -d "/www" ]; then
-    mkdir -p /www
-fi
-mv /root/html2.tar.gz /www/ || { echo "Gagal memindahkan html2.tar.gz ke /www"; exit 1; }
-cd /www || { echo "Gagal masuk ke /www"; exit 1; }
-tar -xzvf html2.tar.gz || { echo "Gagal mengekstrak html2.tar.gz di /www"; exit 1; }
+# Direktori sumber dari repository yang sudah di-clone
+SRC_DIR="/root/StatusWRTIrfan"
 
-# Tambahkan permission eksekusi untuk file-file cgi di /www/cgi-bin/
-echo "Mengatur permission eksekusi untuk file-file cgi..."
-CGI_DIR="/www/cgi-bin"
-FILES="load_biaya minggu1 minggu2 minggu3 minggu4 mingguterakhir pemakaian save_biaya status"
+# Direktori tujuan
+LUA_CONTROLLER_DIR="/usr/lib/lua/luci/controller/"
+LUA_VIEW_DIR="/usr/lib/lua/luci/view/"
+CGI_BIN_DIR="/www/cgi-bin/"
+WWW_DIR="/www/"
 
-for file in $FILES; do
-    if [ -f "$CGI_DIR/$file" ]; then
-        chmod +x "$CGI_DIR/$file" || echo "Gagal mengatur permission untuk $CGI_DIR/$file"
-    else
-        echo "File $CGI_DIR/$file tidak ditemukan."
-    fi
-done
+# Pastikan direktori tujuan ada
+mkdir -p $LUA_CONTROLLER_DIR $LUA_VIEW_DIR $CGI_BIN_DIR $WWW_DIR
 
-# Kembali ke direktori /root
-cd /root
+# Pindahkan file Lua controller
+mv $SRC_DIR/usr/lib/lua/luci/controller/status_monitor.lua $LUA_CONTROLLER_DIR
 
-# Langkah pembersihan: menghapus folder dan file arsip yang tidak diperlukan
-echo "Membersihkan folder StatusWRTIrfan dan file arsip..."
-rm -rf /root/StatusWRTIrfan
-rm -f /usr/html.tar.gz
-rm -f /www/html2.tar.gz
+# Pindahkan file Lua view
+mv $SRC_DIR/usr/lib/lua/luci/view/status_monitor.htm $LUA_VIEW_DIR
 
-echo "Proses selesai."
+# Pindahkan file CGI scripts
+mv $SRC_DIR/www/cgi-bin/load_biaya $CGI_BIN_DIR
+mv $SRC_DIR/www/cgi-bin/minggu1 $CGI_BIN_DIR
+mv $SRC_DIR/www/cgi-bin/minggu2 $CGI_BIN_DIR
+mv $SRC_DIR/www/cgi-bin/minggu3 $CGI_BIN_DIR
+mv $SRC_DIR/www/cgi-bin/minggu4 $CGI_BIN_DIR
+mv $SRC_DIR/www/cgi-bin/mingguterakhir $CGI_BIN_DIR
+mv $SRC_DIR/www/cgi-bin/pemakaian $CGI_BIN_DIR
+mv $SRC_DIR/www/cgi-bin/save_biaya $CGI_BIN_DIR
+mv $SRC_DIR/www/cgi-bin/status $CGI_BIN_DIR
+
+# Pindahkan file status monitor HTML
+mv $SRC_DIR/www/status_monitor.html $WWW_DIR
+
+# Beri izin eksekusi untuk file CGI agar bisa dijalankan
+chmod +x $CGI_BIN_DIR/*
+
+# Restart uhttpd agar perubahan diterapkan
+/etc/init.d/uhttpd restart
+
+echo "Instalasi StatusWRTIrfan selesai!"
+
+# Hapus folder repository yang sudah di-clone
+rm -rf $SRC_DIR
