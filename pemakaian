@@ -1,0 +1,62 @@
+#!/bin/sh
+
+# Header output untuk JSON
+echo "Content-type: application/json"
+echo ""
+
+# Fungsi untuk menghitung dan menampilkan data bandwidth dengan detail
+sum_bandwidth_data_with_details() {
+  local mac=$1
+  local name=$2
+  local ip=$3
+
+  # Ambil data bandwidth menggunakan nlbwmon
+  bandwidth=$(nlbw -c show -g mac | awk -v mac="$mac" '
+  $1 == mac {
+      printf "{\"download\": \"%s %s\", \"upload\": \"%s %s\"}", $(NF-9), $(NF-8), $(NF-4), $(NF-3)
+  }')
+
+  # Jika tidak ada data, isi dengan nol
+  if [ -z "$bandwidth" ]; then
+    bandwidth="{\"download\": \"0 B\", \"upload\": \"0 B\"}"
+  fi
+
+  # Output JSON untuk perangkat ini
+  echo "{\"name\": \"$name\", \"ip\": \"$ip\", \"mac\": \"$mac\", \"bandwidth\": $bandwidth}"
+}
+
+# Data perangkat
+clients="\
+9e:e8:9b:00:86:e2 HP_IRFAN 192.168.1.245
+46:c0:28:ff:79:f2 HP_ANITA 192.168.1.220
+d2:7c:10:40:a1:a7 HP_AQILLA 192.168.1.122
+00:c3:0a:25:a2:59 HP_JAMAL 192.168.1.169
+20:5e:f7:48:c3:8e HP_SAMSUNG_TAB 192.168.1.106
+70:3e:97:99:ba:54 TV 192.168.1.114
+72:cb:22:7e:fb:a5 STB 192.168.1.192
+b4:0e:de:08:d4:05 LAPTOP 192.168.1.123
+ea:42:a5:19:2d:81 HP_SAMSUNG_TOKO 192.168.1.240"
+
+# Ambil bulan sekarang
+current_month=$(date +"%B %Y")
+
+# Header JSON
+echo "{"
+echo "\"current_month\": \"$current_month\","
+echo "\"clients\": ["
+
+# Iterasi untuk setiap perangkat
+i=1
+total_clients=$(echo "$clients" | wc -l)
+echo "$clients" | while read -r mac name ip; do
+  sum_bandwidth_data_with_details "$mac" "$name" "$ip"
+  
+  if [ $i -lt $total_clients ]; then
+    echo ","
+  fi
+  i=$((i + 1))
+done
+
+# Footer JSON
+echo "]"
+echo "}"

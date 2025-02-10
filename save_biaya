@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# Path folder dan file
+DATA_FOLDER="/etc"
+DATA_FILE="$DATA_FOLDER/biaya_data.txt"
+
+# Periksa apakah folder ada, jika tidak buat folder
+if [ ! -d "$DATA_FOLDER" ]; then
+    mkdir -p "$DATA_FOLDER"
+fi
+
+# Periksa apakah file ada, jika tidak buat file kosong
+if [ ! -f "$DATA_FILE" ]; then
+    touch "$DATA_FILE"
+    chmod 644 "$DATA_FILE"  # Atur izin file
+fi
+
+# Baca data POST
+read POST_DATA
+
+# Tulis data ke file
+echo "$POST_DATA" >> "$DATA_FILE"
+
+# Response HTTP
+echo "Content-Type: text/plain"
+echo ""
+echo "Data berhasil disimpan!"

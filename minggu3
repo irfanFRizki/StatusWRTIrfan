@@ -1,0 +1,50 @@
+#!/bin/sh
+echo "Content-type: application/json"
+echo ""
+
+sum_vnstat_data_with_details() {
+  local iface=$1
+  shift
+  local dates="$@"
+  local total_usage=0
+  local details=""
+
+  for date in $dates; do
+    daily_data=$(vnstat -d -i $iface | grep -E "^[[:space:]]*$date")
+    if [ -n "$daily_data" ]; then
+      usage=$(echo "$daily_data" | awk '{print $8}')
+      unit=$(echo "$daily_data" | awk '{print $9}')
+
+      if echo "$usage" | grep -Eq '^[0-9.]+$' && echo "$unit" | grep -Eq '^(KiB|MiB|GiB|TiB)$'; then
+        case $unit in
+          "KiB") usage=$(echo "$usage / 1048576" | bc -l) ;;
+          "MiB") usage=$(echo "$usage / 1024" | bc -l) ;;
+          "TiB") usage=$(echo "$usage * 1024" | bc -l) ;;
+        esac
+
+        total_usage=$(echo "$total_usage + $usage" | bc -l)
+        details="${details}{\"date\": \"$date\", \"usage\": \"$(printf "%.2f" $usage) GiB\"},"
+      fi
+    fi
+  done
+
+  details=$(echo "$details" | sed 's/,$//')
+  echo "{\"details\": [$details], \"total\": \"$(printf "%.2f" $total_usage) GiB\"}"
+}
+
+CURRENT_YEAR=$(date +%Y)
+CURRENT_MONTH=$(date +%m)
+DATES=""
+for day in $(seq -w 15 21); do
+  DATES="$DATES ${CURRENT_YEAR}-${CURRENT_MONTH}-$(printf "%02d" $day)"
+done
+
+echo "{"
+echo "\"vnstat\": {"
+
+echo "\"br-lan\": $(sum_vnstat_data_with_details br-lan $DATES),"
+echo "\"wwan0\": $(sum_vnstat_data_with_details wwan0 $DATES),"
+echo "\"usb0\": $(sum_vnstat_data_with_details usb0 $DATES)"
+
+echo "}"
+echo "}"

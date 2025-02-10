@@ -1,0 +1,14 @@
+#!/bin/sh
+
+DATA_FILE="/etc/biaya_data.txt"
+
+# Response HTTP
+echo "Content-Type: application/json"
+echo ""
+
+# Jika file tidak ada atau kosong, kembalikan array kosong
+if [ ! -f "$DATA_FILE" ] || [ ! -s "$DATA_FILE" ]; then
+    echo "[]"
+else
+    cat "$DATA_FILE"
+fi

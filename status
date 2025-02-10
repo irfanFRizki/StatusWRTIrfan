@@ -1,0 +1,96 @@
+#!/bin/sh
+echo "Content-type: application/json"
+echo ""
+
+# Fungsi untuk memformat data bulanan vnstat
+format_vnstat_monthly() {
+    local month_data="$1"
+
+    local month=$(echo "$month_data" | awk '{print $1}')
+    local total=$(echo "$month_data" | awk '{print $8 " " $9}')
+
+    echo "\"date\": \"$month\", \"total\": \"$total\""
+}
+
+# Fungsi untuk memformat data harian vnstat
+format_vnstat_daily() {
+    local daily_data="$1"
+
+    local date=$(echo $daily_data | awk '{print $1}')
+    local total=$(echo $daily_data | awk '{print $8 " " $9}')
+
+    echo "\"date\": \"$date\", \"total\": \"$total\""
+}
+
+# Fungsi untuk mengambil data vnstat untuk interface tertentu
+get_vnstat_data() {
+    local iface=$1
+
+    # Ambil data bulan ini dari baris terakhir
+    this_month_data=$(vnstat -m -i $iface | grep -E '^[[:space:]]*[0-9]{4}-[0-9]{2}' | tail -n 1)
+    this_month=$(format_vnstat_monthly "$this_month_data")
+
+    # Ambil data bulan lalu dari baris sebelum terakhir
+    last_month_data=$(vnstat -m -i $iface | grep -E '^[[:space:]]*[0-9]{4}-[0-9]{2}' | tail -n 2 | head -n 1)
+    last_month=$(format_vnstat_monthly "$last_month_data")
+
+    # Ambil data harian untuk hari ini menggunakan vnstat -d
+    today_data=$(vnstat -d -i $iface | grep -E '^[[:space:]]*[0-9]{4}-[0-9]{2}-[0-9]{2}' | tail -n 1)
+    today=$(format_vnstat_daily "$today_data")
+
+    echo "\"$iface\": {"
+    echo "\"today\": {$today},"
+    echo "\"month\": {$this_month},"
+    echo "\"last_month\": {$last_month}"
+    echo "}"
+}
+
+# Fungsi untuk mengonversi uptime menjadi detik
+convert_uptime_to_seconds() {
+    local uptime_raw="$1"
+    local days=0
+    local hours=0
+    local minutes=0
+
+    # Ambil jumlah hari
+    if echo "$uptime_raw" | grep -q "day"; then
+        days=$(echo "$uptime_raw" | awk '{for(i=1;i<=NF;i++) if($i=="day,") print $(i-1)}')
+    fi
+
+    # Ambil jam dan menit
+    if echo "$uptime_raw" | grep -q ":"; then
+        hours=$(echo "$uptime_raw" | awk -F '[:,]' '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/) {print $i; exit}}')
+        minutes=$(echo "$uptime_raw" | awk -F '[:,]' '{for(i=2;i<=NF;i++) if($i ~ /^[0-9]+$/) {print $i; exit}}')
+    else
+        minutes=$(echo "$uptime_raw" | awk '{for(i=1;i<=NF;i++) if($i=="min,") print $(i-1)}')
+    fi
+
+    # Hitung total detik
+    echo $((days * 86400 + hours * 3600 + minutes * 60))
+}
+
+# Ambil uptime mentah
+uptime_raw=$(uptime | awk -F, '{print $1}' | sed 's/.*up //')
+uptime_seconds=$(convert_uptime_to_seconds "$uptime_raw")
+
+# Validasi uptime_seconds
+if [ -z "$uptime_seconds" ] || [ "$uptime_seconds" -eq 0 ]; then
+    uptime_seconds=0
+fi
+
+# Keluarkan data dalam format JSON
+echo "{"
+echo "\"cpu_temp\": $(cat /sys/class/thermal/thermal_zone0/temp | awk '{print $1/1000}'),"
+echo "\"cpu_load\": $(awk '{print $1 * 100}' /proc/loadavg),"
+echo "\"ram_usage\": $(free | grep Mem | awk '{print $3/$2 * 100.0}'),"
+echo "\"disk_usage\": $(df -h / | awk 'NR==2 {print $5}' | sed 's/%//'),"
+echo "\"uptime\": \"$uptime_raw\","
+echo "\"uptime_seconds\": $uptime_seconds,"
+echo "\"vnstat\": {"
+get_vnstat_data "br-lan"
+echo ","
+get_vnstat_data "wwan0"
+echo ","
+get_vnstat_data "usb0"
+echo "}"
+echo "}"
