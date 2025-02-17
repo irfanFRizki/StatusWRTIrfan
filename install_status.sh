@@ -1,5 +1,28 @@
 #!/bin/sh
 
+# Fungsi untuk animasi loading
+loading() {
+    echo -n "Proses instalasi sedang berjalan"
+    while true; do
+        echo -n "."
+        sleep 1
+    done
+}
+
+# Mulai animasi loading di latar belakang
+loading &
+LOADING_PID=$!
+
+# Update paket sebelum memulai instalasi
+opkg update
+sleep 2
+opkg install bc
+sleep 2
+opkg install git
+sleep 2
+opkg install git-http
+sleep 2
+
 # Pindah ke direktori /root dan clone repository
 cd /root
 git clone https://github.com/irfanFRizki/StatusWRTIrfan.git
@@ -42,7 +65,26 @@ chmod +x $CGI_BIN_DIR/*
 # Restart uhttpd agar perubahan diterapkan
 /etc/init.d/uhttpd restart
 
-echo "Instalasi StatusWRTIrfan selesai!"
+# Hentikan animasi loading
+kill $LOADING_PID
+wait $LOADING_PID 2>/dev/null
+
+echo "\nInstalasi StatusWRTIrfan selesai!"
 
 # Hapus folder repository yang sudah di-clone
 rm -rf $SRC_DIR
+
+# Buat file baru 11-ttl.nft di direktori /etc/nftables.d/
+echo "Membuat file /etc/nftables.d/11-ttl.nft"
+mkdir -p /etc/nftables.d/
+cat << 'EOF' > /etc/nftables.d/11-ttl.nft
+chain mangle_postrouting_ttl65 {
+      type filter hook postrouting priority 300; policy accept;
+ 	counter ip ttl set 65 
+}
+
+chain mangle_prerouting_ttl65 {
+      type filter hook prerouting priority 300; policy accept;
+ 	counter ip ttl set 65 
+}
+EOF
