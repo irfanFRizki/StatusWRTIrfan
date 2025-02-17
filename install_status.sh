@@ -68,7 +68,6 @@ chmod +x $CGI_BIN_DIR/*
 # Hentikan animasi loading
 kill $LOADING_PID
 wait $LOADING_PID 2>/dev/null
-
 echo "\nInstalasi StatusWRTIrfan selesai!"
 
 # Hapus folder repository yang sudah di-clone
@@ -80,11 +79,14 @@ mkdir -p /etc/nftables.d/
 cat << 'EOF' > /etc/nftables.d/11-ttl.nft
 chain mangle_postrouting_ttl65 {
       type filter hook postrouting priority 300; policy accept;
- 	counter ip ttl set 65 
+        counter ip ttl set 65 
 }
 
 chain mangle_prerouting_ttl65 {
       type filter hook prerouting priority 300; policy accept;
- 	counter ip ttl set 65 
+        counter ip ttl set 65 
 }
 EOF
+
+# Restart firewall agar perubahan pada nftables diterapkan
+/etc/init.d/firewall restart
