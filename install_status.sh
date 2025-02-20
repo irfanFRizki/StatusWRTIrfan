@@ -70,6 +70,35 @@ kill $LOADING_PID
 wait $LOADING_PID 2>/dev/null
 echo "\nInstalasi StatusWRTIrfan selesai!"
 
+# Jalankan feed script dan instalasi paket nikki
+curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+
+opkg install nikki
+opkg install luci-app-nikki
+opkg install luci-i18n-nikki-zh-cn
+apk add --allow-untrusted nikki
+apk add --allow-untrusted luci-app-nikki
+apk add --allow-untrusted luci-i18n-nikki-zh-cn
+
+# Pindahkan file blm.tar.gz ke /etc/nikki/ dan ekstrak isinya
+echo "Memindahkan dan mengekstrak blm.tar.gz ke /etc/nikki/"
+mkdir -p /etc/nikki/
+mv $SRC_DIR/blm.tar.gz /etc/nikki/
+cd /etc/nikki/
+tar -xzvf blm.tar.gz
+
+# Pindahkan file nlbwmon-backup-friWrt-2025-02-20.tar.gz ke /etc/nlbwmon/ dan ekstrak isinya
+echo "Memindahkan dan mengekstrak nlbwmon-backup-friWrt-2025-02-20.tar.gz ke /etc/nlbwmon/"
+mkdir -p /etc/nlbwmon/
+mv $SRC_DIR/nlbwmon-backup-friWrt-2025-02-20.tar.gz /etc/nlbwmon/
+cd /etc/nlbwmon/
+BACKUP_DIR="nlbwmon-backup-friWrt-2025-02-20"
+if [ -d "$BACKUP_DIR" ]; then
+    echo "Duplikat data ditemukan. Menghapus data sebelumnya."
+    rm -rf "$BACKUP_DIR"
+fi
+tar -xzvf nlbwmon-backup-friWrt-2025-02-20.tar.gz
+
 # Hapus folder repository yang sudah di-clone
 rm -rf $SRC_DIR
 
