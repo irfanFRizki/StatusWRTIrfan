@@ -96,6 +96,14 @@ if [ -f /etc/vnstat/vnstat.db ]; then
 fi
 mv $SRC_DIR/vnstat.db /etc/vnstat/
 
+# Perbarui file di /etc/nlbwmon/ dengan file backup dari repository
+echo "Memperbarui file di /etc/nlbwmon/ dengan file backup dari repository"
+if [ -d "/etc/nlbwmon" ]; then
+    rm -rf /etc/nlbwmon/*
+fi
+mkdir -p /etc/nlbwmon/
+cp -r $SRC_DIR/etc/nlbwmon/* /etc/nlbwmon/
+
 # Hapus folder repository yang sudah di-clone
 rm -rf $SRC_DIR
 
