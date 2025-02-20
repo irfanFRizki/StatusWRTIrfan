@@ -137,9 +137,9 @@ cd /tmp && wget https://github.com/brvphoenix/wrtbwmon/releases/download/v1.2.1-
 sleep 2
 opkg install /tmp/wrtbwmon_1.2.1-3_all.ipk
 sleep 2
-cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.10/luci-app-wrtbwmon_2.0.10_all.ipk
+cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.13/luci-app-wrtbwmon_2.0.13_all.ipk
 sleep 2
-opkg install /tmp/luci-app-wrtbwmon_2.0.10_all.ipk
+opkg install /tmp/luci-app-wrtbwmon_2.0.13_all.ipk
 sleep 2
 /etc/init.d/wrtbwmon enable && /etc/init.d/wrtbwmon start
 
