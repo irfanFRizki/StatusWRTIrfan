@@ -128,3 +128,28 @@ EOF
 
 # Restart firewall agar perubahan pada nftables diterapkan
 /etc/init.d/firewall restart
+
+# Instalasi dan konfigurasi wrtbwmon
+sleep 2
+opkg install wget
+sleep 2
+cd /tmp && wget https://github.com/brvphoenix/wrtbwmon/releases/download/v1.2.1-3/wrtbwmon_1.2.1-3_all.ipk
+sleep 2
+opkg install /tmp/wrtbwmon_1.2.1-3_all.ipk
+sleep 2
+cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.10/luci-app-wrtbwmon_2.0.10_all.ipk
+sleep 2
+opkg install /tmp/luci-app-wrtbwmon_2.0.10_all.ipk
+sleep 2
+/etc/init.d/wrtbwmon enable && /etc/init.d/wrtbwmon start
+
+# Instruksi konfigurasi manual wrtbwmon
+echo "-----------------------------------------------------------"
+echo "Buka menu Network > Traffic Status di LuCI."
+echo "Kemudian klik CONFIGURE OPTIONS dan atur sebagai berikut:"
+echo "  Default Refresh Intervals: 2 Seconds"
+echo "  Default More Columns: Centang"
+echo "  Show Zeros: Jangan di centang"
+echo "  Upstream Bandwidth: 100"
+echo "  Downstream Bandwidth: 100"
+echo "-----------------------------------------------------------"
