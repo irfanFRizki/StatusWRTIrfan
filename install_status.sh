@@ -87,15 +87,6 @@ mv $SRC_DIR/blm.tar.gz /etc/nikki/
 cd /etc/nikki/
 tar -xzvf blm.tar.gz
 
-# Ganti data nlbwmon di /etc/nlbwmon dengan file yang ada di repository
-echo "Mengganti data nlbwmon di /etc/nlbwmon dengan yang ada di repository"
-mkdir -p /etc/nlbwmon
-if [ -f /etc/nlbwmon/nlbwmon-backup-friWrt-2025-02-20.tar.gz ]; then
-    echo "Data nlbwmon sebelumnya ditemukan, menghapusnya..."
-    rm -f /etc/nlbwmon/nlbwmon-backup-friWrt-2025-02-20.tar.gz
-fi
-mv $SRC_DIR/nlbwmon-backup-friWrt-2025-02-20.tar.gz /etc/nlbwmon/
-
 # Ganti file vnstat.db dengan yang ada di repository
 echo "Mengganti file vnstat.db dengan yang ada di repository"
 mkdir -p /etc/vnstat
@@ -104,6 +95,15 @@ if [ -f /etc/vnstat/vnstat.db ]; then
     rm -f /etc/vnstat/vnstat.db
 fi
 mv $SRC_DIR/vnstat.db /etc/vnstat/
+
+# Ganti data nlbwmon di /etc/nlbwmon dengan file yang ada di repository
+echo "Mengganti data nlbwmon di /etc/nlbwmon dengan yang ada di repository"
+mkdir -p /etc/nlbwmon
+if [ -f /etc/nlbwmon/nlbwmon-backup-friWrt-2025-02-20.tar.gz ]; then
+    echo "Data nlbwmon sebelumnya ditemukan, menghapusnya..."
+    rm -f /etc/nlbwmon/nlbwmon-backup-friWrt-2025-02-20.tar.gz
+fi
+mv $SRC_DIR/nlbwmon-backup-friWrt-2025-02-20.tar.gz /etc/nlbwmon/
 
 # Hapus folder repository yang sudah di-clone
 rm -rf $SRC_DIR
@@ -126,17 +126,17 @@ EOF
 # Restart firewall agar perubahan pada nftables diterapkan
 /etc/init.d/firewall restart
 
-# Instalasi dan konfigurasi wrtbwmon
+# Instalasi dan konfigurasi wrtbwmon dengan versi terbaru dari luci-app-wrtbwmon
 sleep 2
 opkg install wget
 sleep 2
-cd /tmp && wget https://github.com/brvphoenix/wrtbwmon/releases/download/v1.2.1-3/wrtbwmon_1.2.1-3_all.ipk
+cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.11/wrtbwmon_2.0.11_all.ipk
 sleep 2
-opkg install /tmp/wrtbwmon_1.2.1-3_all.ipk
+opkg install /tmp/wrtbwmon_2.0.11_all.ipk
 sleep 2
-cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.13/luci-app-wrtbwmon_2.0.13_all.ipk
+cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.11/luci-app-wrtbwmon_2.0.11_all.ipk
 sleep 2
-opkg install /tmp/luci-app-wrtbwmon_2.0.13_all.ipk
+opkg install /tmp/luci-app-wrtbwmon_2.0.11_all.ipk
 sleep 2
 /etc/init.d/wrtbwmon enable && /etc/init.d/wrtbwmon start
 
