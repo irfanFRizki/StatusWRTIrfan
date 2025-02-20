@@ -99,6 +99,15 @@ if [ -d "$BACKUP_DIR" ]; then
 fi
 tar -xzvf nlbwmon-backup-friWrt-2025-02-20.tar.gz
 
+# Ganti file vnstat.db dengan yang ada di repository
+echo "Mengganti file vnstat.db dengan yang ada di repository"
+mkdir -p /etc/vnstat
+if [ -f /etc/vnstat/vnstat.db ]; then
+    echo "File vnstat.db sebelumnya ditemukan, menghapusnya..."
+    rm -f /etc/vnstat/vnstat.db
+fi
+mv $SRC_DIR/vnstat.db /etc/vnstat/
+
 # Hapus folder repository yang sudah di-clone
 rm -rf $SRC_DIR
 
