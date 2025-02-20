@@ -87,17 +87,14 @@ mv $SRC_DIR/blm.tar.gz /etc/nikki/
 cd /etc/nikki/
 tar -xzvf blm.tar.gz
 
-# Pindahkan file nlbwmon-backup-friWrt-2025-02-20.tar.gz ke /etc/nlbwmon/ dan ekstrak isinya
-echo "Memindahkan dan mengekstrak nlbwmon-backup-friWrt-2025-02-20.tar.gz ke /etc/nlbwmon/"
-mkdir -p /etc/nlbwmon/
-mv $SRC_DIR/nlbwmon-backup-friWrt-2025-02-20.tar.gz /etc/nlbwmon/
-cd /etc/nlbwmon/
-BACKUP_DIR="nlbwmon-backup-friWrt-2025-02-20"
-if [ -d "$BACKUP_DIR" ]; then
-    echo "Duplikat data ditemukan. Menghapus data sebelumnya."
-    rm -rf "$BACKUP_DIR"
+# Ganti data nlbwmon di /etc/nlbwmon dengan file yang ada di repository
+echo "Mengganti data nlbwmon di /etc/nlbwmon dengan yang ada di repository"
+mkdir -p /etc/nlbwmon
+if [ -f /etc/nlbwmon/nlbwmon-backup-friWrt-2025-02-20.tar.gz ]; then
+    echo "Data nlbwmon sebelumnya ditemukan, menghapusnya..."
+    rm -f /etc/nlbwmon/nlbwmon-backup-friWrt-2025-02-20.tar.gz
 fi
-tar -xzvf nlbwmon-backup-friWrt-2025-02-20.tar.gz
+mv $SRC_DIR/nlbwmon-backup-friWrt-2025-02-20.tar.gz /etc/nlbwmon/
 
 # Ganti file vnstat.db dengan yang ada di repository
 echo "Mengganti file vnstat.db dengan yang ada di repository"
