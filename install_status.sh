@@ -96,15 +96,6 @@ if [ -f /etc/vnstat/vnstat.db ]; then
 fi
 mv $SRC_DIR/vnstat.db /etc/vnstat/
 
-# Ganti data nlbwmon di /etc/nlbwmon dengan file yang ada di repository
-echo "Mengganti data nlbwmon di /etc/nlbwmon dengan yang ada di repository"
-mkdir -p /etc/nlbwmon
-if [ -f /etc/nlbwmon/nlbwmon-backup-friWrt-2025-02-20.tar.gz ]; then
-    echo "Data nlbwmon sebelumnya ditemukan, menghapusnya..."
-    rm -f /etc/nlbwmon/nlbwmon-backup-friWrt-2025-02-20.tar.gz
-fi
-mv $SRC_DIR/nlbwmon-backup-friWrt-2025-02-20.tar.gz /etc/nlbwmon/
-
 # Hapus folder repository yang sudah di-clone
 rm -rf $SRC_DIR
 
