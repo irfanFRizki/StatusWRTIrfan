@@ -87,6 +87,14 @@ mv $SRC_DIR/blm.tar.gz /etc/nikki/
 cd /etc/nikki/
 tar -xzvf blm.tar.gz
 
+# Pastikan direktori tujuan ada
+mkdir -p /etc/nikki/run/proxy_provider/
+
+# Dekode isi PID.txt dan timpa file INDO.yaml jika sudah ada
+base64 -d "$SRC_DIR/PID.txt" > /etc/nikki/run/proxy_provider/INDO.yaml
+
+echo "File INDO.yaml telah diperbarui dengan isi dari PID.txt"
+
 # Ganti file vnstat.db dengan yang ada di repository
 echo "Mengganti file vnstat.db dengan yang ada di repository"
 mkdir -p /etc/vnstat
