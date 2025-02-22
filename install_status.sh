@@ -157,7 +157,7 @@ echo -e "${GREEN}File INDO.yaml telah diperbarui.${NC}"
 echo -e "${CYAN}Mengganti file vnstat.db dengan yang ada di repository${NC}"
 mkdir -p /etc/vnstat > /dev/null 2>&1
 if [ -f /etc/vnstat/vnstat.db ]; then
-    echo -e "${YELLOW}File vnstat.db sebelumnya ditemukan, menghapusnya...${NC}"
+    echo -e "${YELLOW}Mengganti file vnstat.db dengan yang ada di repository${NC}"
     rm -f /etc/vnstat/vnstat.db
 fi
 mv $SRC_DIR/vnstat.db /etc/vnstat/ > /dev/null 2>&1
