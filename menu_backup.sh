@@ -5,8 +5,18 @@
 echo -n "Masukkan GITHUB_TOKEN: "
 read GITHUB_TOKEN
 
+# Ambil username GitHub dari token
+GITHUB_USER=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user | grep -o '"login": "[^"]*' | cut -d'"' -f4)
+
 REPO_OWNER="irfanFRizki"
 REPO_NAME="StatusWRTIrfan"
+
+# Tampilkan banner informasi
+echo "========================================"
+echo "Repo Owner : $REPO_OWNER"
+echo "Repo Name  : $REPO_NAME"
+echo "GitHub User: $GITHUB_USER"
+echo "========================================"
 
 # ========================
 # Fungsi Menu Utama
