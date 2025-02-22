@@ -29,6 +29,18 @@ menu() {
 }
 
 # ========================
+# Fungsi Loading Progress
+# ========================
+loading_progress() {
+  label="$1"
+  for i in $(seq 1 100); do
+    printf "\r%s: %d%%" "$label" "$i"
+    sleep 0.03
+  done
+  echo ""
+}
+
+# ========================
 # Fungsi Backup File (dinamis) dengan loading progress
 # ========================
 backup_file() {
@@ -40,20 +52,15 @@ backup_file() {
     return
   fi
 
-  # Buat target path untuk repositori GitHub dengan menghilangkan karakter awal '/'
   TARGET_PATH=$(echo "$FILE_PATH" | sed 's|^/||')
   COMMIT_MESSAGE="Backup $FILE_PATH on $(date +'%Y-%m-%d %H:%M:%S')"
-
-  # Encode file ke base64 dan hapus newline
   FILE_CONTENT=$(base64 "$FILE_PATH" | tr -d '\n')
   TMP_JSON="/tmp/payload.json"
 
-  # Cek apakah file sudah ada di GitHub (ambil sha jika ada)
   EXISTING_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
     "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$TARGET_PATH")
   SHA=$(echo "$EXISTING_RESPONSE" | grep -o '"sha": "[^"]*' | cut -d'"' -f4)
 
-  # Buat payload JSON (dengan atau tanpa sha)
   if [ -n "$SHA" ]; then
     cat <<EOF > "$TMP_JSON"
 {
@@ -71,7 +78,6 @@ EOF
 EOF
   fi
 
-  # Lakukan PUT request ke GitHub API untuk upload/update file
   RESPONSE=$(curl -s -X PUT \
     -H "Authorization: token $GITHUB_TOKEN" \
     -H "Content-Type: application/json" \
@@ -80,14 +86,8 @@ EOF
 
   rm "$TMP_JSON"
 
-  # Cek apakah backup berhasil dengan mencari key "commit" pada respons
   if echo "$RESPONSE" | grep -q '"commit":'; then
-    # Tampilkan loading progress dari 1% ke 100%
-    for i in $(seq 1 100); do
-      printf "\rLoading: %d%%" "$i"
-      sleep 0.03
-    done
-    echo ""
+    loading_progress "Loading"
     echo "Backup $FILE_PATH selesai."
   else
     echo "Backup gagal. Response: $RESPONSE"
@@ -95,7 +95,7 @@ EOF
 }
 
 # ========================
-# Fungsi Backup Folder nlbwmon (tanpa loading progress)
+# Fungsi Backup Folder nlbwmon dengan loading progress
 # ========================
 backup_nlbwmon() {
   LOCAL_DIR="/etc/nlbwmon"
@@ -103,7 +103,6 @@ backup_nlbwmon() {
   COMMIT_MESSAGE_BASE="Backup file nlbwmon"
 
   for FILE_PATH in "$LOCAL_DIR"/*; do
-    # Pastikan hanya memproses file biasa
     if [ ! -f "$FILE_PATH" ]; then
       continue
     fi
@@ -111,17 +110,13 @@ backup_nlbwmon() {
     FILENAME=$(basename "$FILE_PATH")
     TARGET_PATH="$TARGET_DIR/$FILENAME"
     COMMIT_MESSAGE="$COMMIT_MESSAGE_BASE: $FILENAME on $(date +'%Y-%m-%d %H:%M:%S')"
-
-    # Encode file ke base64 dan hilangkan newline
     FILE_CONTENT=$(base64 "$FILE_PATH" | tr -d '\n')
     TMP_JSON="/tmp/payload.json"
 
-    # Cek apakah file sudah ada di GitHub (ambil sha jika ada)
     EXISTING_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
       "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$TARGET_PATH")
     SHA=$(echo "$EXISTING_RESPONSE" | grep -o '"sha": "[^"]*' | cut -d'"' -f4)
 
-    # Buat payload JSON (dengan atau tanpa sha)
     if [ -n "$SHA" ]; then
       cat <<EOF > "$TMP_JSON"
 {
@@ -139,15 +134,20 @@ EOF
 EOF
     fi
 
-    # Lakukan PUT request untuk upload/update file ke GitHub
-    curl -s -X PUT \
+    RESPONSE=$(curl -s -X PUT \
       -H "Authorization: token $GITHUB_TOKEN" \
       -H "Content-Type: application/json" \
       -d @"$TMP_JSON" \
-      "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$TARGET_PATH"
+      "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$TARGET_PATH")
 
     rm "$TMP_JSON"
-    echo "Backup $FILENAME selesai."
+
+    if echo "$RESPONSE" | grep -q '"commit":'; then
+      loading_progress "Loading for $FILENAME"
+      echo "Backup $FILENAME selesai."
+    else
+      echo "Backup $FILENAME gagal."
+    fi
   done
 
   echo "Backup folder nlbwmon selesai."
