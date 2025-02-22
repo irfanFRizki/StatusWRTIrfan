@@ -1,0 +1,42 @@
+<%+header%>
+
+<h2>Daftar Perangkat Online</h2>
+
+<table class="cbi-table">
+  <thead>
+    <tr>
+      <th>IP</th>
+      <th>MAC</th>
+      <th>Hostname</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+  <% 
+    -- Jalankan skrip bash online.sh (pastikan path sudah benar)
+    local f = io.popen("/usr/bin/online.sh")
+    if f then
+      for line in f:lines() do
+        -- Asumsikan output skrip berupa:
+        -- "IP: <ip>, MAC: <mac>, Hostname: <hostname>, Status: <status>"
+        local ip, mac, hostname, status = line:match("IP:%s*(.-),%s*MAC:%s*(.-),%s*Hostname:%s*(.-),%s*Status:%s*(.*)")
+        if ip and mac and hostname and status then
+  %>
+    <tr>
+      <td><%= ip %></td>
+      <td><%= mac %></td>
+      <td><%= hostname %></td>
+      <td><%= status %></td>
+    </tr>
+  <% 
+        end
+      end
+      f:close()
+    else
+  %>
+    <tr><td colspan="4">Tidak ada data.</td></tr>
+  <% end %>
+  </tbody>
+</table>
+
+<%+footer%>
