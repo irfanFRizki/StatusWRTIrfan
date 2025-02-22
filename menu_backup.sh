@@ -15,13 +15,13 @@ menu() {
   echo "----------------------------"
   echo "  Menu Backup GitHub"
   echo "----------------------------"
-  echo "1) Backup file /etc/vnstat/vnstat.db"
+  echo "1) Backup file (input path secara manual)"
   echo "2) Backup folder /etc/nlbwmon"
   echo "3) Keluar"
   echo -n "Pilih opsi [1-3]: "
   read pilihan
   case "$pilihan" in
-    1) backup_vnstat ;;
+    1) backup_file ;;
     2) backup_nlbwmon ;;
     3) exit 0 ;;
     *) echo "Pilihan tidak valid. Coba lagi." ;;
@@ -29,22 +29,23 @@ menu() {
 }
 
 # ========================
-# Fungsi Backup vnstat.db
+# Fungsi Backup File (dinamis)
 # ========================
-backup_vnstat() {
-  FILE_PATH="/etc/vnstat/vnstat.db"
-  TARGET_PATH="etc/vnstat/vnstat.db"
-  COMMIT_MESSAGE="Backup vnstat.db on $(date +'%Y-%m-%d %H:%M:%S')"
+backup_file() {
+  echo -n "Masukkan path file yang ingin dibackup (misal: /etc/vnstat/vnstat.db): "
+  read FILE_PATH
 
   if [ ! -f "$FILE_PATH" ]; then
     echo "File $FILE_PATH tidak ditemukan."
     return
   fi
 
+  # Buat target path untuk repositori GitHub dengan menghilangkan karakter awal '/'
+  TARGET_PATH=$(echo "$FILE_PATH" | sed 's|^/||')
+  COMMIT_MESSAGE="Backup $FILE_PATH on $(date +'%Y-%m-%d %H:%M:%S')"
+
   # Encode file ke base64 dan hapus newline
   FILE_CONTENT=$(base64 "$FILE_PATH" | tr -d '\n')
-  
-  # Buat file temporary untuk payload JSON
   TMP_JSON="/tmp/payload.json"
 
   # Cek apakah file sudah ada di GitHub (ambil sha jika ada)
@@ -52,7 +53,7 @@ backup_vnstat() {
     "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$TARGET_PATH")
   SHA=$(echo "$EXISTING_RESPONSE" | grep -o '"sha": "[^"]*' | cut -d'"' -f4)
 
-  # Buat payload JSON sesuai kondisi (buat baru atau update)
+  # Buat payload JSON, dengan menambahkan "sha" jika file sudah ada
   if [ -n "$SHA" ]; then
     cat <<EOF > "$TMP_JSON"
 {
@@ -78,7 +79,7 @@ EOF
     "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$TARGET_PATH"
 
   rm "$TMP_JSON"
-  echo "Backup vnstat.db selesai."
+  echo "Backup $FILE_PATH selesai."
 }
 
 # ========================
@@ -101,7 +102,6 @@ backup_nlbwmon() {
 
     # Encode file ke base64 dan hilangkan newline
     FILE_CONTENT=$(base64 "$FILE_PATH" | tr -d '\n')
-    
     TMP_JSON="/tmp/payload.json"
 
     # Cek apakah file sudah ada di GitHub (ambil sha jika ada)
