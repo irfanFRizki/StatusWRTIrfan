@@ -160,7 +160,7 @@ install_nikki() {
   loading_progress "APK: Menginstal luci-i18n-nikki-zh-cn"
   echo -e "${GREEN}${pkg}${NC}"
   
-  # Gabungkan proses file blm.tar.gz dan update INDO.yaml
+  # Proses file blm.tar.gz dan update INDO.yaml
   if [ -z "$SRC_DIR" ]; then
     echo -e "${RED}Repository belum di-clone. Silakan pilih opsi 1 terlebih dahulu.${NC}"
     return
@@ -279,7 +279,35 @@ install_wrtbwmon() {
 }
 
 # ========================
-# Fungsi 8: Tampilkan instruksi konfigurasi manual wrtbwmon
+# Fungsi 8: Hapus folder repository
+# ========================
+remove_repo() {
+  if [ -n "$SRC_DIR" ]; then
+    rm -rf "$SRC_DIR" > /dev/null 2>&1
+    loading_progress "Menghapus folder repository"
+    echo -e "${GREEN}Folder repository telah dihapus.${NC}"
+    SRC_DIR=""
+  else
+    echo -e "${YELLOW}Repository belum di-clone.${NC}"
+  fi
+}
+
+# ========================
+# Fungsi 9: Install semuanya
+# ========================
+install_all() {
+  clone_repo
+  install_nikki
+  update_vnstat
+  update_nlbwmon
+  create_nftables
+  install_wrtbwmon
+  show_instructions
+  remove_repo
+}
+
+# ========================
+# Fungsi 10: Tampilkan instruksi konfigurasi manual wrtbwmon
 # ========================
 show_instructions() {
   echo -e "${CYAN}-----------------------------------------------------------${NC}"
@@ -308,8 +336,10 @@ main_menu() {
     echo -e "${YELLOW}5) Buat file nftables ( FIX TTL 63 )${NC}"
     echo -e "${YELLOW}6) Instal dan konfigurasi wrtbwmon${NC}"
     echo -e "${YELLOW}7) Tampilkan instruksi konfigurasi manual wrtbwmon${NC}"
-    echo -e "${YELLOW}8) Keluar${NC}"
-    echo -ne "${CYAN}Pilih opsi [1-8]: ${NC}"
+    echo -e "${YELLOW}8) Hapus folder repository${NC}"
+    echo -e "${YELLOW}9) Install semuanya${NC}"
+    echo -e "${YELLOW}10) Keluar${NC}"
+    echo -ne "${CYAN}Pilih opsi [1-10]: ${NC}"
     read choice
     case $choice in
       1) clone_repo ;;
@@ -319,7 +349,9 @@ main_menu() {
       5) create_nftables ;;
       6) install_wrtbwmon ;;
       7) show_instructions ;;
-      8) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
+      8) remove_repo ;;
+      9) install_all ;;
+      10) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
       *) echo -e "${RED}Pilihan tidak valid. Coba lagi.${NC}" ;;
     esac
     echo -e "${CYAN}Tekan Enter untuk kembali ke menu...${NC}"
