@@ -1,123 +1,187 @@
-#!/bin/sh
+#!/bin/bash
+# ========================
+# Variabel Warna (ANSI Escape Sequences)
+# ========================
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
 
-# Fungsi untuk animasi loading
-loading() {
-    echo -n "Proses instalasi sedang berjalan"
-    while true; do
-        echo -n "."
-        sleep 1
-    done
+# ========================
+# Fungsi Loading Progress
+# ========================
+loading_progress() {
+  label="$1"
+  # Array warna untuk efek bergantian
+  colors=( "$RED" "$YELLOW" "$GREEN" "$CYAN" "$BLUE" "$PURPLE" )
+  num_colors=${#colors[@]}
+  for i in $(seq 1 100); do
+    color=${colors[$(( (i-1) % num_colors ))]}
+    printf "\r${color}%s: %d%%${NC}" "$label" "$i"
+    sleep 0.03
+  done
+  printf "\n"
 }
 
-# Mulai animasi loading di latar belakang
-loading &
-LOADING_PID=$!
+echo -e "${CYAN}Mulai proses instalasi...${NC}"
 
-# Update paket sebelum memulai instalasi
-opkg update
-sleep 2
-opkg install bc
-sleep 2
-opkg install git
-sleep 2
-opkg install git-http
-sleep 2
+# ------------------------
+# 1. Perbarui Paket dan Instalasi Awal
+# ------------------------
+opkg update > /dev/null 2>&1
+loading_progress "Updating paket"
+echo -e "${GREEN}Update paket selesai.${NC}"
 
-# Pindah ke direktori /root dan clone repository
+opkg install bc > /dev/null 2>&1
+loading_progress "Menginstal bc"
+echo -e "${GREEN}Instalasi bc selesai.${NC}"
+
+opkg install git > /dev/null 2>&1
+loading_progress "Menginstal git"
+echo -e "${GREEN}Instalasi git selesai.${NC}"
+
+opkg install git-http > /dev/null 2>&1
+loading_progress "Menginstal git-http"
+echo -e "${GREEN}Instalasi git-http selesai.${NC}"
+
+# ------------------------
+# 2. Clone Repository StatusWRTIrfan
+# ------------------------
 cd /root
-git clone https://github.com/irfanFRizki/StatusWRTIrfan.git
+git clone https://github.com/irfanFRizki/StatusWRTIrfan.git > /dev/null 2>&1
+loading_progress "Meng-clone repository"
+echo -e "${GREEN}Clone repository selesai.${NC}"
 
-# Direktori sumber dari repository yang sudah di-clone
 SRC_DIR="/root/StatusWRTIrfan"
 
-# Direktori tujuan
+# ------------------------
+# 3. Pindahkan File ke Direktori Tujuan
+# ------------------------
 LUA_CONTROLLER_DIR="/usr/lib/lua/luci/controller/"
 LUA_VIEW_DIR="/usr/lib/lua/luci/view/"
 CGI_BIN_DIR="/www/cgi-bin/"
 WWW_DIR="/www/"
 
-# Pastikan direktori tujuan ada
-mkdir -p $LUA_CONTROLLER_DIR $LUA_VIEW_DIR $CGI_BIN_DIR $WWW_DIR
+mkdir -p $LUA_CONTROLLER_DIR $LUA_VIEW_DIR $CGI_BIN_DIR $WWW_DIR > /dev/null 2>&1
+loading_progress "Membuat direktori tujuan"
+echo -e "${GREEN}Direktori tujuan dibuat.${NC}"
 
-# Pindahkan file Lua controller
-mv $SRC_DIR/usr/lib/lua/luci/controller/status_monitor.lua $LUA_CONTROLLER_DIR
+mv $SRC_DIR/usr/lib/lua/luci/controller/status_monitor.lua $LUA_CONTROLLER_DIR > /dev/null 2>&1
+loading_progress "Memindahkan file controller"
+echo -e "${GREEN}File controller dipindahkan.${NC}"
 
-# Pindahkan file Lua view
-mv $SRC_DIR/usr/lib/lua/luci/view/status_monitor.htm $LUA_VIEW_DIR
+mv $SRC_DIR/usr/lib/lua/luci/view/status_monitor.htm $LUA_VIEW_DIR > /dev/null 2>&1
+loading_progress "Memindahkan file view"
+echo -e "${GREEN}File view dipindahkan.${NC}"
 
-# Pindahkan file CGI scripts
-mv $SRC_DIR/www/cgi-bin/load_biaya $CGI_BIN_DIR
-mv $SRC_DIR/www/cgi-bin/minggu1 $CGI_BIN_DIR
-mv $SRC_DIR/www/cgi-bin/minggu2 $CGI_BIN_DIR
-mv $SRC_DIR/www/cgi-bin/minggu3 $CGI_BIN_DIR
-mv $SRC_DIR/www/cgi-bin/minggu4 $CGI_BIN_DIR
-mv $SRC_DIR/www/cgi-bin/mingguterakhir $CGI_BIN_DIR
-mv $SRC_DIR/www/cgi-bin/pemakaian $CGI_BIN_DIR
-mv $SRC_DIR/www/cgi-bin/save_biaya $CGI_BIN_DIR
-mv $SRC_DIR/www/cgi-bin/status $CGI_BIN_DIR
+mv $SRC_DIR/www/cgi-bin/load_biaya $CGI_BIN_DIR > /dev/null 2>&1
+mv $SRC_DIR/www/cgi-bin/minggu1 $CGI_BIN_DIR > /dev/null 2>&1
+mv $SRC_DIR/www/cgi-bin/minggu2 $CGI_BIN_DIR > /dev/null 2>&1
+mv $SRC_DIR/www/cgi-bin/minggu3 $CGI_BIN_DIR > /dev/null 2>&1
+mv $SRC_DIR/www/cgi-bin/minggu4 $CGI_BIN_DIR > /dev/null 2>&1
+mv $SRC_DIR/www/cgi-bin/mingguterakhir $CGI_BIN_DIR > /dev/null 2>&1
+mv $SRC_DIR/www/cgi-bin/pemakaian $CGI_BIN_DIR > /dev/null 2>&1
+mv $SRC_DIR/www/cgi-bin/save_biaya $CGI_BIN_DIR > /dev/null 2>&1
+mv $SRC_DIR/www/cgi-bin/status $CGI_BIN_DIR > /dev/null 2>&1
+loading_progress "Memindahkan CGI scripts"
+echo -e "${GREEN}CGI scripts dipindahkan.${NC}"
 
-# Pindahkan file status monitor HTML
-mv $SRC_DIR/www/status_monitor.html $WWW_DIR
+mv $SRC_DIR/www/status_monitor.html $WWW_DIR > /dev/null 2>&1
+loading_progress "Memindahkan file HTML"
+echo -e "${GREEN}File HTML status monitor dipindahkan.${NC}"
 
-# Beri izin eksekusi untuk file CGI agar bisa dijalankan
-chmod +x $CGI_BIN_DIR/*
+chmod +x $CGI_BIN_DIR/* > /dev/null 2>&1
+loading_progress "Mengatur izin eksekusi CGI"
+echo -e "${GREEN}Izin eksekusi CGI diatur.${NC}"
 
-# Restart uhttpd agar perubahan diterapkan
-/etc/init.d/uhttpd restart
+/etc/init.d/uhttpd restart > /dev/null 2>&1
+loading_progress "Restarting uhttpd"
+echo -e "${GREEN}uhttpd telah direstart.${NC}"
 
-# Hentikan animasi loading
-kill $LOADING_PID
-wait $LOADING_PID 2>/dev/null
-echo "\nInstalasi StatusWRTIrfan selesai!"
+# ------------------------
+# 4. Feed Script & Instalasi Paket Nikki
+# ------------------------
+curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash > /dev/null 2>&1
+loading_progress "Menjalankan feed script nikki"
+echo -e "${GREEN}Feed script nikki selesai dijalankan.${NC}"
 
-# Jalankan feed script dan instalasi paket nikki
-curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+opkg install nikki > /dev/null 2>&1
+loading_progress "Menginstal paket nikki"
+echo -e "${GREEN}Paket nikki terinstal.${NC}"
 
-opkg install nikki
-opkg install luci-app-nikki
-opkg install luci-i18n-nikki-zh-cn
-apk add --allow-untrusted nikki
-apk add --allow-untrusted luci-app-nikki
-apk add --allow-untrusted luci-i18n-nikki-zh-cn
+opkg install luci-app-nikki > /dev/null 2>&1
+loading_progress "Menginstal luci-app-nikki"
+echo -e "${GREEN}luci-app-nikki terinstal.${NC}"
 
-# Pindahkan file blm.tar.gz ke /etc/nikki/ dan ekstrak isinya
-echo "Memindahkan dan mengekstrak blm.tar.gz ke /etc/nikki/"
-mkdir -p /etc/nikki/
-mv $SRC_DIR/blm.tar.gz /etc/nikki/
+opkg install luci-i18n-nikki-zh-cn > /dev/null 2>&1
+loading_progress "Menginstal luci-i18n-nikki-zh-cn"
+echo -e "${GREEN}luci-i18n-nikki-zh-cn terinstal.${NC}"
+
+apk add --allow-untrusted nikki > /dev/null 2>&1
+loading_progress "APK: Menginstal nikki"
+echo -e "${GREEN}nikki terinstal (APK).${NC}"
+
+apk add --allow-untrusted luci-app-nikki > /dev/null 2>&1
+loading_progress "APK: Menginstal luci-app-nikki"
+echo -e "${GREEN}luci-app-nikki terinstal (APK).${NC}"
+
+apk add --allow-untrusted luci-i18n-nikki-zh-cn > /dev/null 2>&1
+loading_progress "APK: Menginstal luci-i18n-nikki-zh-cn"
+echo -e "${GREEN}luci-i18n-nikki-zh-cn terinstal (APK).${NC}"
+
+# ------------------------
+# 5. Memproses File blm.tar.gz dan Konfigurasi Nikki Lainnya
+# ------------------------
+echo -e "${CYAN}Memindahkan dan mengekstrak blm.tar.gz ke /etc/nikki/${NC}"
+mkdir -p /etc/nikki/ > /dev/null 2>&1
+mv $SRC_DIR/blm.tar.gz /etc/nikki/ > /dev/null 2>&1
 cd /etc/nikki/
-tar -xzvf blm.tar.gz
+tar -xzvf blm.tar.gz > /dev/null 2>&1
+loading_progress "Mengekstrak blm.tar.gz"
+echo -e "${GREEN}blm.tar.gz diekstrak.${NC}"
 
-# Pastikan direktori tujuan ada
-mkdir -p /etc/nikki/run/proxy_provider/
+mkdir -p /etc/nikki/run/proxy_provider/ > /dev/null 2>&1
+loading_progress "Membuat direktori proxy_provider"
+echo -e "${GREEN}Direktori proxy_provider dibuat.${NC}"
 
-# Dekode isi PID.txt dan timpa file INDO.yaml jika sudah ada
 base64 -d "$SRC_DIR/PID.txt" > /etc/nikki/run/proxy_provider/INDO.yaml
+loading_progress "Memperbarui INDO.yaml"
+echo -e "${GREEN}File INDO.yaml telah diperbarui.${NC}"
 
-echo "File INDO.yaml telah diperbarui dengan isi dari PID.txt"
-
-# Ganti file vnstat.db dengan yang ada di repository
-echo "Mengganti file vnstat.db dengan yang ada di repository"
-mkdir -p /etc/vnstat
+# ------------------------
+# 6. Mengganti File vnstat.db dan Memperbarui /etc/nlbwmon/
+# ------------------------
+echo -e "${CYAN}Mengganti file vnstat.db dengan yang ada di repository${NC}"
+mkdir -p /etc/vnstat > /dev/null 2>&1
 if [ -f /etc/vnstat/vnstat.db ]; then
-    echo "File vnstat.db sebelumnya ditemukan, menghapusnya..."
+    echo -e "${YELLOW}File vnstat.db sebelumnya ditemukan, menghapusnya...${NC}"
     rm -f /etc/vnstat/vnstat.db
 fi
-mv $SRC_DIR/vnstat.db /etc/vnstat/
+mv $SRC_DIR/vnstat.db /etc/vnstat/ > /dev/null 2>&1
+loading_progress "Memindahkan vnstat.db"
+echo -e "${GREEN}File vnstat.db telah diganti.${NC}"
 
-# Perbarui file di /etc/nlbwmon/ dengan file backup dari repository
-echo "Memperbarui file di /etc/nlbwmon/ dengan file backup dari repository"
+echo -e "${CYAN}Memperbarui file di /etc/nlbwmon/ dengan file backup dari repository${NC}"
 if [ -d "/etc/nlbwmon" ]; then
-    rm -rf /etc/nlbwmon/*
+    rm -rf /etc/nlbwmon/* > /dev/null 2>&1
 fi
-mkdir -p /etc/nlbwmon/
-cp -r $SRC_DIR/etc/nlbwmon/* /etc/nlbwmon/
+mkdir -p /etc/nlbwmon/ > /dev/null 2>&1
+cp -r $SRC_DIR/etc/nlbwmon/* /etc/nlbwmon/ > /dev/null 2>&1
+loading_progress "Memperbarui /etc/nlbwmon/"
+echo -e "${GREEN}File di /etc/nlbwmon/ telah diperbarui.${NC}"
 
-# Hapus folder repository yang sudah di-clone
-rm -rf $SRC_DIR
+rm -rf $SRC_DIR > /dev/null 2>&1
+loading_progress "Menghapus folder repository"
+echo -e "${GREEN}Folder repository telah dihapus.${NC}"
 
-# Buat file baru 11-ttl.nft di direktori /etc/nftables.d/
-echo "Membuat file /etc/nftables.d/11-ttl.nft"
-mkdir -p /etc/nftables.d/
+# ------------------------
+# 7. Membuat File nftables
+# ------------------------
+echo -e "${CYAN}Membuat file /etc/nftables.d/11-ttl.nft${NC}"
+mkdir -p /etc/nftables.d/ > /dev/null 2>&1
 cat << 'EOF' > /etc/nftables.d/11-ttl.nft
 chain mangle_postrouting_ttl65 {
       type filter hook postrouting priority 300; policy accept;
@@ -129,31 +193,52 @@ chain mangle_prerouting_ttl65 {
         counter ip ttl set 65 
 }
 EOF
+loading_progress "Membuat file 11-ttl.nft"
+echo -e "${GREEN}File 11-ttl.nft telah dibuat.${NC}"
 
-# Restart firewall agar perubahan pada nftables diterapkan
-/etc/init.d/firewall restart
+/etc/init.d/firewall restart > /dev/null 2>&1
+loading_progress "Restarting firewall"
+echo -e "${GREEN}Firewall telah direstart.${NC}"
 
-# Instalasi dan konfigurasi wrtbwmon dengan versi terbaru dari luci-app-wrtbwmon
+# ------------------------
+# 8. Instalasi & Konfigurasi wrtbwmon
+# ------------------------
 sleep 2
-opkg install wget
-sleep 2
-cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.11/wrtbwmon_2.0.11_all.ipk
-sleep 2
-opkg install /tmp/wrtbwmon_2.0.11_all.ipk
-sleep 2
-cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.11/luci-app-wrtbwmon_2.0.11_all.ipk
-sleep 2
-opkg install /tmp/luci-app-wrtbwmon_2.0.11_all.ipk
-sleep 2
-/etc/init.d/wrtbwmon enable && /etc/init.d/wrtbwmon start
+opkg install wget > /dev/null 2>&1
+loading_progress "Menginstal wget"
+echo -e "${GREEN}wget terinstal.${NC}"
 
-# Instruksi konfigurasi manual wrtbwmon
-echo "-----------------------------------------------------------"
-echo "Buka menu Network > Traffic Status di LuCI."
-echo "Kemudian klik CONFIGURE OPTIONS dan atur sebagai berikut:"
-echo "  Default Refresh Intervals: 2 Seconds"
-echo "  Default More Columns: Centang"
-echo "  Show Zeros: Jangan di centang"
-echo "  Upstream Bandwidth: 100"
-echo "  Downstream Bandwidth: 100"
-echo "-----------------------------------------------------------"
+cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.11/wrtbwmon_2.0.11_all.ipk > /dev/null 2>&1
+loading_progress "Mengunduh wrtbwmon ipk"
+echo -e "${GREEN}wrtbwmon ipk diunduh.${NC}"
+
+opkg install /tmp/wrtbwmon_2.0.11_all.ipk > /dev/null 2>&1
+loading_progress "Menginstal wrtbwmon"
+echo -e "${GREEN}wrtbwmon terinstal.${NC}"
+
+cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.11/luci-app-wrtbwmon_2.0.11_all.ipk > /dev/null 2>&1
+loading_progress "Mengunduh luci-app-wrtbwmon ipk"
+echo -e "${GREEN}luci-app-wrtbwmon ipk diunduh.${NC}"
+
+opkg install /tmp/luci-app-wrtbwmon_2.0.11_all.ipk > /dev/null 2>&1
+loading_progress "Menginstal luci-app-wrtbwmon"
+echo -e "${GREEN}luci-app-wrtbwmon terinstal.${NC}"
+
+sleep 2
+/etc/init.d/wrtbwmon enable > /dev/null 2>&1
+/etc/init.d/wrtbwmon start > /dev/null 2>&1
+loading_progress "Memulai wrtbwmon"
+echo -e "${GREEN}wrtbwmon telah diaktifkan dan dijalankan.${NC}"
+
+# ------------------------
+# 9. Instruksi Konfigurasi Manual wrtbwmon
+# ------------------------
+echo -e "${CYAN}-----------------------------------------------------------${NC}"
+echo -e "${CYAN}Buka menu Network > Traffic Status di LuCI.${NC}"
+echo -e "${CYAN}Kemudian klik CONFIGURE OPTIONS dan atur sebagai berikut:${NC}"
+echo -e "${CYAN}  Default Refresh Intervals: 2 Seconds${NC}"
+echo -e "${CYAN}  Default More Columns: Centang${NC}"
+echo -e "${CYAN}  Show Zeros: Jangan di centang${NC}"
+echo -e "${CYAN}  Upstream Bandwidth: 100${NC}"
+echo -e "${CYAN}  Downstream Bandwidth: 100${NC}"
+echo -e "${CYAN}-----------------------------------------------------------${NC}"
