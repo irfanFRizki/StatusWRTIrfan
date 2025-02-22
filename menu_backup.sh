@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 # ========================
-# Variabel Warna
+# Variabel Warna (ANSI Escape Sequences)
 # ========================
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 # ========================
 # Konfigurasi Global
 # ========================
-echo -n "${CYAN}Masukkan GITHUB_TOKEN: ${NC}"
+printf "${CYAN}Masukkan GITHUB_TOKEN: ${NC}"
 read GITHUB_TOKEN
 
 # Ambil username GitHub dari token
@@ -23,29 +23,29 @@ REPO_OWNER="irfanFRizki"
 REPO_NAME="StatusWRTIrfan"
 
 # Tampilkan banner informasi dengan warna-warni
-echo -e "${GREEN}========================================${NC}"
-echo -e "${RED}Repo Owner : ${YELLOW}$REPO_OWNER${NC}"
-echo -e "${BLUE}Repo Name  : ${PURPLE}$REPO_NAME${NC}"
-echo -e "${CYAN}GitHub User: ${GREEN}$GITHUB_USER${NC}"
-echo -e "${GREEN}========================================${NC}"
+printf "${GREEN}========================================${NC}\n"
+printf "${RED}Repo Owner : ${YELLOW}%s${NC}\n" "$REPO_OWNER"
+printf "${BLUE}Repo Name  : ${PURPLE}%s${NC}\n" "$REPO_NAME"
+printf "${CYAN}GitHub User: ${GREEN}%s${NC}\n" "$GITHUB_USER"
+printf "${GREEN}========================================${NC}\n\n"
 
 # ========================
 # Fungsi Menu Utama
 # ========================
 menu() {
-  echo -e "${CYAN}----------------------------${NC}"
-  echo -e "${CYAN}  Menu Backup GitHub${NC}"
-  echo -e "${CYAN}----------------------------${NC}"
-  echo -e "${YELLOW}1) Backup file (input path secara manual)${NC}"
-  echo -e "${YELLOW}2) Backup folder /etc/nlbwmon${NC}"
-  echo -e "${YELLOW}3) Keluar${NC}"
-  echo -n "${CYAN}Pilih opsi [1-3]: ${NC}"
+  printf "${CYAN}----------------------------${NC}\n"
+  printf "${CYAN}  Menu Backup GitHub${NC}\n"
+  printf "${CYAN}----------------------------${NC}\n"
+  printf "${YELLOW}1) Backup file (input path secara manual)${NC}\n"
+  printf "${YELLOW}2) Backup folder /etc/nlbwmon${NC}\n"
+  printf "${YELLOW}3) Keluar${NC}\n"
+  printf "${CYAN}Pilih opsi [1-3]: ${NC}"
   read pilihan
   case "$pilihan" in
     1) backup_file ;;
     2) backup_nlbwmon ;;
     3) exit 0 ;;
-    *) echo -e "${RED}Pilihan tidak valid. Coba lagi.${NC}" ;;
+    *) printf "${RED}Pilihan tidak valid. Coba lagi.${NC}\n" ;;
   esac
 }
 
@@ -62,18 +62,18 @@ loading_progress() {
     printf "\r${color}%s: %d%%${NC}" "$label" "$i"
     sleep 0.03
   done
-  echo ""
+  printf "\n"
 }
 
 # ========================
 # Fungsi Backup File (dinamis) dengan loading progress
 # ========================
 backup_file() {
-  echo -n "${CYAN}Masukkan path file yang ingin dibackup (misal: /etc/vnstat/vnstat.db): ${NC}"
+  printf "${CYAN}Masukkan path file yang ingin dibackup (misal: /etc/vnstat/vnstat.db): ${NC}"
   read FILE_PATH
 
   if [ ! -f "$FILE_PATH" ]; then
-    echo -e "${RED}File $FILE_PATH tidak ditemukan.${NC}"
+    printf "${RED}File %s tidak ditemukan.${NC}\n" "$FILE_PATH"
     return
   fi
 
@@ -113,9 +113,9 @@ EOF
 
   if echo "$RESPONSE" | grep -q '"commit":'; then
     loading_progress "Loading"
-    echo -e "${GREEN}Backup $FILE_PATH selesai.${NC}"
+    printf "${GREEN}Backup %s selesai.${NC}\n" "$FILE_PATH"
   else
-    echo -e "${RED}Backup gagal. Response: $RESPONSE${NC}"
+    printf "${RED}Backup gagal. Response: %s${NC}\n" "$RESPONSE"
   fi
 }
 
@@ -169,13 +169,13 @@ EOF
 
     if echo "$RESPONSE" | grep -q '"commit":'; then
       loading_progress "Loading for $FILENAME"
-      echo -e "${GREEN}Backup $FILENAME selesai.${NC}"
+      printf "${GREEN}Backup %s selesai.${NC}\n" "$FILENAME"
     else
-      echo -e "${RED}Backup $FILENAME gagal.${NC}"
+      printf "${RED}Backup %s gagal.${NC}\n" "$FILENAME"
     fi
   done
 
-  echo -e "${BLUE}Backup folder nlbwmon selesai.${NC}"
+  printf "${BLUE}Backup folder nlbwmon selesai.${NC}\n"
 }
 
 # ========================
