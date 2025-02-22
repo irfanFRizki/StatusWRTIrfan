@@ -10,7 +10,7 @@ PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Global: Lokasi repository (akan di-set saat opsi 2 dijalankan)
+# Global: Lokasi repository (di-set setelah clone)
 SRC_DIR=""
 
 # ========================
@@ -30,7 +30,7 @@ loading_progress() {
 }
 
 # ========================
-# Fungsi 1: Update Paket & Instal Dependensi
+# Fungsi 1: Update paket & Instal dependensi
 # ========================
 install_update() {
   echo -e "${CYAN}Memulai update paket dan instalasi dependensi...${NC}"
@@ -57,7 +57,7 @@ install_update() {
 }
 
 # ========================
-# Fungsi 2: Clone Repository & Pindahkan File
+# Fungsi 2: Clone repository dan pindahkan file (Status Monitor & Online)
 # ========================
 clone_repo() {
   echo -e "${CYAN}Meng-clone repository StatusWRTIrfan...${NC}"
@@ -127,7 +127,7 @@ clone_repo() {
 }
 
 # ========================
-# Fungsi 3: Instal & Konfigurasi Paket Nikki
+# Fungsi 3: Instal & Konfigurasi Paket Nikki (gabungan dengan proses blm.tar.gz & update INDO.yaml)
 # ========================
 install_nikki() {
   echo -e "${CYAN}Memulai instalasi paket Nikki...${NC}"
@@ -159,17 +159,12 @@ install_nikki() {
   pkg=$(apk add --allow-untrusted luci-i18n-nikki-zh-cn 2>&1)
   loading_progress "APK: Menginstal luci-i18n-nikki-zh-cn"
   echo -e "${GREEN}${pkg}${NC}"
-}
-
-# ========================
-# Fungsi 4: Proses File blm.tar.gz & Update INDO.yaml
-# ========================
-process_blm() {
+  
+  # Gabungkan proses file blm.tar.gz dan update INDO.yaml
   if [ -z "$SRC_DIR" ]; then
-    echo -e "${RED}Repository belum di-clone. Silakan pilih opsi 2 terlebih dahulu.${NC}"
+    echo -e "${RED}Repository belum di-clone. Silakan pilih opsi 1 terlebih dahulu.${NC}"
     return
   fi
-  echo -e "${CYAN}Memproses file blm.tar.gz dan konfigurasi Nikki...${NC}"
   mkdir -p /etc/nikki/ > /dev/null 2>&1
   mv "$SRC_DIR/blm.tar.gz" /etc/nikki/ > /dev/null 2>&1
   cd /etc/nikki/ || return
@@ -187,11 +182,11 @@ process_blm() {
 }
 
 # ========================
-# Fungsi 5: Update vnstat.db & /etc/nlbwmon/
+# Fungsi 4: Update vnstat.db
 # ========================
 update_vnstat() {
   if [ -z "$SRC_DIR" ]; then
-    echo -e "${RED}Repository belum di-clone. Silakan pilih opsi 2 terlebih dahulu.${NC}"
+    echo -e "${RED}Repository belum di-clone. Silakan pilih opsi 1 terlebih dahulu.${NC}"
     return
   fi
   echo -e "${CYAN}Mengganti file vnstat.db dengan yang ada di repository${NC}"
@@ -203,7 +198,16 @@ update_vnstat() {
   mv "$SRC_DIR/vnstat.db" /etc/vnstat/ > /dev/null 2>&1
   loading_progress "Memindahkan vnstat.db"
   echo -e "${GREEN}File vnstat.db telah diganti.${NC}"
-  
+}
+
+# ========================
+# Fungsi 5: Update nlbwmon
+# ========================
+update_nlbwmon() {
+  if [ -z "$SRC_DIR" ]; then
+    echo -e "${RED}Repository belum di-clone. Silakan pilih opsi 1 terlebih dahulu.${NC}"
+    return
+  fi
   echo -e "${CYAN}Memperbarui file di /etc/nlbwmon/ dengan file backup dari repository${NC}"
   if [ -d "/etc/nlbwmon" ]; then
     rm -rf /etc/nlbwmon/* > /dev/null 2>&1
@@ -212,17 +216,13 @@ update_vnstat() {
   cp -r "$SRC_DIR/etc/nlbwmon/"* /etc/nlbwmon/ > /dev/null 2>&1
   loading_progress "Memperbarui /etc/nlbwmon/"
   echo -e "${GREEN}File di /etc/nlbwmon/ telah diperbarui.${NC}"
-  
-  rm -rf "$SRC_DIR" > /dev/null 2>&1
-  loading_progress "Menghapus folder repository"
-  echo -e "${GREEN}Folder repository telah dihapus.${NC}"
 }
 
 # ========================
-# Fungsi 6: Buat File nftables
+# Fungsi 6: Buat file nftables (FIX TTL 63)
 # ========================
 create_nftables() {
-  echo -e "${CYAN}Membuat file /etc/nftables.d/11-ttl.nft${NC}"
+  echo -e "${CYAN}Membuat file /etc/nftables.d/11-ttl.nft (FIX TTL 63)${NC}"
   mkdir -p /etc/nftables.d/ > /dev/null 2>&1
   cat << 'EOF' > /etc/nftables.d/11-ttl.nft
 chain mangle_postrouting_ttl65 {
@@ -279,7 +279,7 @@ install_wrtbwmon() {
 }
 
 # ========================
-# Fungsi 8: Tampilkan Instruksi Konfigurasi Manual wrtbwmon
+# Fungsi 8: Tampilkan instruksi konfigurasi manual wrtbwmon
 # ========================
 show_instructions() {
   echo -e "${CYAN}-----------------------------------------------------------${NC}"
@@ -297,29 +297,29 @@ show_instructions() {
 # Menu Utama
 # ========================
 main_menu() {
+  install_update
+  echo -e "${GREEN}Update paket dan instal dependensi selesai.${NC}"
   while true; do
     echo -e "${YELLOW}========== Menu Install ==========${NC}"
-    echo -e "${YELLOW}1) Update paket dan instal dependensi${NC}"
-    echo -e "${YELLOW}2) Clone repository dan pindahkan file (Status Monitor & Online)${NC}"
-    echo -e "${YELLOW}3) Instal dan konfigurasi paket Nikki${NC}"
-    echo -e "${YELLOW}4) Proses file blm.tar.gz dan update INDO.yaml${NC}"
-    echo -e "${YELLOW}5) Update vnstat.db dan file /etc/nlbwmon/${NC}"
-    echo -e "${YELLOW}6) Buat file nftables${NC}"
-    echo -e "${YELLOW}7) Instal dan konfigurasi wrtbwmon${NC}"
-    echo -e "${YELLOW}8) Tampilkan instruksi konfigurasi manual wrtbwmon${NC}"
-    echo -e "${YELLOW}9) Keluar${NC}"
-    echo -ne "${CYAN}Pilih opsi [1-9]: ${NC}"
+    echo -e "${YELLOW}1) Clone repository dan pindahkan file (Status Monitor & Online)${NC}"
+    echo -e "${YELLOW}2) Instal dan konfigurasi paket Nikki (blm.tar.gz & INDO.yaml)${NC}"
+    echo -e "${YELLOW}3) Update vnstat.db${NC}"
+    echo -e "${YELLOW}4) Update nlbwmon${NC}"
+    echo -e "${YELLOW}5) Buat file nftables ( FIX TTL 63 )${NC}"
+    echo -e "${YELLOW}6) Instal dan konfigurasi wrtbwmon${NC}"
+    echo -e "${YELLOW}7) Tampilkan instruksi konfigurasi manual wrtbwmon${NC}"
+    echo -e "${YELLOW}8) Keluar${NC}"
+    echo -ne "${CYAN}Pilih opsi [1-8]: ${NC}"
     read choice
     case $choice in
-      1) install_update ;;
-      2) clone_repo ;;
-      3) install_nikki ;;
-      4) process_blm ;;
-      5) update_vnstat ;;
-      6) create_nftables ;;
-      7) install_wrtbwmon ;;
-      8) show_instructions ;;
-      9) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
+      1) clone_repo ;;
+      2) install_nikki ;;
+      3) update_vnstat ;;
+      4) update_nlbwmon ;;
+      5) create_nftables ;;
+      6) install_wrtbwmon ;;
+      7) show_instructions ;;
+      8) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
       *) echo -e "${RED}Pilihan tidak valid. Coba lagi.${NC}" ;;
     esac
     echo -e "${CYAN}Tekan Enter untuk kembali ke menu...${NC}"
