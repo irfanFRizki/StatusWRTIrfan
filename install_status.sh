@@ -35,17 +35,17 @@ opkg update > /dev/null 2>&1
 loading_progress "Updating paket"
 echo -e "${GREEN}Update paket selesai.${NC}"
 
-opkg install bc > /dev/null 2>&1
+OPKG_BC=$(opkg install bc 2>&1)
 loading_progress "Menginstal bc"
-echo -e "${GREEN}Instalasi bc selesai.${NC}"
+echo -e "${GREEN}${OPKG_BC}${NC}"
 
-opkg install git > /dev/null 2>&1
+OPKG_GIT=$(opkg install git 2>&1)
 loading_progress "Menginstal git"
-echo -e "${GREEN}Instalasi git selesai.${NC}"
+echo -e "${GREEN}${OPKG_GIT}${NC}"
 
-opkg install git-http > /dev/null 2>&1
+OPKG_GIT_HTTP=$(opkg install git-http 2>&1)
 loading_progress "Menginstal git-http"
-echo -e "${GREEN}Instalasi git-http selesai.${NC}"
+echo -e "${GREEN}${OPKG_GIT_HTTP}${NC}"
 
 # ------------------------
 # 2. Clone Repository StatusWRTIrfan
@@ -69,14 +69,29 @@ mkdir -p $LUA_CONTROLLER_DIR $LUA_VIEW_DIR $CGI_BIN_DIR $WWW_DIR > /dev/null 2>&
 loading_progress "Membuat direktori tujuan"
 echo -e "${GREEN}Direktori tujuan dibuat.${NC}"
 
+# Pindahkan file status_monitor
 mv $SRC_DIR/usr/lib/lua/luci/controller/status_monitor.lua $LUA_CONTROLLER_DIR > /dev/null 2>&1
-loading_progress "Memindahkan file controller"
-echo -e "${GREEN}File controller dipindahkan.${NC}"
+loading_progress "Memindahkan file status_monitor.lua"
+echo -e "${GREEN}File status_monitor.lua dipindahkan.${NC}"
 
 mv $SRC_DIR/usr/lib/lua/luci/view/status_monitor.htm $LUA_VIEW_DIR > /dev/null 2>&1
-loading_progress "Memindahkan file view"
-echo -e "${GREEN}File view dipindahkan.${NC}"
+loading_progress "Memindahkan file status_monitor.htm"
+echo -e "${GREEN}File status_monitor.htm dipindahkan.${NC}"
 
+# Pindahkan file online
+mv $SRC_DIR/usr/bin/online.sh /usr/bin/online.sh > /dev/null 2>&1
+loading_progress "Memindahkan file online.sh"
+echo -e "${GREEN}File online.sh dipindahkan ke /usr/bin.${NC}"
+
+mv $SRC_DIR/usr/lib/lua/luci/controller/online.lua $LUA_CONTROLLER_DIR > /dev/null 2>&1
+loading_progress "Memindahkan file online.lua"
+echo -e "${GREEN}File online.lua dipindahkan.${NC}"
+
+mv $SRC_DIR/usr/lib/lua/luci/view/online.htm $LUA_VIEW_DIR > /dev/null 2>&1
+loading_progress "Memindahkan file online.htm"
+echo -e "${GREEN}File online.htm dipindahkan.${NC}"
+
+# Pindahkan file CGI scripts
 mv $SRC_DIR/www/cgi-bin/load_biaya $CGI_BIN_DIR > /dev/null 2>&1
 mv $SRC_DIR/www/cgi-bin/minggu1 $CGI_BIN_DIR > /dev/null 2>&1
 mv $SRC_DIR/www/cgi-bin/minggu2 $CGI_BIN_DIR > /dev/null 2>&1
@@ -108,29 +123,29 @@ curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/f
 loading_progress "Menjalankan feed script nikki"
 echo -e "${GREEN}Feed script nikki selesai dijalankan.${NC}"
 
-opkg install nikki > /dev/null 2>&1
+OPKG_NIKKI=$(opkg install nikki 2>&1)
 loading_progress "Menginstal paket nikki"
-echo -e "${GREEN}Paket nikki terinstal.${NC}"
+echo -e "${GREEN}${OPKG_NIKKI}${NC}"
 
-opkg install luci-app-nikki > /dev/null 2>&1
+OPKG_LUCI_NIKKI=$(opkg install luci-app-nikki 2>&1)
 loading_progress "Menginstal luci-app-nikki"
-echo -e "${GREEN}luci-app-nikki terinstal.${NC}"
+echo -e "${GREEN}${OPKG_LUCI_NIKKI}${NC}"
 
-opkg install luci-i18n-nikki-zh-cn > /dev/null 2>&1
+OPKG_LUCI_I18N=$(opkg install luci-i18n-nikki-zh-cn 2>&1)
 loading_progress "Menginstal luci-i18n-nikki-zh-cn"
-echo -e "${GREEN}luci-i18n-nikki-zh-cn terinstal.${NC}"
+echo -e "${GREEN}${OPKG_LUCI_I18N}${NC}"
 
-apk add --allow-untrusted nikki > /dev/null 2>&1
+APK_NIKKI=$(apk add --allow-untrusted nikki 2>&1)
 loading_progress "APK: Menginstal nikki"
-echo -e "${GREEN}nikki terinstal (APK).${NC}"
+echo -e "${GREEN}${APK_NIKKI}${NC}"
 
-apk add --allow-untrusted luci-app-nikki > /dev/null 2>&1
+APK_LUCI_NIKKI=$(apk add --allow-untrusted luci-app-nikki 2>&1)
 loading_progress "APK: Menginstal luci-app-nikki"
-echo -e "${GREEN}luci-app-nikki terinstal (APK).${NC}"
+echo -e "${GREEN}${APK_LUCI_NIKKI}${NC}"
 
-apk add --allow-untrusted luci-i18n-nikki-zh-cn > /dev/null 2>&1
+APK_LUCI_I18N=$(apk add --allow-untrusted luci-i18n-nikki-zh-cn 2>&1)
 loading_progress "APK: Menginstal luci-i18n-nikki-zh-cn"
-echo -e "${GREEN}luci-i18n-nikki-zh-cn terinstal (APK).${NC}"
+echo -e "${GREEN}${APK_LUCI_I18N}${NC}"
 
 # ------------------------
 # 5. Memproses File blm.tar.gz dan Konfigurasi Nikki Lainnya
@@ -204,25 +219,25 @@ echo -e "${GREEN}Firewall telah direstart.${NC}"
 # 8. Instalasi & Konfigurasi wrtbwmon
 # ------------------------
 sleep 2
-opkg install wget > /dev/null 2>&1
+OPKG_WGET=$(opkg install wget 2>&1)
 loading_progress "Menginstal wget"
-echo -e "${GREEN}wget terinstal.${NC}"
+echo -e "${GREEN}${OPKG_WGET}${NC}"
 
 cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.11/wrtbwmon_2.0.11_all.ipk > /dev/null 2>&1
 loading_progress "Mengunduh wrtbwmon ipk"
 echo -e "${GREEN}wrtbwmon ipk diunduh.${NC}"
 
-opkg install /tmp/wrtbwmon_2.0.11_all.ipk > /dev/null 2>&1
+OPKG_WRTBWMON=$(opkg install /tmp/wrtbwmon_2.0.11_all.ipk 2>&1)
 loading_progress "Menginstal wrtbwmon"
-echo -e "${GREEN}wrtbwmon terinstal.${NC}"
+echo -e "${GREEN}${OPKG_WRTBWMON}${NC}"
 
 cd /tmp && wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.11/luci-app-wrtbwmon_2.0.11_all.ipk > /dev/null 2>&1
 loading_progress "Mengunduh luci-app-wrtbwmon ipk"
 echo -e "${GREEN}luci-app-wrtbwmon ipk diunduh.${NC}"
 
-opkg install /tmp/luci-app-wrtbwmon_2.0.11_all.ipk > /dev/null 2>&1
+OPKG_LUCI_WRTBWMON=$(opkg install /tmp/luci-app-wrtbwmon_2.0.11_all.ipk 2>&1)
 loading_progress "Menginstal luci-app-wrtbwmon"
-echo -e "${GREEN}luci-app-wrtbwmon terinstal.${NC}"
+echo -e "${GREEN}${OPKG_LUCI_WRTBWMON}${NC}"
 
 sleep 2
 /etc/init.d/wrtbwmon enable > /dev/null 2>&1
