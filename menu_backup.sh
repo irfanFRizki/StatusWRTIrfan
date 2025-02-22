@@ -29,7 +29,7 @@ menu() {
 }
 
 # ========================
-# Fungsi Backup File (dinamis)
+# Fungsi Backup File (dinamis) dengan loading progress
 # ========================
 backup_file() {
   echo -n "Masukkan path file yang ingin dibackup (misal: /etc/vnstat/vnstat.db): "
@@ -53,7 +53,7 @@ backup_file() {
     "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$TARGET_PATH")
   SHA=$(echo "$EXISTING_RESPONSE" | grep -o '"sha": "[^"]*' | cut -d'"' -f4)
 
-  # Buat payload JSON, dengan menambahkan "sha" jika file sudah ada
+  # Buat payload JSON (dengan atau tanpa sha)
   if [ -n "$SHA" ]; then
     cat <<EOF > "$TMP_JSON"
 {
@@ -72,18 +72,30 @@ EOF
   fi
 
   # Lakukan PUT request ke GitHub API untuk upload/update file
-  curl -X PUT \
+  RESPONSE=$(curl -s -X PUT \
     -H "Authorization: token $GITHUB_TOKEN" \
     -H "Content-Type: application/json" \
     -d @"$TMP_JSON" \
-    "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$TARGET_PATH"
+    "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$TARGET_PATH")
 
   rm "$TMP_JSON"
-  echo "Backup $FILE_PATH selesai."
+
+  # Cek apakah backup berhasil dengan mencari key "commit" pada respons
+  if echo "$RESPONSE" | grep -q '"commit":'; then
+    # Tampilkan loading progress dari 1% ke 100%
+    for i in $(seq 1 100); do
+      printf "\rLoading: %d%%" "$i"
+      sleep 0.03
+    done
+    echo ""
+    echo "Backup $FILE_PATH selesai."
+  else
+    echo "Backup gagal. Response: $RESPONSE"
+  fi
 }
 
 # ========================
-# Fungsi Backup Folder nlbwmon
+# Fungsi Backup Folder nlbwmon (tanpa loading progress)
 # ========================
 backup_nlbwmon() {
   LOCAL_DIR="/etc/nlbwmon"
@@ -128,7 +140,7 @@ EOF
     fi
 
     # Lakukan PUT request untuk upload/update file ke GitHub
-    curl -X PUT \
+    curl -s -X PUT \
       -H "Authorization: token $GITHUB_TOKEN" \
       -H "Content-Type: application/json" \
       -d @"$TMP_JSON" \
