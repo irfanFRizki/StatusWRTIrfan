@@ -1,986 +1,927 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenWRT Status Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenWRT Status Dashboard</title>
+  
+  <!-- External Resources -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="text/javascript" src="https://192.168.1.1:19999/dashboard.js"></script>
+
+  <style>
+    /* Variabel dasar untuk tampilan ringan (light mode) */
+    :root {
+      --background-color: #fafafa;              /* Warna latar yang lembut */
+      --text-color: #333333;                    /* Teks gelap namun tidak terlalu kontras */
+      --box-background: rgba(255, 255, 255, 0.85);/* Sedikit transparan agar tampilan terasa modern */
+      --accent-color: #4a90e2;                   /* Biru lembut sebagai aksen */
+      --secondary-color: #50e3c2;                /* Hijau kebiruan yang segar */
+      --danger-color: #d0021b;
+      --border-radius: 12px;
+      --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      --gradient-accent: linear-gradient(45deg, #4a90e2, #50e3c2);
+    }
+
+    /* Tampilan untuk dark mode */
+    [data-theme="dark"] {
+  --background-color: #1e1e1e;
+  --text-color: #000000; 
+  --box-background: #2a2a2a;
+  --accent-color: #f5a623;
+  --secondary-color: #8b572a;
+  --gradient-accent: linear-gradient(45deg, #f5a623, #8b572a);
+}
+
+    /* Animasi */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
     
-    <!-- External Resources -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script type="text/javascript" src="https://192.168.1.1:19999/dashboard.js"></script>
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
 
-    <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 500;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      transition: background-color 0.5s ease, color 0.5s ease;
+    }
 
-    <!-- CSS Custom untuk OpenWRT Status -->
-    <style>
-        :root {
-            --background-color: #f0f2f5;
-            --text-color: #2d3436;
-            --box-background: rgba(255, 255, 255, 0.9);
-            --accent-color: #6366f1;
-            --secondary-color: #10b981;
-            --danger-color: #ef4444;
-            --border-radius: 16px;
-            --box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-        }
+    header {
+      background-color: var(--box-background);
+      padding: 15px;
+      box-shadow: var(--box-shadow);
+      text-align: center;
+    }
 
-        [data-theme="dark"] {
-            --text-color: var(--text-dark);
-            --text-secondary: #e0e0e0; /* Untuk teks sekunder */
-            text-shadow: 0 0 4px rgba(255, 255, 255, 0.1);
-            --background-color: #1a1a1a; /* Sedikit lebih terang dari hitam */
-            --box-background-color: #2d2d2d; /* Warna yang lebih kontras */
-            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            --accent-color: #f39c12;
-            --secondary-color: #c0392b;
-        }
-        
-        /* Animations */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
+    header h1 {
+      margin: 0;
+      font-size: 1.5em;
+      color: var(--accent-color);
+      font-weight: 600;
+    }
 
+    nav {
+      display: flex;
+      justify-content: center;
+      background-color: var(--box-background);
+      border-bottom: 1px solid var(--accent-color);
+    }
 
-        body {
-            font-family: 'Poppins', sans-serif;
-            font-weight: 500;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 0;
-            text-align: center;
-            transition: background-color 0.5s ease, color 0.5s ease;
-        }
+    nav button {
+      background: var(--gradient-accent);
+      border-radius: 12px;
+      padding: 18px 25px;
+      margin: 0 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      font-size: 1em;
+      text-transform: uppercase;
+      color: #ffffff;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-        header {
-            background-color: var(--box-background-color);
-            padding: 15px;
-            box-shadow: var(--box-shadow);
-            text-align: center;
-        }
+    nav button:hover, nav button.active {
+      background-color: var(--accent-color);
+      color: #fff;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 15px rgba(74, 144, 226, 0.3);
+    }
 
-        header h1 {
-            margin: 0;
-            font-size: 1.5em;
-            color: var(--accent-color);
-            font-weight: 600;
-        }
+    main {
+      padding: 20px;
+      display: none;
+    }
 
-        nav {
-            display: flex;
-            justify-content: center;
-            background-color: var(--box-background-color);
-            border-bottom: 1px solid var(--accent-color);
-        }
+    main.active {
+      display: block;
+    }
 
-        nav button {
-            background: var(--gradient-accent);
-            border-radius: 12px;
-            padding: 18px 25px;
-            margin: 0 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-            font-size: 1em;
-            text-transform: uppercase;
-            color: #ffffff; /* Putih murni untuk teks tombol */
-            font-weight: 600;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+    .status-box {
+      background-color: var(--box-background);
+      box-shadow: var(--box-shadow);
+      border-radius: var(--border-radius);
+      margin: 15px auto;
+      padding: 20px;
+      width: 90%;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
 
-        nav button:hover, nav button.active {
-            background-color: var(--accent-color);
-            color: #fff;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(99, 102, 241, 0.3);
-        }
+    .status-box:hover {
+      transform: translateY(-8px) rotateX(10deg);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
 
-        main {
-            padding: 20px;
-            display: none;
-        }
+    .status-title {
+      font-size: 1.3em;
+      margin-bottom: 10px;
+      color: var(--accent-color);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 700;
+    }
 
-        main.active {
-            display: block;
-        }
+    .sub-box {
+      background-color: var(--box-background);
+      box-shadow: var(--box-shadow);
+      border-radius: var(--border-radius);
+      margin: 10px;
+      padding: 15px;
+      text-align: left;
+      transition: transform 0.3s, box-shadow 0.3s;
+      animation: fadeInUp 1s ease-in-out;
+    }
 
-.status-box {
-    background-color: var(--box-background-color);
-    box-shadow: var(--box-shadow);
-    border-radius: var(--border-radius);
-    margin: 15px auto;
-    padding: 20px;
-    width: 90%;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
+    .sub-box:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    }
 
-.status-box {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-}
+    .vnstat-title {
+      font-size: 1.3em;
+      margin-bottom: 10px;
+      color: var(--secondary-color);
+    }
 
-.status-box:hover {
-    transform: translateY(-8px) rotateX(10deg);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
+    .vnstat-data {
+      font-size: 0.9em;
+      color: var(--text-color);
+      animation: fadeInUp 1.2s ease-in-out;
+    }
+    
+    @keyframes shimmer {
+      0% { background-position: -1000px 0; }
+      100% { background-position: 1000px 0; }
+    }
 
-        .status-title {
-            font-size: 1.3em;
-            margin-bottom: 10px;
-            color: var(--accent-color);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            font-weight: 700;
-        }
+    .skeleton-loading {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite linear;
+      border-radius: 8px;
+    }
 
-        .sub-box {
-            background-color: var(--box-background-color);
-            box-shadow: var(--box-shadow);
-            border-radius: var(--border-radius);
-            margin: 10px;
-            padding: 15px;
-            text-align: left;
-            transition: transform 0.3s, box-shadow 0.3s;
-            animation: slideIn 1s ease-in-out;
-        }
+    .gauge {
+      width: 160px;
+      height: 160px;
+      filter: drop-shadow(0 10px 8px rgba(74, 144, 226, 0.1));
+      position: relative;
+      margin: 15px auto;
+    }
 
-        .sub-box:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-        }
+    .gauge circle {
+      fill: none;
+      stroke-width: 12;
+      stroke-linecap: round;
+    }
 
-        .vnstat-title {
-            font-size: 1.3em;
-            margin-bottom: 10px;
-            color: var(--secondary-color);
-        }
+    .gauge-background {
+      stroke: #e0e0e0;
+    }
 
-        .vnstat-data {
-            font-size: 0.9em;
-            color: var(--text-color);
-            animation: fadeIn 1.2s ease-in-out;
-        }
+    .gauge-progress {
+      stroke-width: 14;
+      stroke-linecap: round;
+      filter: url(#shadow);
+      stroke: var(--accent-color);
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset 0.5s ease, stroke 0.5s ease;
+    }
 
-        @keyframes slideIn {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
+    .gauge-value {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.3em;
+      color: #ffffff;
+      font-weight: 600;
+    }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes shimmer {
-            0% { background-position: -1000px 0; }
-            100% { background-position: 1000px 0; }
-        }
+    .gauge-label {
+      font-size: 1em;
+      color: var(--text-color);
+      margin-top: 8px;
+    }
 
-        .skeleton-loading {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite linear;
-            border-radius: 8px;
-        }
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      position: relative;
+      margin-bottom: 20px;
+    }
 
-        .gauge {
-            width: 160px;
-            height: 160px;
-            filter: drop-shadow(0 10px 8px rgba(99, 102, 241, 0.1));
-            position: relative;
-            margin: 15px auto;
-        }
+    .theme-toggle {
+      background: var(--gradient-accent);
+      border-radius: 50%;
+      padding: 12px;
+      margin: 0;
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 2em;
+      transition: transform 0.3s;
+    }
 
-        .gauge circle {
-            fill: none;
-            stroke-width: 12;
-            stroke-linecap: round;
-        }
+    .theme-toggle img {
+      width: 50px;
+      height: 50px;
+      transition: transform 0.3s ease;
+    }
 
-        .gauge-background {
-            stroke: #e0e0e0;
-        }
+    .theme-toggle:hover {
+      transform: rotate(180deg) scale(1.1);
+    }
 
-        .gauge-progress {
-            stroke-width: 14;
-            stroke-linecap: round;
-            filter: url(#shadow);
-            stroke: var(--low-color);
-            stroke-dasharray: 100;
-            stroke-dashoffset: 100;
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-            transition: stroke-dashoffset 0.5s ease, stroke 0.5s ease;
-        }
+    .uptime-box {
+      background-color: var(--box-background);
+      padding: 12px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      display: inline-block;
+      margin: 0 20px;
+    }
 
-        .gauge-value {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 1.3em;
-            color: #ffffff;
-            font-weight: 600;
-        }
+    .uptime-title {
+      font-size: 1.2em;
+      color: var(--accent-color);
+    }
 
-        .gauge-label {
-            font-size: 1.0em;
-            color: var(--text-color);
-            margin-top: 8px;
-        }
+    .uptime-value {
+      font-size: 1.5em;
+      color: var(--text-color);
+    }
 
-        .top-bar {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            position: relative;
-            margin-bottom: 20px;
-        }
+    table {
+      backdrop-filter: blur(6px);
+      background: rgba(255, 255, 255, 0.75);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      text-align: left;
+    }
 
-        .theme-toggle {
-            background: var(--gradient-accent);
-            border-radius: 50%;
-            padding: 12px;
-            transition: all 0.5s ease;
-            margin: 0;  
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-            font-size: 2em;
-            transition: transform 0.3s;
-        }
+    table th, table td {
+      padding: 8px 12px;
+      border: 1px solid var(--accent-color);
+    }
 
-        .theme-toggle img {
-            width: 50px;
-            height: 50px;
-            transition: transform 0.3s ease;
-        }
+    table th {
+      color: #ffffff;
+      background: var(--gradient-accent);
+      backdrop-filter: blur(6px);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.9em;
+    }
 
-        .theme-toggle:hover {
-            transform: rotate(180deg) scale(1.1);
-        }
+    table td {
+      color: var(--text-color);
+      font-weight: 500;
+      font-size: 0.85em;
+    }
+    
+    table tr:nth-child(even) {
+      background: rgba(74, 144, 226, 0.05);
+    }
 
-        .uptime-box {
-            background-color: var(--box-background-color);
-            padding: 12px;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            display: inline-block;
-            margin: 0 20px;
-        }
+    /* Sub-navigation styles */
+    .sub-nav {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
 
-        .uptime-title {
-            font-size: 1.2em;
-            color: var(--accent-color);
-        }
+    .sub-nav button {
+      background: none;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 1em;
+      text-transform: uppercase;
+      color: var(--text-color);
+      transition: background 0.3s, color 0.3s;
+    }
 
-        .uptime-value {
-            font-size: 1.5em;
-            color: var(--text-color);
-        }
+    .sub-nav button:hover, .sub-nav button.active {
+      background-color: var(--secondary-color);
+      color: #fff;
+    }
 
-        table {
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 16px;
-            overflow: hidden;
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-            text-align: left;
-        }
+    .interface-section {
+      display: none;
+    }
 
-        table th, table td {
-            padding: 8px 12px;
-            border: 1px solid var(--accent-color);
-        }
+    .interface-section.active {
+      display: block;
+    }
 
-        table th {
-            color: #ffffff; /* Putih murni untuk header tabel */
-            background: var(--gradient-accent);
-            backdrop-filter: blur(10px);
-            background-color: var(--accent-color);
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.9em;
-        }
+    /* Tombol Edit (Hijau) */
+    button.edit-button {
+      background-color: #2ecc71;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
 
-        table td {
-            color: var(--text-color);
-            font-weight: 500; /* Medium weight untuk teks tabel */
-            font-size: 0.85em;
-        }
-        
-        table tr:nth-child(even) {
-            background: rgba(99, 102, 241, 0.05);
-        }
+    button.edit-button:hover {
+      background-color: #27ae60;
+    }
 
-        /* Sub-navigation styles */
-        .sub-nav {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
+    /* Tombol Delete (Merah) */
+    button.delete-button {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
 
-        .sub-nav button {
-            background: none;
-            border: none;
-            padding: 10px 15px;
-            cursor: pointer;
-            font-size: 1em;
-            text-transform: uppercase;
-            color: var(--text-color);
-            transition: background 0.3s, color 0.3s;
-        }
+    button.delete-button:hover {
+      background-color: #c0392b;
+    }
 
-        .sub-nav button:hover, .sub-nav button.active {
-            background-color: var(--secondary-color);
-            color: #fff;
-        }
+    /* Tombol Tambah Paket Baru (Kuning) */
+    button.add-button {
+      background-color: #f1c40f;
+      color: black;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background-color 0.3s;
+    }
 
-        .interface-section {
-            display: none;
-        }
+    button.add-button:hover {
+      background-color: #f39c12;
+    }
 
-        .interface-section.active {
-            display: block;
-        }
+    /* Tombol Export dan Import (Biru) */
+    button.blue-button, label.blue-button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background-color 0.3s;
+    }
 
-        /* Tombol Edit (Hijau) */
-        button.edit-button {
-            background-color: #2ecc71; /* Hijau */
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
+    button.blue-button:hover, label.blue-button:hover {
+      background-color: #2980b9;
+    }
 
-        button.edit-button:hover {
-            background-color: #27ae60; /* Warna lebih gelap saat hover */
-        }
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+    }
 
-        /* Tombol Delete (Merah) */
-        button.delete-button {
-            background-color: #e74c3c; /* Merah */
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
+    .modal-content {
+      background-color: var(--box-background);
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid var(--accent-color);
+      width: 80%;
+      max-width: 500px;
+      border-radius: var(--border-radius);
+    }
 
-        button.delete-button:hover {
-            background-color: #c0392b; /* Warna lebih gelap saat hover */
-        }
+    .modal-content h2 {
+      margin-top: 0;
+      color: var(--accent-color);
+    }
 
-        /* Tombol Tambah Paket Baru (Kuning) */
-        button.add-button {
-            background-color: #f1c40f; /* Kuning */
-            color: black;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s;
-        }
+    .modal-content label {
+      display: block;
+      margin: 10px 0 5px;
+      text-align: left;
+    }
 
-        button.add-button:hover {
-            background-color: #f39c12; /* Warna lebih gelap saat hover */
-        }
+    .modal-content select, .modal-content input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--accent-color);
+      border-radius: 5px;
+      background-color: transparent;
+      color: var(--text-color);
+    }
 
-        /* Tombol Export dan Import (Biru) */
-        button.blue-button, label.blue-button {
-            background-color: #3498db; /* Biru */
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s;
-        }
+    .modal-content button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: var(--accent-color);
+      color: #fff;
+      font-size: 1em;
+    }
 
-        button.blue-button:hover, label.blue-button:hover {
-            background-color: #2980b9; /* Warna lebih gelap saat hover */
-        }
+    .modal-content button:hover {
+      background-color: var(--secondary-color);
+    }
 
-        /* Tambahan CSS untuk modal */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.5);
-        }
+    .close-button {
+      background-color: #e74c3c;
+      float: right;
+      font-size: 1.2em;
+      padding: 5px 10px;
+      cursor: pointer;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+    }
 
-        .modal-content {
-            background-color: var(--box-background-color);
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid var(--accent-color);
-            width: 80%;
-            max-width: 500px;
-            border-radius: var(--border-radius);
-        }
-
-        .modal-content h2 {
-            margin-top: 0;
-            color: var(--accent-color);
-        }
-
-        .modal-content label {
-            display: block;
-            margin: 10px 0 5px;
-            text-align: left;
-        }
-
-        .modal-content select, .modal-content input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--accent-color);
-            border-radius: 5px;
-            background-color: transparent;
-            color: var(--text-color);
-        }
-
-        .modal-content button {
-            margin-top: 15px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            background-color: var(--accent-color);
-            color: #fff;
-            font-size: 1em;
-        }
-
-        .modal-content button:hover {
-            background-color: var(--secondary-color);
-        }
-
-        .close-button {
-            background-color: #e74c3c;
-            float: right;
-            font-size: 1.2em;
-            padding: 5px 10px;
-            cursor: pointer;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-        }
-
-        .close-button:hover {
-            background-color: #c0392b;
-        }
-    </style>
+    .close-button:hover {
+      background-color: #c0392b;
+    }
+  </style>
 </head>
 <body>
-<div class="top-bar">
+  <div class="top-bar">
     <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle Theme">
-        <img id="theme-icon" src="https://img.icons8.com/ios-filled/50/000000/sun--v1.png" alt="Theme Icon">
+      <img id="theme-icon" src="https://img.icons8.com/ios-filled/50/000000/sun--v1.png" alt="Theme Icon" />
     </button>
     <div class="uptime-box">
-        <div class="uptime-title">System Uptime</div>
-        <div class="uptime-value" id="uptime">--</div>
+      <div class="uptime-title">System Uptime</div>
+      <div class="uptime-value" id="uptime">--</div>
     </div>
-</div>
-<header>
+  </div>
+  <header>
     <h1>OpenWRT Status Dashboard</h1>
     <p>Monitor your network performance in real-time</p>
-</header>
+  </header>
 
-<nav>
-    <button onclick="showTab('internet')" class="active" id="internet-tab">
-        🌐 Data Internet
-    </button>
-    <button onclick="showTab('cpu')" id="cpu-tab">
-        🔥 CPU
-    </button>
-    <button onclick="showTab('ram')" id="ram-tab">
-        💾 RAM & Disk
-    </button>
-    <button onclick="showTab('biaya')" id="biaya-tab">
-        💰 Biaya
-    </button>
-    <button onclick="showTab('bandwidth')" id="bandwidth-tab">
-        📶 Bandwidth
-    </button>
-</nav>
+  <nav>
+    <button onclick="showTab('internet')" class="active" id="internet-tab">🌐 Data Internet</button>
+    <button onclick="showTab('cpu')" id="cpu-tab">🔥 CPU</button>
+    <button onclick="showTab('ram')" id="ram-tab">💾 RAM & Disk</button>
+    <button onclick="showTab('biaya')" id="biaya-tab">💰 Biaya</button>
+    <button onclick="showTab('bandwidth')" id="bandwidth-tab">📶 Bandwidth</button>
+  </nav>
 
-    <!-- Data Internet Tab -->
-    <main id="internet" class="active">
-        <nav class="sub-nav">
-            <button onclick="showInterface('XL')" class="active" id="XL-button">XL</button>
-            <button onclick="showInterface('jakwifi')" id="jakwifi-button">JAKWIFI</button>
-            <button onclick="showInterface('raspi4b')" id="raspi4b-button">Raspi 4B</button>
-        </nav>
+  <!-- Data Internet Tab -->
+  <main id="internet" class="active">
+    <nav class="sub-nav">
+      <button onclick="showInterface('XL')" class="active" id="XL-button">XL</button>
+      <button onclick="showInterface('jakwifi')" id="jakwifi-button">JAKWIFI</button>
+      <button onclick="showInterface('raspi4b')" id="raspi4b-button">Raspi 4B</button>
+    </nav>
 
-        <!-- XL Section -->
-        <div id="XL-section" class="interface-section active">
-            <div class="status-box">
-                <div class="status-title">Penggunaan Data Internet - XL</div>
-                <div class="sub-box">
-                    <div class="vnstat-title">XL</div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Periode</th>
-                                <th>Tanggal</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Hari ini</td>
-                                <td id="wwan0-today-date">--</td>
-                                <td id="wwan0-today-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Bulan ini</td>
-                                <td id="wwan0-month-date">--</td>
-                                <td id="wwan0-month-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Bulan lalu</td>
-                                <td id="wwan0-last-month-date">--</td>
-                                <td id="wwan0-last-month-total">--</td>
-                            </tr>
-                        </tbody>
-                        <thead>
-                            <tr>
-                                <th>Minggu</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Minggu 1 (1-7)</td>
-                                <td id="wwan0-week1-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu 2 (8-14)</td>
-                                <td id="wwan0-week2-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu 3 (15-21)</td>
-                                <td id="wwan0-week3-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu 4 (22-28)</td>
-                                <td id="wwan0-week4-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu Terakhir (29-31)</td>
-                                <td id="wwan0-week5-total">--</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- XL Section -->
+    <div id="XL-section" class="interface-section active">
+      <div class="status-box">
+        <div class="status-title">Penggunaan Data Internet - XL</div>
+        <div class="sub-box">
+          <div class="vnstat-title">XL</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Periode</th>
+                <th>Tanggal</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Hari ini</td>
+                <td id="wwan0-today-date">--</td>
+                <td id="wwan0-today-total">--</td>
+              </tr>
+              <tr>
+                <td>Bulan ini</td>
+                <td id="wwan0-month-date">--</td>
+                <td id="wwan0-month-total">--</td>
+              </tr>
+              <tr>
+                <td>Bulan lalu</td>
+                <td id="wwan0-last-month-date">--</td>
+                <td id="wwan0-last-month-total">--</td>
+              </tr>
+            </tbody>
+            <thead>
+              <tr>
+                <th>Minggu</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Minggu 1 (1-7)</td>
+                <td id="wwan0-week1-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu 2 (8-14)</td>
+                <td id="wwan0-week2-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu 3 (15-21)</td>
+                <td id="wwan0-week3-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu 4 (22-28)</td>
+                <td id="wwan0-week4-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu Terakhir (29-31)</td>
+                <td id="wwan0-week5-total">--</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
+    </div>
 
-        <!-- JAKWIFI Section -->
-        <div id="jakwifi-section" class="interface-section">
-            <div class="status-box">
-                <div class="status-title">Penggunaan Data Internet - JAKWIFI</div>
-                <div class="sub-box">
-                    <div class="vnstat-title">JAKWIFI</div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Periode</th>
-                                <th>Tanggal</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Hari ini</td>
-                                <td id="usb0-today-date">--</td>
-                                <td id="usb0-today-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Bulan ini</td>
-                                <td id="usb0-month-date">--</td>
-                                <td id="usb0-month-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Bulan lalu</td>
-                                <td id="usb0-last-month-date">--</td>
-                                <td id="usb0-last-month-total">--</td>
-                            </tr>
-                        </tbody>
-                        <thead>
-                            <tr>
-                                <th>Minggu</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Minggu 1 (1-7)</td>
-                                <td id="usb0-week1-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu 2 (8-14)</td>
-                                <td id="usb0-week2-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu 3 (15-21)</td>
-                                <td id="usb0-week3-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu 4 (22-28)</td>
-                                <td id="usb0-week4-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu Terakhir (29-31)</td>
-                                <td id="usb0-week5-total">--</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- JAKWIFI Section -->
+    <div id="jakwifi-section" class="interface-section">
+      <div class="status-box">
+        <div class="status-title">Penggunaan Data Internet - JAKWIFI</div>
+        <div class="sub-box">
+          <div class="vnstat-title">JAKWIFI</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Periode</th>
+                <th>Tanggal</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Hari ini</td>
+                <td id="usb0-today-date">--</td>
+                <td id="usb0-today-total">--</td>
+              </tr>
+              <tr>
+                <td>Bulan ini</td>
+                <td id="usb0-month-date">--</td>
+                <td id="usb0-month-total">--</td>
+              </tr>
+              <tr>
+                <td>Bulan lalu</td>
+                <td id="usb0-last-month-date">--</td>
+                <td id="usb0-last-month-total">--</td>
+              </tr>
+            </tbody>
+            <thead>
+              <tr>
+                <th>Minggu</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Minggu 1 (1-7)</td>
+                <td id="usb0-week1-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu 2 (8-14)</td>
+                <td id="usb0-week2-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu 3 (15-21)</td>
+                <td id="usb0-week3-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu 4 (22-28)</td>
+                <td id="usb0-week4-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu Terakhir (29-31)</td>
+                <td id="usb0-week5-total">--</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
+    </div>
 
-        <!-- Raspi 4B Section -->
-        <div id="raspi4b-section" class="interface-section">
-            <div class="status-box">
-                <div class="status-title">Penggunaan Data Internet - Raspi 4B</div>
-                <div class="sub-box">
-                    <div class="vnstat-title">Raspi 4B</div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Periode</th>
-                                <th>Tanggal</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Hari ini</td>
-                                <td id="br-lan-today-date">--</td>
-                                <td id="br-lan-today-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Bulan ini</td>
-                                <td id="br-lan-month-date">--</td>
-                                <td id="br-lan-month-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Bulan lalu</td>
-                                <td id="br-lan-last-month-date">--</td>
-                                <td id="br-lan-last-month-total">--</td>
-                            </tr>
-                        </tbody>
-                        <thead>
-                            <tr>
-                                <th>Minggu</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Minggu 1 (1-7)</td>
-                                <td id="br-lan-week1-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu 2 (8-14)</td>
-                                <td id="br-lan-week2-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu 3 (15-21)</td>
-                                <td id="br-lan-week3-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu 4 (22-28)</td>
-                                <td id="br-lan-week4-total">--</td>
-                            </tr>
-                            <tr>
-                                <td>Minggu Terakhir (29-31)</td>
-                                <td id="br-lan-week5-total">--</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- Raspi 4B Section -->
+    <div id="raspi4b-section" class="interface-section">
+      <div class="status-box">
+        <div class="status-title">Penggunaan Data Internet - Raspi 4B</div>
+        <div class="sub-box">
+          <div class="vnstat-title">Raspi 4B</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Periode</th>
+                <th>Tanggal</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Hari ini</td>
+                <td id="br-lan-today-date">--</td>
+                <td id="br-lan-today-total">--</td>
+              </tr>
+              <tr>
+                <td>Bulan ini</td>
+                <td id="br-lan-month-date">--</td>
+                <td id="br-lan-month-total">--</td>
+              </tr>
+              <tr>
+                <td>Bulan lalu</td>
+                <td id="br-lan-last-month-date">--</td>
+                <td id="br-lan-last-month-total">--</td>
+              </tr>
+            </tbody>
+            <thead>
+              <tr>
+                <th>Minggu</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Minggu 1 (1-7)</td>
+                <td id="br-lan-week1-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu 2 (8-14)</td>
+                <td id="br-lan-week2-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu 3 (15-21)</td>
+                <td id="br-lan-week3-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu 4 (22-28)</td>
+                <td id="br-lan-week4-total">--</td>
+              </tr>
+              <tr>
+                <td>Minggu Terakhir (29-31)</td>
+                <td id="br-lan-week5-total">--</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-    </main>
+      </div>
+    </div>
+  </main>
 
-    <!-- CPU Tab -->
-    <main id="cpu">
-        <div class="status-box">
-            <div class="status-title">CPU</div>
-
-<div class="gauge-card">
-    <div class="gauge">
-        <svg width="120" height="120" aria-labelledby="cpuTempTitle">
+  <!-- CPU Tab -->
+  <main id="cpu">
+    <div class="status-box">
+      <div class="status-title">CPU</div>
+      <div class="gauge-card">
+        <div class="gauge">
+          <svg width="120" height="120" aria-labelledby="cpuTempTitle">
             <circle class="gauge-background" cx="60" cy="60" r="50" />
             <circle class="gauge-progress" cx="60" cy="60" r="50" id="cpu-temp-gauge" />
-        </svg>
-        <defs>
+          </svg>
+          <defs>
             <filter id="shadow">
-                <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(99, 102, 241, 0.3)"/>
+              <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(74, 144, 226, 0.3)" />
             </filter>
-        </defs>
-        <div class="gauge-value" id="cpu-temp-value">--°C</div>
+          </defs>
+          <div class="gauge-value" id="cpu-temp-value">--°C</div>
+        </div>
+        <div class="gauge-label">🔥 CPU Temperature</div>
+      </div>
+      <div class="gauge">
+        <svg width="120" height="120" aria-labelledby="cpuLoadTitle">
+          <circle class="gauge-background" cx="60" cy="60" r="50" />
+          <circle class="gauge-progress" cx="60" cy="60" r="50" id="cpu-load-gauge" />
+        </svg>
+        <div class="gauge-value" id="cpu-load-value">--%</div>
+      </div>
+      <div class="gauge-label" id="cpuLoadTitle">Load</div>
     </div>
-    <div class="gauge-label">🔥 CPU Temperature</div>
-</div>
+  </main>
 
-            <div class="gauge">
-                <svg width="120" height="120" aria-labelledby="cpuLoadTitle">
-                    <circle class="gauge-background" cx="60" cy="60" r="50" />
-                    <circle class="gauge-progress" cx="60" cy="60" r="50" id="cpu-load-gauge" />
-                </svg>
-                <div class="gauge-value" id="cpu-load-value">--%</div>
-            </div>
-            <div class="gauge-label" id="cpuLoadTitle">Load</div>
-        </div>
-    </main>
-
-    <!-- RAM & Disk Tab -->
-    <main id="ram">
-        <div class="status-box">
-            <div class="status-title">RAM & Disk</div>
-
-            <div class="gauge">
-                <svg width="120" height="120" aria-labelledby="ramUsageTitle">
-                    <circle class="gauge-background" cx="60" cy="60" r="50" />
-                    <circle class="gauge-progress" cx="60" cy="60" r="50" id="ram-usage-gauge" />
-                </svg>
-                <div class="gauge-value" id="ram-usage-value">--%</div>
-            </div>
-            <div class="gauge-label" id="ramUsageTitle">RAM Usage</div>
-
-            <div class="gauge">
-                <svg width="120" height="120" aria-labelledby="diskUsageTitle">
-                    <circle class="gauge-background" cx="60" cy="60" r="50" />
-                    <circle class="gauge-progress" cx="60" cy="60" r="50" id="disk-usage-gauge" />
-                </svg>
-                <div class="gauge-value" id="disk-usage-value">--%</div>
-            </div>
-            <div class="gauge-label" id="diskUsageTitle">Disk Usage</div>
-        </div>
-    </main>
-
-    <!-- Biaya Tab -->
-    <main id="biaya">
-        <!-- Sub-Navigasi untuk Biaya -->
-        <nav class="sub-nav">
-            <button onclick="showBiayaInterface('detail')" class="active" id="biaya-detail-button">Detail</button>
-            <button onclick="showBiayaInterface('rekap')" id="biaya-rekap-button">Rekap</button>
-        </nav>
-
-        <!-- Detail Biaya Section -->
-        <div id="biaya-detail-section" class="interface-section active">
-            <div class="status-box">
-                <div class="status-title">Penggunaan Biaya</div>
-                <!-- Tombol Tambah Paket Baru -->
-<button class="add-button" onclick="addNewRow()">
-    ➕ Tambah Paket Baru
-</button>
-                <!-- Tombol Export dan Import Paket -->
-                <div style="margin-top: 15px;">
-                    <button class="blue-button" onclick="exportBiayaData()">Export Data</button>
-                    <label for="import-file" class="blue-button" style="margin-left: 10px;">
-                        Import Data
-                    </label>
-                    <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importBiayaData(event)">
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Tanggal Beli</th>
-                            <th>Tanggal Habis</th>
-                            <th>Nama Paket</th>
-                            <th>Kuota</th>
-                            <th>Biaya</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="biaya-table-body">
-                        <!-- Data akan ditambahkan secara dinamis -->
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="3" style="text-align: right; font-weight: bold;">Total Kuota</td>
-                            <td id="total-kuota" style="font-weight: bold;">--</td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td colspan="4" style="text-align: right; font-weight: bold;">Total Biaya</td>
-                            <td id="total-biaya" style="font-weight: bold;">--</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-
-        <!-- Rekap Biaya Section -->
-        <div id="biaya-rekap-section" class="interface-section">
-            <div class="status-box">
-                <div class="status-title">Rekap Penggunaan Biaya</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Bulan</th>
-                            <th>Total Biaya</th>
-                            <th>Total Kuota</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rekap-biaya-body">
-                        <!-- Data Rekap Akan Ditambahkan Secara Otomatis -->
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td style="text-align: right; font-weight: bold;">Total Keseluruhan</td>
-                            <td id="total-keseluruhan-biaya" style="font-weight: bold;">--</td>
-                            <td id="total-keseluruhan-kuota" style="font-weight: bold;">--</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-    </main>
-
-<main id="bandwidth" class="interface-section">
+  <!-- RAM & Disk Tab -->
+  <main id="ram">
     <div class="status-box">
-        <div class="status-title">Penggunaan Bandwidth Per-IP</div>
-        <div id="current-month" style="margin-bottom: 10px; font-size: 1em; color: var(--text-color);">
-            <!-- Bulan sekarang akan dimuat di sini -->
+      <div class="status-title">RAM & Disk</div>
+      <div class="gauge">
+        <svg width="120" height="120" aria-labelledby="ramUsageTitle">
+          <circle class="gauge-background" cx="60" cy="60" r="50" />
+          <circle class="gauge-progress" cx="60" cy="60" r="50" id="ram-usage-gauge" />
+        </svg>
+        <div class="gauge-value" id="ram-usage-value">--%</div>
+      </div>
+      <div class="gauge-label" id="ramUsageTitle">RAM Usage</div>
+      <div class="gauge">
+        <svg width="120" height="120" aria-labelledby="diskUsageTitle">
+          <circle class="gauge-background" cx="60" cy="60" r="50" />
+          <circle class="gauge-progress" cx="60" cy="60" r="50" id="disk-usage-gauge" />
+        </svg>
+        <div class="gauge-value" id="disk-usage-value">--%</div>
+      </div>
+      <div class="gauge-label" id="diskUsageTitle">Disk Usage</div>
+    </div>
+  </main>
+
+  <!-- Biaya Tab -->
+  <main id="biaya">
+    <nav class="sub-nav">
+      <button onclick="showBiayaInterface('detail')" class="active" id="biaya-detail-button">Detail</button>
+      <button onclick="showBiayaInterface('rekap')" id="biaya-rekap-button">Rekap</button>
+    </nav>
+    <div id="biaya-detail-section" class="interface-section active">
+      <div class="status-box">
+        <div class="status-title">Penggunaan Biaya</div>
+        <button class="add-button" onclick="addNewRow()">➕ Tambah Paket Baru</button>
+        <div style="margin-top: 15px;">
+          <button class="blue-button" onclick="exportBiayaData()">Export Data</button>
+          <label for="import-file" class="blue-button" style="margin-left: 10px;">Import Data</label>
+          <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importBiayaData(event)" />
         </div>
-<table id="bandwidth-data" class="styled-table">
-    <thead>
-        <tr>
+        <table>
+          <thead>
+            <tr>
+              <th>Tanggal Beli</th>
+              <th>Tanggal Habis</th>
+              <th>Nama Paket</th>
+              <th>Kuota</th>
+              <th>Biaya</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="biaya-table-body"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" style="text-align: right; font-weight: bold;">Total Kuota</td>
+              <td id="total-kuota" style="font-weight: bold;">--</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td colspan="4" style="text-align: right; font-weight: bold;">Total Biaya</td>
+              <td id="total-biaya" style="font-weight: bold;">--</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    <div id="biaya-rekap-section" class="interface-section">
+      <div class="status-box">
+        <div class="status-title">Rekap Penggunaan Biaya</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Bulan</th>
+              <th>Total Biaya</th>
+              <th>Total Kuota</th>
+            </tr>
+          </thead>
+          <tbody id="rekap-biaya-body"></tbody>
+          <tfoot>
+            <tr>
+              <td style="text-align: right; font-weight: bold;">Total Keseluruhan</td>
+              <td id="total-keseluruhan-biaya" style="font-weight: bold;">--</td>
+              <td id="total-keseluruhan-kuota" style="font-weight: bold;">--</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bandwidth Tab -->
+  <main id="bandwidth" class="interface-section">
+    <div class="status-box">
+      <div class="status-title">Penggunaan Bandwidth Per-IP</div>
+      <div id="current-month" style="margin-bottom: 10px; font-size: 1em; color: var(--text-color);"></div>
+      <table id="bandwidth-data" class="styled-table">
+        <thead>
+          <tr>
             <th>#</th>
             <th>📱 Nama Device</th>
             <th>🌐 IP Address</th>
             <th>🔗 MAC Address</th>
             <th>⬇️ Download</th>
             <th>⬆️ Upload</th>
-            </tr>
-            </thead>
-            <tbody>
-                <!-- Data akan dimuat secara dinamis -->
-            </tbody>
-        </table>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
-</main>
+  </main>
 
-    <!-- Modal untuk Form Tambah/Edit Paket -->
-    <div id="modal-form" class="modal">
-        <div class="modal-content">
-            <button class="close-button" onclick="closeModal()">X</button>
-            <h2>Tambah Paket Baru</h2>
-            <form id="add-package-form">
-                <!-- Tanggal Beli -->
-                <label for="tanggal-beli-YYYY">Masukkan Tanggal Beli:</label>
-                <div style="display: flex; gap: 5px;">
-                    <select id="tanggal-beli-YYYY" required>
-                        <option value="" disabled selected>YYYY</option>
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
-                    </select>
-                    <select id="tanggal-beli-MM" required>
-                        <option value="" disabled selected>MM</option>
-                        <option value="01">Januari</option>
-                        <option value="02">Februari</option>
-                        <option value="03">Maret</option>
-                        <option value="04">April</option>
-                        <option value="05">Mei</option>
-                        <option value="06">Juni</option>
-                        <option value="07">Juli</option>
-                        <option value="08">Agustus</option>
-                        <option value="09">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Desember</option>
-                    </select>
-                    <select id="tanggal-beli-DD" required>
-                        <option value="" disabled selected>DD</option>
-                        <!-- Generate options 1 to 31 -->
-                        <script>
-                            for(let i=1; i<=31; i++) {
-                                document.write(`<option value="${i.toString().padStart(2, '0')}">${i}</option>`);
-                            }
-                        </script>
-                    </select>
-                </div>
-
-                <!-- Tanggal Habis -->
-                <label for="tanggal-habis-YYYY">Masukkan Tanggal Habis:</label>
-                <div style="display: flex; gap: 5px;">
-                    <select id="tanggal-habis-YYYY" required>
-                        <option value="" disabled selected>YYYY</option>
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
-                    </select>
-                    <select id="tanggal-habis-MM" required>
-                        <option value="" disabled selected>MM</option>
-                        <option value="01">Januari</option>
-                        <option value="02">Februari</option>
-                        <option value="03">Maret</option>
-                        <option value="04">April</option>
-                        <option value="05">Mei</option>
-                        <option value="06">Juni</option>
-                        <option value="07">Juli</option>
-                        <option value="08">Agustus</option>
-                        <option value="09">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Desember</option>
-                    </select>
-                    <select id="tanggal-habis-DD" required>
-                        <option value="" disabled selected>DD</option>
-                        <!-- Generate options 1 to 31 -->
-                        <script>
-                            for(let i=1; i<=31; i++) {
-                                document.write(`<option value="${i.toString().padStart(2, '0')}">${i}</option>`);
-                            }
-                        </script>
-                    </select>
-                </div>
-
-                <!-- Nama Paket -->
-                <label for="nama-paket">Masukkan Nama Paket:</label>
-                <select id="nama-paket" required>
-                    <option value="" disabled selected>Pilih Paket</option>
-                    <option value="ilmupedia harian">ilmupedia harian</option>
-                    <option value="ilmupedia mingguan">ilmupedia mingguan</option>
-                    <option value="HOT PROMO bulanan">HOT PROMO bulanan</option>
-                    <!-- Tambahkan opsi lain jika perlu -->
-                </select>
-
-                <!-- Kuota Paket -->
-                <label for="kuota-paket">Masukkan Kuota Paket (dalam GB):</label>
-                <input type="number" id="kuota-paket" placeholder="Contoh: 50" min="0" required>
-
-                <!-- Biaya Paket -->
-                <label for="biaya-paket">Masukkan Biaya Paket (tanpa Rp):</label>
-                <input type="number" id="biaya-paket" placeholder="Contoh: 150000" min="0" required>
-
-                <button type="submit">Simpan</button>
-            </form>
+  <!-- Modal untuk Form Tambah/Edit Paket -->
+  <div id="modal-form" class="modal">
+    <div class="modal-content">
+      <button class="close-button" onclick="closeModal()">X</button>
+      <h2>Tambah Paket Baru</h2>
+      <form id="add-package-form">
+        <label for="tanggal-beli-YYYY">Masukkan Tanggal Beli:</label>
+        <div style="display: flex; gap: 5px;">
+          <select id="tanggal-beli-YYYY" required>
+            <option value="" disabled selected>YYYY</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+          </select>
+          <select id="tanggal-beli-MM" required>
+            <option value="" disabled selected>MM</option>
+            <option value="01">Januari</option>
+            <option value="02">Februari</option>
+            <option value="03">Maret</option>
+            <option value="04">April</option>
+            <option value="05">Mei</option>
+            <option value="06">Juni</option>
+            <option value="07">Juli</option>
+            <option value="08">Agustus</option>
+            <option value="09">September</option>
+            <option value="10">Oktober</option>
+            <option value="11">November</option>
+            <option value="12">Desember</option>
+          </select>
+          <select id="tanggal-beli-DD" required>
+            <option value="" disabled selected>DD</option>
+            <script>
+              for(let i=1; i<=31; i++) {
+                document.write(`<option value="${i.toString().padStart(2, '0')}">${i}</option>`);
+              }
+            </script>
+          </select>
         </div>
+
+        <label for="tanggal-habis-YYYY">Masukkan Tanggal Habis:</label>
+        <div style="display: flex; gap: 5px;">
+          <select id="tanggal-habis-YYYY" required>
+            <option value="" disabled selected>YYYY</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+          </select>
+          <select id="tanggal-habis-MM" required>
+            <option value="" disabled selected>MM</option>
+            <option value="01">Januari</option>
+            <option value="02">Februari</option>
+            <option value="03">Maret</option>
+            <option value="04">April</option>
+            <option value="05">Mei</option>
+            <option value="06">Juni</option>
+            <option value="07">Juli</option>
+            <option value="08">Agustus</option>
+            <option value="09">September</option>
+            <option value="10">Oktober</option>
+            <option value="11">November</option>
+            <option value="12">Desember</option>
+          </select>
+          <select id="tanggal-habis-DD" required>
+            <option value="" disabled selected>DD</option>
+            <script>
+              for(let i=1; i<=31; i++) {
+                document.write(`<option value="${i.toString().padStart(2, '0')}">${i}</option>`);
+              }
+            </script>
+          </select>
+        </div>
+
+        <label for="nama-paket">Masukkan Nama Paket:</label>
+        <select id="nama-paket" required>
+          <option value="" disabled selected>Pilih Paket</option>
+          <option value="ilmupedia harian">ilmupedia harian</option>
+          <option value="ilmupedia mingguan">ilmupedia mingguan</option>
+          <option value="HOT PROMO bulanan">HOT PROMO bulanan</option>
+        </select>
+
+        <label for="kuota-paket">Masukkan Kuota Paket (dalam GB):</label>
+        <input type="number" id="kuota-paket" placeholder="Contoh: 50" min="0" required />
+
+        <label for="biaya-paket">Masukkan Biaya Paket (tanpa Rp):</label>
+        <input type="number" id="biaya-paket" placeholder="Contoh: 150000" min="0" required />
+
+        <button type="submit">Simpan</button>
+      </form>
     </div>
+  </div>
 
     <!-- JavaScript -->
     <script>
