@@ -1520,29 +1520,52 @@
         loadBandwidthData(); // Memuat data bandwidth
     });
 
-    // Fungsi untuk memuat data bandwidth
-    function loadBandwidthData() {
-        fetch('/cgi-bin/pemakaian/pemakaian.sh')
-            .then(response => response.json())
-            .then(data => {
-                const tableBody = document.getElementById('bandwidth-data').querySelector('tbody');
-                tableBody.innerHTML = ''; // Kosongkan tabel sebelum diisi ulang
+// Fungsi untuk mengonversi string bandwidth (misalnya "123 MB") ke nilai numerik dalam byte
+function parseBandwidth(bandwidthStr) {
+  const parts = bandwidthStr.split(" ");
+  if (parts.length < 2) return 0;
+  const value = parseFloat(parts[0]);
+  const unit = parts[1].toUpperCase();
+  switch (unit) {
+    case 'B':
+      return value;
+    case 'KB':
+      return value * 1024;
+    case 'MB':
+      return value * 1024 * 1024;
+    case 'GB':
+      return value * 1024 * 1024 * 1024;
+    default:
+      return value;
+  }
+}
 
-                data.clients.forEach((client, index) => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td>${client.name}</td>
-                        <td>${client.ip}</td>
-                        <td>${client.mac}</td>
-                        <td>${client.bandwidth.download}</td>
-                        <td>${client.bandwidth.upload}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-            })
-            .catch(error => console.error('Error loading bandwidth data:', error));
-    }
+    // Fungsi untuk memuat data bandwidth
+function loadBandwidthData() {
+  fetch('/cgi-bin/pemakaian/pemakaian.sh')
+    .then(response => response.json())
+    .then(data => {
+      const tableBody = document.getElementById('bandwidth-data').querySelector('tbody');
+      tableBody.innerHTML = ''; // Kosongkan tabel sebelum diisi ulang
+
+      // Urutkan data berdasarkan total download secara menurun
+      data.clients.sort((a, b) => parseBandwidth(b.bandwidth.download) - parseBandwidth(a.bandwidth.download));
+
+      data.clients.forEach((client, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${client.name}</td>
+          <td>${client.ip}</td>
+          <td>${client.mac}</td>
+          <td>${client.bandwidth.download}</td>
+          <td>${client.bandwidth.upload}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    })
+    .catch(error => console.error('Error loading bandwidth data:', error));
+}
 
     // Perbarui data bandwidth setiap 5 detik
     setInterval(loadBandwidthData, 5000);
