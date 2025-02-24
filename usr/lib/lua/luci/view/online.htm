@@ -1,6 +1,53 @@
 <%+header%>
+<style>
+  .cbi-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .cbi-table th,
+  .cbi-table td {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: left;
+  }
+</style>
 
 <h2>Daftar Perangkat Online</h2>
+
+<%
+  -- Kumpulkan data perangkat dan hitung jumlah perangkat terhubung
+  local devices = {}
+  local terhubung_count = 0
+  local f = io.popen("/usr/bin/online.sh")
+  if f then
+    for line in f:lines() do
+      -- Asumsikan output skrip: "IP: <ip>, MAC: <mac>, Hostname: <hostname>, Status: <status>"
+      local ip, mac, hostname, status = line:match("IP:%s*(.-),%s*MAC:%s*(.-),%s*Hostname:%s*(.-),%s*Status:%s*(.*)")
+      if ip and mac and hostname and status then
+        table.insert(devices, {ip = ip, mac = mac, hostname = hostname, status = status})
+        if string.upper(status) == "TERHUBUNG" then
+          terhubung_count = terhubung_count + 1
+        end
+      end
+    end
+    f:close()
+    
+    -- Urutkan sehingga perangkat dengan status "TERHUBUNG" muncul di atas
+    table.sort(devices, function(a, b)
+      local statusA = string.upper(a.status)
+      local statusB = string.upper(b.status)
+      if statusA == "TERHUBUNG" and statusB ~= "TERHUBUNG" then
+        return true
+      elseif statusA ~= "TERHUBUNG" and statusB == "TERHUBUNG" then
+        return false
+      else
+        return a.ip < b.ip
+      end
+    end)
+  end
+%>
+
+<p>Ada <%= terhubung_count %> Perangkat yang terhubung</p>
 
 <table class="cbi-table">
   <thead>
@@ -12,30 +59,24 @@
     </tr>
   </thead>
   <tbody>
-  <% 
-    -- Jalankan skrip bash online.sh (pastikan path sudah benar)
-    local f = io.popen("/usr/bin/online.sh")
-    if f then
-      for line in f:lines() do
-        -- Asumsikan output skrip berupa:
-        -- "IP: <ip>, MAC: <mac>, Hostname: <hostname>, Status: <status>"
-        local ip, mac, hostname, status = line:match("IP:%s*(.-),%s*MAC:%s*(.-),%s*Hostname:%s*(.-),%s*Status:%s*(.*)")
-        if ip and mac and hostname and status then
-  %>
-    <tr>
-      <td><%= ip %></td>
-      <td><%= mac %></td>
-      <td><%= hostname %></td>
-      <td><%= status %></td>
-    </tr>
-  <% 
+    <% 
+      if #devices > 0 then
+        for i, device in ipairs(devices) do
+    %>
+      <tr>
+        <td><%= device.ip %></td>
+        <td><%= device.mac %></td>
+        <td><%= device.hostname %></td>
+        <td><%= device.status %></td>
+      </tr>
+    <% 
         end
-      end
-      f:close()
-    else
-  %>
-    <tr><td colspan="4">Tidak ada data.</td></tr>
-  <% end %>
+      else
+    %>
+      <tr>
+        <td colspan="4">Tidak ada data.</td>
+      </tr>
+    <% end %>
   </tbody>
 </table>
 
