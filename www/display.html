@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard OpenWRT</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #00ff88;
+      --secondary: #2196f3;
+      --background: #121212;
+      --surface: #1e1e1e;
+      --error: #cf6679;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--background);
+      color: #e0e0e0;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.36);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .status-header {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .status-card {
+      background: linear-gradient(145deg, #252525, #1a1a1a);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: transform 0.2s;
+    }
+
+    .status-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .status-card h2 {
+      color: var(--primary);
+      margin: 0 0 10px 0;
+      font-size: 1.1em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-card p {
+      font-size: 1.4em;
+      margin: 0;
+      font-weight: 600;
+      color: white;
+      text-shadow: 0 0 8px rgba(0, 255, 136, 0.2);
+    }
+
+    .current-date {
+      text-align: center;
+      font-size: 1.2em;
+      color: var(--secondary);
+      margin: -10px 0 30px 0;
+      padding: 12px;
+      background: rgba(33, 150, 243, 0.1);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .section-title {
+      color: var(--primary);
+      text-align: left;
+      margin: 40px 0 20px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid rgba(0, 255, 136, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #181818;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    th {
+      background: linear-gradient(45deg, #1a237e, #0d47a1);
+      color: white;
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    td {
+      padding: 12px 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .online-status {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .online-status.connected {
+      background: var(--primary);
+      box-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
+    }
+
+    .progress-container {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), #00ccff);
+      width: 50%;
+      transition: width 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 15px;
+        border-radius: 0;
+      }
+      
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+
+    @keyframes glow {
+      0% { 
+        box-shadow: 0 0 5px rgba(0, 255, 136, 0.4);
+        transform: scale(1);
+      }
+      50% { 
+        box-shadow: 0 0 15px rgba(0, 255, 136, 0.8);
+        transform: scale(1.2);
+      }
+      100% { 
+        box-shadow: 0 0 5px rgba(0, 255, 136, 0.4);
+        transform: scale(1);
+      }
+    }
+
+    .online-status.connected {
+      background: var(--primary);
+      animation: 
+        blink 1.5s ease-in-out infinite,
+        glow 2s ease-in-out infinite;
+    }
+
+    /* CSS untuk ranking */
+    .rank-cell {
+      text-align: center;
+      width: 50px;
+      font-weight: bold;
+    }
+    
+    .gold {
+      color: #ffd700;
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+    }
+    
+    .silver {
+      color: #c0c0c0;
+      text-shadow: 0 0 8px rgba(192, 192, 192, 0.5);
+    }
+    
+    .bronze {
+      color: #cd7f32;
+      text-shadow: 0 0 8px rgba(205, 127, 50, 0.5);
+    }
+
+    /* CSS untuk real-time traffic */
+    .traffic-card {
+      background: linear-gradient(145deg, #252525, #1a1a1a);
+      padding: 20px;
+      border-radius: 12px;
+      margin: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .traffic-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 10px;
+    }
+
+    .traffic-item {
+      text-align: center;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+    }
+
+    .traffic-value {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: var(--primary);
+      text-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+    }
+
+    .traffic-label {
+      font-size: 0.9em;
+      color: #aaa;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="status-header">
+      <div class="status-card animate-in">
+        <h2><span class="material-icons">schedule</span>System Uptime</h2>
+        <p id="uptime">--</p>
+        <div class="progress-container">
+          <div class="progress-bar" id="uptime-progress"></div>
+        </div>
+      </div>
+
+      <div class="status-card animate-in" style="animation-delay: 0.2s">
+        <h2><span class="material-icons">thermostat</span>CPU Temperature</h2>
+        <p id="cpu-temp">-- °C</p>
+        <div class="progress-container">
+          <div class="progress-bar" id="temp-progress"></div>
+        </div>
+      </div>
+
+      <div class="status-card animate-in" style="animation-delay: 0.4s">
+        <h2><span class="material-icons">speed</span>Live Traffic</h2>
+        <div class="traffic-stats">
+          <div class="traffic-item">
+            <div class="traffic-value" id="rx-speed">--</div>
+            <div class="traffic-label">Download</div>
+          </div>
+          <div class="traffic-item">
+            <div class="traffic-value" id="tx-speed">--</div>
+            <div class="traffic-label">Upload</div>
+          </div>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar" id="traffic-progress"></div>
+        </div>
+      </div>
+    </div>
+
+    <p id="current-date" class="current-date animate-in" style="animation-delay: 0.4s">
+      <span class="material-icons">event</span>
+      <span>--</span>
+    </p>
+
+    <h2 class="section-title animate-in" style="animation-delay: 0.6s">
+      <span class="material-icons">data_usage</span>
+      Penggunaan Data XL
+    </h2>
+    <table class="animate-in" style="animation-delay: 0.8s">
+      <thead>
+        <tr>
+          <th>Periode</th>
+          <th>Tanggal</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Hari ini</td>
+          <td id="xl-today-date">--</td>
+          <td id="xl-today-total">--</td>
+        </tr>
+        <tr>
+          <td>Bulan ini</td>
+          <td id="xl-month-date">--</td>
+          <td id="xl-month-total">--</td>
+        </tr>
+        <tr>
+          <td>Bulan lalu</td>
+          <td id="xl-last-month-date">--</td>
+          <td id="xl-last-month-total">--</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title animate-in" style="animation-delay: 1.0s">
+      <span class="material-icons">speed</span>
+      Top 5 Bandwidth
+    </h2>
+    <p id="bandwidth-period" class="animate-in" style="animation-delay: 1.1s">Periode: --</p>
+    <table class="animate-in" style="animation-delay: 1.2s">
+      <thead>
+        <tr>
+          <th class="rank-cell">Peringkat</th>
+          <th>Device</th>
+          <th>IP</th>
+          <th>Download</th>
+          <th>Upload</th>
+        </tr>
+      </thead>
+      <tbody id="bandwidth-list">
+        <tr><td colspan="5">Memuat data...</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title animate-in" style="animation-delay: 1.4s">
+      <span class="material-icons">network_check</span>
+      Perangkat Online
+    </h2>
+    <p id="online-count" class="animate-in" style="animation-delay: 1.5s">Ada 0 Perangkat terhubung</p>
+    <table class="animate-in" style="animation-delay: 1.6s">
+      <thead>
+        <tr>
+          <th>Device</th>
+          <th>IP</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="online-list">
+        <tr><td colspan="3">Memuat data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Fungsi untuk memformat nilai trafik dari byte ke satuan yang sesuai (B, KB, MB, GB)
+    function formatTraffic(speed) {
+      const s = parseFloat(speed);
+      if (isNaN(s)) return '--';
+      if (s < 1024) {
+        return s.toFixed(2) + ' B/s';
+      } else if (s < 1024 * 1024) {
+        return (s / 1024).toFixed(2) + ' KB/s';
+      } else if (s < 1024 * 1024 * 1024) {
+        return (s / (1024 * 1024)).toFixed(2) + ' MB/s';
+      } else {
+        return (s / (1024 * 1024 * 1024)).toFixed(2) + ' GB/s';
+      }
+    }
+
+    // Fungsi untuk update data traffic dengan unit dinamis
+    function updateTrafficData() {
+      fetch('/cgi-bin/traffic')  // Pastikan endpoint ini mengembalikan nilai dalam byte/s
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('rx-speed').textContent = formatTraffic(data.rx);
+          document.getElementById('tx-speed').textContent = formatTraffic(data.tx);
+          
+          // Update progress bar berdasarkan nilai total trafik (nilai asli dalam byte/s)
+          // Misalnya, kita asumsikan 1 MB/s (1024*1024 B/s) sebagai referensi maksimum.
+          const maxSpeed = 1024 * 1024; // 1 MB/s sebagai referensi
+          const totalTraffic = (parseFloat(data.rx) + parseFloat(data.tx)) / maxSpeed * 100;
+          document.getElementById('traffic-progress').style.width = `${Math.min(totalTraffic, 100)}%`;
+        })
+        .catch(err => {
+          console.error('Error fetching traffic data:', err);
+        });
+    }
+
+    // Fungsi untuk memparsing bandwidth (menggunakan fungsi yang telah ada)
+    function parseBandwidth(bwStr) {
+      if (!bwStr) return 0;
+      const units = { GB: 1024, MB: 1, KB: 1/1024, B: 1/(1024*1024) };
+      const parts = bwStr.split(" ");
+      const value = parseFloat(parts[0]);
+      const unit = parts[1]?.toUpperCase() || 'MB';
+      return value * (units[unit] || 1);
+    }
+
+    function updateBandwidthPeriod() {
+      const now = new Date();
+      const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+      document.getElementById('bandwidth-period').textContent = 
+        `Periode: ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+    }
+
+    function updateCurrentDate() {
+      const now = new Date();
+      const options = { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      };
+      document.getElementById("current-date").lastElementChild.textContent = 
+        new Intl.DateTimeFormat('id-ID', options).format(now);
+    }
+
+    function updateProgressBars() {
+      const temp = parseInt(document.getElementById('cpu-temp').textContent) || 0;
+      document.getElementById('temp-progress').style.width = `${Math.min(temp / 100, 1) * 100}%`;
+    }
+
+    function updateData() {
+      fetch('/cgi-bin/status')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('uptime').textContent = data.uptime;
+          document.getElementById('cpu-temp').textContent = `${data.cpu_temp} °C`;
+          
+          const vnstat = data.vnstat['wwan0'];
+          document.getElementById('xl-today-date').textContent = vnstat.today.date;
+          document.getElementById('xl-today-total').textContent = vnstat.today.total;
+          document.getElementById('xl-month-date').textContent = vnstat.month.date;
+          document.getElementById('xl-month-total').textContent = vnstat.month.total;
+          document.getElementById('xl-last-month-date').textContent = vnstat.last_month.date;
+          document.getElementById('xl-last-month-total').textContent = vnstat.last_month.total;
+          
+          updateProgressBars();
+        });
+
+      fetch('/cgi-bin/pemakaian/pemakaian.sh')
+        .then(res => res.json())
+        .then(data => {
+          const list = document.getElementById('bandwidth-list');
+          list.innerHTML = data.clients
+            .sort((a, b) => parseBandwidth(b.bandwidth.download) - parseBandwidth(a.bandwidth.download))
+            .slice(0, 5)
+            .map((client, index) => {
+              let rankBadge;
+              switch(index) {
+                case 0:
+                  rankBadge = '<span class="gold">🥇</span>';
+                  break;
+                case 1:
+                  rankBadge = '<span class="silver">🥈</span>';
+                  break;
+                case 2:
+                  rankBadge = '<span class="bronze">🥉</span>';
+                  break;
+                default:
+                  rankBadge = `<span>${index + 1}</span>`;
+              }
+              
+              return `
+                <tr>
+                  <td class="rank-cell">${rankBadge}</td>
+                  <td>${client.name}</td>
+                  <td>${client.ip}</td>
+                  <td>${client.bandwidth.download}</td>
+                  <td>${client.bandwidth.upload}</td>
+                </tr>
+              `;
+            }).join('');
+        });
+    }
+
+    function updateOnlineData() {
+      fetch('/cgi-bin/online')
+        .then(res => res.json())
+        .then(data => {
+          const onlineList = document.getElementById('online-list');
+          const connected = data.filter(d => d.status === "TERHUBUNG");
+          
+          onlineList.innerHTML = data.map(device => `
+            <tr>
+              <td>${device.hostname}</td>
+              <td>${device.ip}</td>
+              <td>
+                <span class="online-status ${device.status === 'TERHUBUNG' ? 'connected' : ''}"></span>
+                ${device.status === 'TERHUBUNG' ? 'Online' : 'Offline'}
+              </td>
+            </tr>
+          `).join('');
+
+          document.getElementById('online-count').textContent = 
+            `Ada ${connected.length} Perangkat terhubung`;
+        });
+    }
+
+    // Initial Load
+    updateBandwidthPeriod();
+    updateCurrentDate();
+    updateData();
+    updateOnlineData();
+    updateTrafficData();
+
+    // Auto-refresh: update data tiap 2 detik untuk trafik dan setiap 5 detik untuk data lainnya
+    setInterval(() => {
+      updateData();
+      updateOnlineData();
+      updateCurrentDate();
+      updateTrafficData();
+    }, 2000);
+
+    setInterval(() => {
+      updateData();
+      updateOnlineData();
+      updateCurrentDate();
+    }, 5000);
+  </script>
+</body>
+</html>
