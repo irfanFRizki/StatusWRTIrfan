@@ -1,0 +1,19 @@
+#!/bin/sh
+
+echo "Content-type: application/json"
+echo ""
+
+# Jalankan vnstat dalam mode live selama 3 detik, lalu ambil baris ringkasan (baris terakhir)
+vnstat_output=$(timeout 3 vnstat -l -i wwan0 --json | tail -n 1)
+
+# Jika tidak ada output, kirim pesan error
+if [ -z "$vnstat_output" ]; then
+    echo "{\"error\": \"Tidak ada data vnstat.\"}"
+    exit 1
+fi
+
+# Gunakan sed untuk mengambil nilai totalbytes dari rx dan tx
+rx=$(echo "$vnstat_output" | sed -n 's/.*"rx":{[^}]*"totalbytes":[[:space:]]*\([0-9][0-9]*\).*/\1/p')
+tx=$(echo "$vnstat_output" | sed -n 's/.*"tx":{[^}]*"totalbytes":[[:space:]]*\([0-9][0-9]*\).*/\1/p')
+
+echo "{\"rx\": \"$rx\", \"tx\": \"$tx\"}"
