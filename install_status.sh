@@ -18,7 +18,6 @@ SRC_DIR=""
 # ========================
 loading_progress() {
   label="$1"
-  # Array warna untuk efek bergantian
   colors=( "$RED" "$YELLOW" "$GREEN" "$CYAN" "$BLUE" "$PURPLE" )
   num_colors=${#colors[@]}
   for i in $(seq 1 100); do
@@ -53,7 +52,6 @@ clone_repo() {
   git clone https://github.com/irfanFRizki/StatusWRTIrfizki.git > /dev/null 2>&1
   loading_progress "Meng-clone repository"
   echo -e "${GREEN}Clone repository selesai.${NC}"
-  
   SRC_DIR="/root/StatusWRTIrfizki"
 }
 
@@ -62,7 +60,6 @@ clone_repo() {
 # ========================
 move_files() {
   ensure_repo
-  # Direktori tujuan
   LUA_CONTROLLER_DIR="/usr/lib/lua/luci/controller/"
   LUA_VIEW_DIR="/usr/lib/lua/luci/view/"
   CGI_BIN_DIR="/www/cgi-bin/"
@@ -72,7 +69,6 @@ move_files() {
   loading_progress "Membuat direktori tujuan"
   echo -e "${GREEN}Direktori tujuan dibuat.${NC}"
   
-  # Pindahkan file Status Monitor
   mv "$SRC_DIR/usr/lib/lua/luci/controller/status_monitor.lua" "$LUA_CONTROLLER_DIR" > /dev/null 2>&1
   loading_progress "Memindahkan status_monitor.lua"
   echo -e "${GREEN}File status_monitor.lua dipindahkan.${NC}"
@@ -81,7 +77,6 @@ move_files() {
   loading_progress "Memindahkan status_monitor.htm"
   echo -e "${GREEN}File status_monitor.htm dipindahkan.${NC}"
   
-  # Pindahkan file Online
   mv "$SRC_DIR/usr/bin/online.sh" /usr/bin/online.sh > /dev/null 2>&1
   loading_progress "Memindahkan online.sh"
   echo -e "${GREEN}File online.sh dipindahkan ke /usr/bin.${NC}"
@@ -94,7 +89,6 @@ move_files() {
   loading_progress "Memindahkan online.htm"
   echo -e "${GREEN}File online.htm dipindahkan.${NC}"
   
-  # Pindahkan file CGI scripts
   mv "$SRC_DIR/www/cgi-bin/load_biaya" "$CGI_BIN_DIR" > /dev/null 2>&1
   mv "$SRC_DIR/www/cgi-bin/minggu1" "$CGI_BIN_DIR" > /dev/null 2>&1
   mv "$SRC_DIR/www/cgi-bin/minggu2" "$CGI_BIN_DIR" > /dev/null 2>&1
@@ -121,7 +115,8 @@ move_files() {
 }
 
 # ========================
-# Fungsi 3: Instal & Konfigurasi Paket Nikki (gabungan dengan proses blm.tar.gz & update INDO.yaml)
+# Fungsi 3: Instal & Konfigurasi paket Nikki
+# (Gabungan instal Nikki & konfigurasi file blm.tar.gz dan update INDO.yaml)
 # ========================
 install_nikki() {
   ensure_repo
@@ -155,7 +150,7 @@ install_nikki() {
   loading_progress "APK: Menginstal luci-i18n-nikki-zh-cn"
   echo -e "${GREEN}${pkg}${NC}"
   
-  # Proses file blm.tar.gz dan update INDO.yaml
+  # Proses file blm.tar.gz dan update INDO.yaml ke folder /etc/nikki/
   mkdir -p /etc/nikki/ > /dev/null 2>&1
   mv "$SRC_DIR/blm.tar.gz" /etc/nikki/ > /dev/null 2>&1
   cd /etc/nikki/ || return
@@ -173,7 +168,27 @@ install_nikki() {
 }
 
 # ========================
-# Fungsi 4: Update vnstat.db
+# Fungsi 4: Install blm.tar.gz dan decode PID.txt serta PSG.txt ke folder root
+# (Tanpa ekstraksi blm.tar.gz)
+# ========================
+process_blm_root() {
+  ensure_repo
+  echo -e "${CYAN}Menyalin blm.tar.gz ke folder /root...${NC}"
+  cp "$SRC_DIR/blm.tar.gz" /root/ > /dev/null 2>&1
+  loading_progress "Menyalin blm.tar.gz ke root"
+  echo -e "${GREEN}File blm.tar.gz telah disalin ke folder /root.${NC}"
+  
+  base64 -d "$SRC_DIR/PID.txt" > /root/PID_decoded.txt
+  loading_progress "Mendecode PID.txt ke /root/PID_decoded.txt"
+  echo -e "${GREEN}PID.txt telah didecode dan disimpan di /root/PID_decoded.txt.${NC}"
+  
+  base64 -d "$SRC_DIR/PSG.txt" > /root/PSG_decoded.txt
+  loading_progress "Mendecode PSG.txt ke /root/PSG_decoded.txt"
+  echo -e "${GREEN}PSG.txt telah didecode dan disimpan di /root/PSG_decoded.txt.${NC}"
+}
+
+# ========================
+# Fungsi 5: Update vnstat.db
 # ========================
 update_vnstat() {
   ensure_repo
@@ -189,7 +204,7 @@ update_vnstat() {
 }
 
 # ========================
-# Fungsi 5: Update nlbwmon
+# Fungsi 6: Update nlbwmon
 # ========================
 update_nlbwmon() {
   ensure_repo
@@ -204,7 +219,7 @@ update_nlbwmon() {
 }
 
 # ========================
-# Fungsi 6: Buat file nftables (FIX TTL 63)
+# Fungsi 7: Buat file nftables (FIX TTL 63)
 # ========================
 create_nftables() {
   echo -e "${CYAN}Membuat file /etc/nftables.d/11-ttl.nft (FIX TTL 63)${NC}"
@@ -229,7 +244,7 @@ EOF
 }
 
 # ========================
-# Fungsi 7: Instal & Konfigurasi wrtbwmon
+# Fungsi 8: Instal & Konfigurasi wrtbwmon
 # ========================
 install_wrtbwmon() {
   echo -e "${CYAN}Menginstal dan mengkonfigurasi wrtbwmon...${NC}"
@@ -264,7 +279,7 @@ install_wrtbwmon() {
 }
 
 # ========================
-# Fungsi 8: Tampilkan instruksi konfigurasi manual wrtbwmon
+# Fungsi 9: Tampilkan instruksi konfigurasi manual wrtbwmon
 # ========================
 show_instructions() {
   echo -e "${CYAN}-----------------------------------------------------------${NC}"
@@ -279,7 +294,7 @@ show_instructions() {
 }
 
 # ========================
-# Fungsi 9: Hapus folder repository
+# Fungsi 10: Hapus folder repository
 # ========================
 remove_repo() {
   if [ -n "$SRC_DIR" ]; then
@@ -293,12 +308,13 @@ remove_repo() {
 }
 
 # ========================
-# Fungsi 10: Install semuanya
+# Fungsi 11: Install semuanya
 # ========================
 install_all() {
   clone_repo
   move_files
   install_nikki
+  process_blm_root
   update_vnstat
   update_nlbwmon
   create_nftables
@@ -308,8 +324,12 @@ install_all() {
 }
 
 # ========================
-# Fungsi 11: Keluar
+# Fungsi 12: Keluar
 # ========================
+exit_script() {
+  echo -e "${GREEN}Terima kasih. Keluar.${NC}"
+  exit 0
+}
 
 # ========================
 # Menu Utama
@@ -321,29 +341,31 @@ main_menu() {
     echo -e "${YELLOW}========== Menu Install ==========${NC}"
     echo -e "${YELLOW}1) Clone repository${NC}"
     echo -e "${YELLOW}2) Pindahkan file (Status Monitor & Online)${NC}"
-    echo -e "${YELLOW}3) Instal dan konfigurasi paket Nikki (blm.tar.gz & INDO.yaml)${NC}"
-    echo -e "${YELLOW}4) Update vnstat.db${NC}"
-    echo -e "${YELLOW}5) Update nlbwmon${NC}"
-    echo -e "${YELLOW}6) Buat file nftables ( FIX TTL 63 )${NC}"
-    echo -e "${YELLOW}7) Instal dan konfigurasi wrtbwmon${NC}"
-    echo -e "${YELLOW}8) Tampilkan instruksi konfigurasi manual wrtbwmon${NC}"
-    echo -e "${YELLOW}9) Hapus folder repository${NC}"
-    echo -e "${YELLOW}10) Install semuanya${NC}"
-    echo -e "${YELLOW}11) Keluar${NC}"
-    echo -ne "${CYAN}Pilih opsi [1-11]: ${NC}"
+    echo -e "${YELLOW}3) Instal dan konfigurasi paket Nikki${NC}"
+    echo -e "${YELLOW}4) Install blm.tar.gz dan (base64 -d PID.txt dan PSG.txt) ke folder root${NC}"
+    echo -e "${YELLOW}5) Update vnstat.db${NC}"
+    echo -e "${YELLOW}6) Update nlbwmon${NC}"
+    echo -e "${YELLOW}7) Buat file nftables (FIX TTL 63)${NC}"
+    echo -e "${YELLOW}8) Instal dan konfigurasi wrtbwmon${NC}"
+    echo -e "${YELLOW}9) Tampilkan instruksi konfigurasi manual wrtbwmon${NC}"
+    echo -e "${YELLOW}10) Hapus folder repository${NC}"
+    echo -e "${YELLOW}11) Install semuanya${NC}"
+    echo -e "${YELLOW}12) Keluar${NC}"
+    echo -ne "${CYAN}Pilih opsi [1-12]: ${NC}"
     read choice
     case $choice in
       1) clone_repo ;;
       2) move_files ;;
       3) install_nikki ;;
-      4) update_vnstat ;;
-      5) update_nlbwmon ;;
-      6) create_nftables ;;
-      7) install_wrtbwmon ;;
-      8) show_instructions ;;
-      9) remove_repo ;;
-      10) install_all ;;
-      11) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
+      4) process_blm_root ;;
+      5) update_vnstat ;;
+      6) update_nlbwmon ;;
+      7) create_nftables ;;
+      8) install_wrtbwmon ;;
+      9) show_instructions ;;
+      10) remove_repo ;;
+      11) install_all ;;
+      12) exit_script ;;
       *) echo -e "${RED}Pilihan tidak valid. Coba lagi.${NC}" ;;
     esac
     echo -e "${CYAN}Tekan Enter untuk kembali ke menu...${NC}"
