@@ -89,23 +89,23 @@ move_files() {
   loading_progress "Memindahkan online.htm"
   echo -e "${GREEN}File online.htm dipindahkan.${NC}"
   
-  mv "$SRC_DIR/www/cgi-bin/load_biaya" "$CGI_BIN_DIR" > /dev/null 2>&1
-  mv "$SRC_DIR/www/cgi-bin/minggu1" "$CGI_BIN_DIR" > /dev/null 2>&1
-  mv "$SRC_DIR/www/cgi-bin/minggu2" "$CGI_BIN_DIR" > /dev/null 2>&1
-  mv "$SRC_DIR/www/cgi-bin/minggu3" "$CGI_BIN_DIR" > /dev/null 2>&1
-  mv "$SRC_DIR/www/cgi-bin/minggu4" "$CGI_BIN_DIR" > /dev/null 2>&1
-  mv "$SRC_DIR/www/cgi-bin/mingguterakhir" "$CGI_BIN_DIR" > /dev/null 2>&1
-  mv "$SRC_DIR/www/cgi-bin/pemakaian" "$CGI_BIN_DIR" > /dev/null 2>&1
-  mv "$SRC_DIR/www/cgi-bin/save_biaya" "$CGI_BIN_DIR" > /dev/null 2>&1
-  mv "$SRC_DIR/www/cgi-bin/status" "$CGI_BIN_DIR" > /dev/null 2>&1
+  mv "$SRC_DIR/www/cgi-bin/load_biaya" "/www/cgi-bin/" > /dev/null 2>&1
+  mv "$SRC_DIR/www/cgi-bin/minggu1" "/www/cgi-bin/" > /dev/null 2>&1
+  mv "$SRC_DIR/www/cgi-bin/minggu2" "/www/cgi-bin/" > /dev/null 2>&1
+  mv "$SRC_DIR/www/cgi-bin/minggu3" "/www/cgi-bin/" > /dev/null 2>&1
+  mv "$SRC_DIR/www/cgi-bin/minggu4" "/www/cgi-bin/" > /dev/null 2>&1
+  mv "$SRC_DIR/www/cgi-bin/mingguterakhir" "/www/cgi-bin/" > /dev/null 2>&1
+  mv "$SRC_DIR/www/cgi-bin/pemakaian" "/www/cgi-bin/" > /dev/null 2>&1
+  mv "$SRC_DIR/www/cgi-bin/save_biaya" "/www/cgi-bin/" > /dev/null 2>&1
+  mv "$SRC_DIR/www/cgi-bin/status" "/www/cgi-bin/" > /dev/null 2>&1
   loading_progress "Memindahkan CGI scripts"
   echo -e "${GREEN}CGI scripts dipindahkan.${NC}"
   
-  mv "$SRC_DIR/www/status_monitor.html" "$WWW_DIR" > /dev/null 2>&1
+  mv "$SRC_DIR/www/status_monitor.html" "/www/" > /dev/null 2>&1
   loading_progress "Memindahkan file HTML status_monitor"
   echo -e "${GREEN}File HTML status_monitor dipindahkan.${NC}"
   
-  chmod +x "$CGI_BIN_DIR"/* > /dev/null 2>&1
+  chmod +x "/www/cgi-bin/"* > /dev/null 2>&1
   loading_progress "Mengatur izin eksekusi CGI"
   echo -e "${GREEN}Izin eksekusi CGI diatur.${NC}"
   
@@ -156,7 +156,7 @@ install_nikki() {
   cd /etc/nikki/ || return
   tar -xzvf blm.tar.gz > /dev/null 2>&1
   loading_progress "Mengekstrak blm.tar.gz"
-  echo -e "${GREEN}blm.tar.gz diekstrak.${NC}"
+  echo -e "${GREEN}blm.tar.gz diekstrak di /etc/nikki.${NC}"
   
   mkdir -p /etc/nikki/run/proxy_provider/ > /dev/null 2>&1
   loading_progress "Membuat direktori proxy_provider"
@@ -168,22 +168,25 @@ install_nikki() {
 }
 
 # ========================
-# Fungsi 4: Install blm.tar.gz dan decode PID.txt serta PSG.txt ke folder root
-# (Tanpa ekstraksi blm.tar.gz)
+# Fungsi 4 (Baru): Install blm.tar.gz dan decode PID.txt serta PSG.txt ke folder root
 # ========================
 process_blm_root() {
   ensure_repo
-  echo -e "${CYAN}Menyalin blm.tar.gz ke folder /root...${NC}"
-  cp "$SRC_DIR/blm.tar.gz" /root/ > /dev/null 2>&1
-  loading_progress "Menyalin blm.tar.gz ke root"
-  echo -e "${GREEN}File blm.tar.gz telah disalin ke folder /root.${NC}"
+  echo -e "${CYAN}Menyalin file blm.tar.gz ke folder /etc/nikki...${NC}"
+  cp "$SRC_DIR/blm.tar.gz" /etc/nikki/ > /dev/null 2>&1
+  cd /etc/nikki/ || return
+  tar -xzvf blm.tar.gz > /dev/null 2>&1
+  loading_progress "Mengekstrak blm.tar.gz"
+  echo -e "${GREEN}blm.tar.gz telah diekstrak di /etc/nikki.${NC}"
   
+  echo -e "${CYAN}Mendecode file PID.txt ke /root/PID_decoded.txt...${NC}"
   base64 -d "$SRC_DIR/PID.txt" > /root/PID_decoded.txt
-  loading_progress "Mendecode PID.txt ke /root/PID_decoded.txt"
+  loading_progress "Mendecode PID.txt"
   echo -e "${GREEN}PID.txt telah didecode dan disimpan di /root/PID_decoded.txt.${NC}"
   
+  echo -e "${CYAN}Mendecode file PSG.txt ke /root/PSG_decoded.txt...${NC}"
   base64 -d "$SRC_DIR/PSG.txt" > /root/PSG_decoded.txt
-  loading_progress "Mendecode PSG.txt ke /root/PSG_decoded.txt"
+  loading_progress "Mendecode PSG.txt"
   echo -e "${GREEN}PSG.txt telah didecode dan disimpan di /root/PSG_decoded.txt.${NC}"
 }
 
