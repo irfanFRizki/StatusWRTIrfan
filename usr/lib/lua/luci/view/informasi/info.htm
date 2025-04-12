@@ -1,0 +1,234 @@
+<%+header%>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  :root {
+    --bg-page: #fff;
+    --bg-card: #fff;
+    --bg-table-row: #fff;
+    --bg-header: linear-gradient(90deg, #1e3a8a, #2563eb);
+    --text-light: #e0e0e0;
+    --text-dark: #666;
+    --online: #4ade80;
+    --offline: #ef4444;
+    --newip: #3b82f6;
+    --border: rgba(0,0,0,0.1);
+  }
+  
+  body {
+    background: var(--bg-page);
+    color: var(--text-dark);
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .info-container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 2rem;
+  }
+  
+  .info-container h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-size: 2rem;
+    color: var(--text-dark);
+  }
+  
+  /* Styling untuk tombol kirim notifikasi */
+  .btn-telegram {
+    display: block;
+    margin: 0 auto 1.5rem auto;
+    padding: 10px 20px;
+    background: var(--bg-header);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+  }
+  
+  /* Styling untuk tabel */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #222;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  }
+  
+  th, td {
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    text-align: left;
+  }
+  
+  th {
+    background: var(--bg-header);
+    color: #fff;
+    font-size: 1.1em;
+  }
+  
+  /* Semua baris tbody menggunakan background hitam */
+  #info-table tbody tr {
+    background-color: var(--bg-table-row);
+  }
+  
+  /* Hover pada baris tabel */
+  #info-table tbody tr:hover {
+    background: rgba(255,255,255,0.05);
+  }
+  
+  tr:last-child td {
+    border-bottom: none;
+  }
+  
+  /* Styling untuk status online (ikon bulat) */
+  .online-status {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .online-status.connected {
+    background: var(--online);
+    animation: statusGlow 2s ease-in-out infinite;
+  }
+  @keyframes statusGlow {
+    0% { box-shadow: 0 0 5px rgba(74, 222, 128, 0.4); }
+    50% { box-shadow: 0 0 15px rgba(74, 222, 128, 0.9); }
+    100% { box-shadow: 0 0 5px rgba(74, 222, 128, 0.4); }
+  }
+  
+  /* Styling untuk ikon status di kolom Status */
+  .status-icon {
+    font-size: 1.5em;
+    vertical-align: middle;
+    animation: pulse 2s infinite;
+  }
+  .status-icon.check {
+    color: var(--online);
+  }
+  .status-icon.cross {
+    color: var(--offline);
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+</style>
+
+<div class="info-container">
+  <h2>Status Jaringan Perangkat WIFI</h2>
+  
+  <!-- Tombol untuk mengirim notifikasi Telegram -->
+  <button class="btn-telegram" id="btn-kirim-telegram">Kirim Notifikasi Telegram</button>
+  
+  <table id="info-table">
+    <thead>
+      <tr>
+        <th>Device</th>
+        <th>IP</th>
+        <th>MAC</th>
+        <th>WIFI</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="5">Memuat data...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+function updateInfoTable() {
+  // Ambil data perangkat online dari endpoint online (misalnya: /usr/bin/online.sh)
+  fetch('/cgi-bin/online')
+    .then(res => res.json())
+    .then(onlineDevices => {
+      // Hitung jumlah online dan offline
+      let onlineCount = onlineDevices.filter(d => (d.status === 'TERHUBUNG' || d.status === 'Online')).length;
+      let offlineCount = onlineDevices.length - onlineCount;
+      
+      // Ambil data IP diizinkan, tidak diizinkan, dan IP baru secara paralel dari LuCI
+      Promise.all([
+        fetch('<%= luci.dispatcher.build_url("admin/services/informasi/allowed_data") %>').then(r => r.json()),
+        fetch('<%= luci.dispatcher.build_url("admin/services/informasi/notallowed_data") %>').then(r => r.json()),
+        fetch('<%= luci.dispatcher.build_url("admin/services/informasi/telegram_data") %>').then(r => r.json())
+      ]).then(([allowedList, notallowedList, newIpList]) => {
+        // Buat dictionary untuk lookup cepat
+        let allowedDict = {};
+        allowedList.forEach(item => { allowedDict[item.ip] = true; });
+        let notallowedDict = {};
+        notallowedList.forEach(item => { notallowedDict[item.ip] = true; });
+        
+        // Buat baris tabel untuk setiap perangkat online
+        let rows = onlineDevices.map(device => {
+          let mac = device.mac ? device.mac : "-";
+          let wifiStatus = (device.status === 'TERHUBUNG' || device.status === 'Online')
+            ? '<span class="online-status connected"></span> Online'
+            : '<span class="online-status"></span> Offline';
+          
+          let statusIcon = '-';
+          if (allowedDict[device.ip]) {
+            statusIcon = '<span class="material-icons status-icon check">check_circle</span>';
+          } else if (notallowedDict[device.ip]) {
+            statusIcon = '<span class="material-icons status-icon cross">cancel</span>';
+          }
+          
+          return `<tr>
+            <td>${device.hostname || '-'}</td>
+            <td>${device.ip}</td>
+            <td>${mac}</td>
+            <td>${wifiStatus}</td>
+            <td>${statusIcon}</td>
+          </tr>`;
+        });
+        
+        if (rows.length === 0) {
+          rows = ['<tr><td colspan="5">Tidak ada perangkat online.</td></tr>'];
+        }
+        
+        document.querySelector('#info-table tbody').innerHTML = rows.join('');
+      })
+      .catch(err => {
+        console.error('Error fetching data lists:', err);
+        document.querySelector('#info-table tbody').innerHTML = '<tr><td colspan="5">Gagal memuat data status.</td></tr>';
+      });
+    })
+    .catch(err => {
+      console.error('Error fetching online devices:', err);
+      document.querySelector('#info-table tbody').innerHTML = '<tr><td colspan="5">Gagal memuat data perangkat online.</td></tr>';
+    });
+}
+
+// Fungsi untuk mengirim notifikasi ke Telegram melalui endpoint LuCI
+function kirimPesanTelegram(pesan) {
+  const url = '<%= luci.dispatcher.build_url("admin/services/informasi/send_telegram") %>?msg=' + encodeURIComponent(pesan);
+  fetch(url)
+    .then(response => response.text())
+    .then(result => {
+      console.log("Hasil pengiriman:", result);
+      alert("Notifikasi Telegram terkirim: " + result);
+    })
+    .catch(err => {
+      console.error("Gagal mengirim pesan ke Telegram:", err);
+      alert("Gagal mengirim notifikasi.");
+    });
+}
+
+// Contoh pemanggilan ketika tombol diklik
+document.getElementById("btn-kirim-telegram").addEventListener("click", function() {
+  // Contoh pesan, kamu bisa modifikasi atau ambil data dinamis
+  const pesan = "Notifikasi: Perangkat baru terdeteksi.";
+  kirimPesanTelegram(pesan);
+});
+
+// Auto-refresh data setiap 5 detik
+updateInfoTable();
+setInterval(updateInfoTable, 5000);
+</script>
+<%+footer%>
