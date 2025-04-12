@@ -296,14 +296,16 @@
       </div>
     </div>
 
+    <!-- Tambahan: Tampilkan tanggal dan waktu berjalan -->
     <p id="current-date" class="current-date animate-in" style="animation-delay: 0.4s">
       <span class="material-icons">event</span>
-      <span>--</span>
+      <span id="current-date-text">--</span>
+      <span id="current-time" style="margin-left: 10px;">--:--:--</span>
     </p>
 
     <h2 class="section-title animate-in" style="animation-delay: 0.6s">
       <span class="material-icons">data_usage</span>
-      Penggunaan Data XL
+      Penggunaan Data XL @modem DELL DW
     </h2>
     <table class="animate-in" style="animation-delay: 0.8s">
       <thead>
@@ -320,6 +322,11 @@
           <td id="xl-today-total">--</td>
         </tr>
         <tr>
+          <td>Kemarin</td>
+          <td id="xl-yesterday-date">--</td>
+          <td id="xl-yesterday-total">--</td>
+        </tr>
+        <tr>
           <td>Bulan ini</td>
           <td id="xl-month-date">--</td>
           <td id="xl-month-total">--</td>
@@ -334,7 +341,7 @@
 
     <h2 class="section-title animate-in" style="animation-delay: 1.0s">
       <span class="material-icons">speed</span>
-      Top 5 Bandwidth
+      Top 5 Bandwidth @nlbwmon
     </h2>
     <p id="bandwidth-period" class="animate-in" style="animation-delay: 1.1s">Periode: --</p>
     <table class="animate-in" style="animation-delay: 1.2s">
@@ -424,16 +431,21 @@
         `Periode: ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
     }
 
-    function updateCurrentDate() {
+    // Fungsi update untuk tanggal dan waktu berjalan
+    function updateCurrentDateTime() {
       const now = new Date();
-      const options = { 
+      const dateOptions = { 
         weekday: 'long', 
         day: 'numeric', 
         month: 'long', 
         year: 'numeric' 
       };
-      document.getElementById("current-date").lastElementChild.textContent = 
-        new Intl.DateTimeFormat('id-ID', options).format(now);
+      document.getElementById("current-date-text").textContent = 
+        new Intl.DateTimeFormat('id-ID', dateOptions).format(now);
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById("current-time").textContent = `${hours}:${minutes}:${seconds}`;
     }
 
     function updateProgressBars() {
@@ -451,6 +463,9 @@
           const vnstat = data.vnstat['wwan0'];
           document.getElementById('xl-today-date').textContent = vnstat.today.date;
           document.getElementById('xl-today-total').textContent = vnstat.today.total;
+          // Update untuk periode kemarin
+          document.getElementById('xl-yesterday-date').textContent = vnstat.yesterday.date;
+          document.getElementById('xl-yesterday-total').textContent = vnstat.yesterday.total;
           document.getElementById('xl-month-date').textContent = vnstat.month.date;
           document.getElementById('xl-month-total').textContent = vnstat.month.total;
           document.getElementById('xl-last-month-date').textContent = vnstat.last_month.date;
@@ -520,23 +535,24 @@
 
     // Initial Load
     updateBandwidthPeriod();
-    updateCurrentDate();
+    updateCurrentDateTime();
     updateData();
     updateOnlineData();
     updateTrafficData();
+
+    // Update tanggal dan waktu setiap detik
+    setInterval(updateCurrentDateTime, 1000);
 
     // Auto-refresh: update data tiap 2 detik untuk trafik dan setiap 5 detik untuk data lainnya
     setInterval(() => {
       updateData();
       updateOnlineData();
-      updateCurrentDate();
       updateTrafficData();
     }, 2000);
 
     setInterval(() => {
       updateData();
       updateOnlineData();
-      updateCurrentDate();
     }, 5000);
   </script>
 </body>
