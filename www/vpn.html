@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Status VPN - Ringkasan IP</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .ip-record { margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; }
+    .label { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Status VPN - Ringkasan IP</h1>
+  <div id="data">Menunggu data...</div>
+  
+  <script>
+    // Fungsi untuk memformat bytes ke unit yang sesuai (Bytes, KB, MB, GB, TB)
+    function formatBytes(bytes) {
+      if (bytes === 0) return "0 Bytes";
+      const k = 1024;
+      const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    }
+
+    // Membuka koneksi WebSocket ke endpoint
+    const ws = new WebSocket("ws://192.168.1.1:9090/connections?token=mahavpn");
+
+    ws.onopen = function() {
+      console.log("Koneksi WebSocket terbuka");
+      document.getElementById("data").innerHTML = "Koneksi terbuka, menunggu data...";
+    };
+
+    ws.onmessage = function(event) {
+      console.log("Pesan diterima:", event.data);
+      let parsedData;
+      try {
+        parsedData = JSON.parse(event.data);
+      } catch (e) {
+        console.error("Error parsing JSON:", e);
+        document.getElementById("data").innerHTML = "Data tidak valid";
+        return;
+      }
+      
+      let connections = [];
+      if (parsedData.hasOwnProperty("connections")) {
+        connections = parsedData.connections;
+      }
+      
+      // Kelompokkan koneksi berdasarkan sourceIP
+      let grouped = {};
+      connections.forEach(function(conn) {
+        let ip = (conn.metadata && conn.metadata.sourceIP) ? conn.metadata.sourceIP : "Tidak diketahui";
+        if (!grouped[ip]) {
+          grouped[ip] = {
+            totalBandwidth: 0,
+            // Ambil tanggal dari properti start (format YYYY-MM-DD)
+            date: conn.start ? conn.start.substring(0,10) : "Tidak diketahui",
+            count: 0
+          };
+        }
+        // Jumlahkan total bandwidth: upload + download
+        grouped[ip].totalBandwidth += (conn.upload || 0) + (conn.download || 0);
+        grouped[ip].count += 1;
+      });
+
+      let html = "";
+      for (let ip in grouped) {
+        let record = grouped[ip];
+        html += `<div class="ip-record">`;
+        html += `<div><span class="label">IP:</span> ${ip}</div>`;
+        html += `<div><span class="label">Total Bandwidth:</span> ${formatBytes(record.totalBandwidth)}</div>`;
+        html += `<div><span class="label">Date:</span> ${record.date}</div>`;
+        html += `<div><span class="label">Connections Count:</span> ${record.count}</div>`;
+        html += `</div>`;
+      }
+      
+      if (html === "") {
+        html = "Tidak ada data koneksi.";
+      }
+      
+      document.getElementById("data").innerHTML = html;
+    };
+
+    ws.onerror = function(error) {
+      console.error("WebSocket error:", error);
+      document.getElementById("data").innerHTML = "Terjadi error pada koneksi WebSocket.";
+    };
+
+    ws.onclose = function() {
+      console.log("Koneksi WebSocket tertutup");
+      document.getElementById("data").innerHTML += "<br/>Koneksi WebSocket tertutup.";
+    };
+  </script>
+</body>
+</html>
