@@ -36,8 +36,8 @@ d2:7c:10:40:a1:a7 HP_AQILLA 192.168.1.122
 72:cb:22:7e:fb:a5 STB 192.168.1.192
 b4:0e:de:08:d4:05 LAPTOP 192.168.1.123
 ea:42:a5:19:2d:81 HP_SAMSUNG_TOKO 192.168.1.240
-3a:0f:fe:97:a4:e2 Entah 192.168.1.166
-0a:74:af:f8:6d:29 Tau 192.168.1.233"
+3a:0f:fe:97:a4:e2 AMAT 192.168.1.166
+0a:74:af:f8:6d:29 BAPAK 192.168.1.233"
 
 # Ambil bulan sekarang
 current_month=$(date +"%B %Y")
