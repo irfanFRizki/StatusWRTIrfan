@@ -1,0 +1,244 @@
+<%+header%>
+<style>
+  :root {
+    --primary: #6366f1;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --background: #f8fafc;
+    --card-bg: #ffffff;
+  }
+
+  .notif-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  .notif-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .notif-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .card-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .ip-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .ip-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .ip-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .ip-detail {
+    overflow: hidden;
+  }
+
+  .ip-detail-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+  }
+
+  .ip-detail-value {
+    font-weight: 500;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ip-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 1rem;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-allow {
+    background: var(--success);
+    color: white;
+  }
+
+  .btn-allow:hover {
+    background: #16a34a;
+  }
+
+  .btn-kick {
+    background: var(--danger);
+    color: white;
+  }
+
+  .btn-kick:hover {
+    background: #dc2626;
+  }
+
+  .notification-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #1e293b;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+
+  @media (max-width: 640px) {
+    .notif-container {
+      padding: 0 0.5rem;
+    }
+    
+    .ip-info {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="notif-container">
+  <div class="notif-header">
+    <h2>IP Tidak Terdaftar</h2>
+  </div>
+  
+  <div class="card-grid" id="ip_list"></div>
+</div>
+
+<script type="text/javascript">
+function loadData(){
+    fetch("<%= luci.dispatcher.build_url('admin/services/informasi/telegram_data') %>")
+    .then(response => response.json())
+    .then(data => {
+        let container = document.getElementById("ip_list");
+        container.innerHTML = "";
+        data.forEach(function(item){
+            let card = document.createElement("div");
+            card.className = "ip-card";
+            
+            const encodedIp = encodeURIComponent(item.ip);
+            
+            let html = `
+              <div class="ip-info">
+                <div class="ip-detail">
+                  <div class="ip-detail-label">Alamat IP</div>
+                  <div class="ip-detail-value">${item.ip}</div>
+                </div>
+                <div class="ip-detail">
+                  <div class="ip-detail-label">Hostname</div>
+                  <div class="ip-detail-value">${item.hostname}</div>
+                </div>
+                <div class="ip-detail">
+                  <div class="ip-detail-label">Informasi</div>
+                  <div class="ip-detail-value">${item.info}</div>
+                </div>
+              </div>
+              <div class="ip-actions">
+                <button class="btn btn-allow" data-ip="${encodedIp}" data-action="allow">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022Z"/>
+                  </svg>
+                  Izinkan
+                </button>
+                <button class="btn btn-kick" data-ip="${encodedIp}" data-action="kick">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                  </svg>
+                  Blokir
+                </button>
+              </div>
+            `;
+            
+            card.innerHTML = html;
+            
+            // Add event listeners
+            card.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const ip = decodeURIComponent(this.dataset.ip);
+                    const action = this.dataset.action;
+                    sendAksi(ip, action);
+                });
+            });
+            
+            container.appendChild(card);
+        });
+    })
+    .catch(error => console.error("Error:", error));
+}
+
+function sendAksi(ip, aksi){
+    const encodedIp = encodeURIComponent(ip);
+    fetch(`<%= luci.dispatcher.build_url('admin/services/informasi/aksi') %>?ip=${encodedIp}&aksi=${aksi}`)
+    .then(response => response.text())
+    .then(text => {
+        showNotification(text);
+        loadData();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Gagal memproses permintaan');
+    });
+}
+
+function showNotification(message) {
+    const toast = document.createElement('div');
+    toast.className = 'notification-toast';
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// Auto refresh every 5 seconds
+setInterval(loadData, 5000);
+
+// Initial load
+document.addEventListener('DOMContentLoaded', loadData);
+</script>
+
+<%+footer%>
