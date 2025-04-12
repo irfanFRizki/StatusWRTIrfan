@@ -38,8 +38,13 @@ get_vnstat_data() {
     today_data=$(vnstat -d -i $iface | grep -E '^[[:space:]]*[0-9]{4}-[0-9]{2}-[0-9]{2}' | tail -n 1)
     today=$(format_vnstat_daily "$today_data")
 
+    # Ambil data harian untuk kemarin menggunakan vnstat -d
+    yesterday_data=$(vnstat -d -i $iface | grep -E '^[[:space:]]*[0-9]{4}-[0-9]{2}-[0-9]{2}' | tail -n 2 | head -n 1)
+    yesterday=$(format_vnstat_daily "$yesterday_data")
+
     echo "\"$iface\": {"
     echo "\"today\": {$today},"
+    echo "\"yesterday\": {$yesterday},"
     echo "\"month\": {$this_month},"
     echo "\"last_month\": {$last_month}"
     echo "}"
