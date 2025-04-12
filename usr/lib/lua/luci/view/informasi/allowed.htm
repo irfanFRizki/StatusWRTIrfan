@@ -1,0 +1,211 @@
+<%+header%>
+<style>
+  :root {
+    --success: #22c55e;
+    --danger: #ef4444;
+    --background: #f8fafc;
+    --card-bg: #ffffff;
+  }
+
+  .allowed-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  .allowed-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .allowed-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .card-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .ip-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .ip-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .ip-info {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  .ip-detail {
+    overflow: hidden;
+  }
+
+  .ip-detail-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+  }
+
+  .ip-detail-value {
+    font-weight: 500;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ip-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .btn-delete {
+    padding: 0.5rem 1rem;
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-delete:hover {
+    background: #dc2626;
+  }
+
+  @media (max-width: 640px) {
+    .allowed-container {
+      padding: 0 0.5rem;
+    }
+    
+    .ip-card {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .ip-actions {
+      justify-content: flex-end;
+      margin-top: 1rem;
+    }
+  }
+.notification-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translate(-50%, 100%); }
+    to { transform: translate(-50%, 0); }
+}
+</style>
+
+<div class="allowed-container">
+  <div class="allowed-header">
+    <h2>Daftar IP Diizinkan</h2>
+  </div>
+  
+  <div class="card-grid" id="allowed_list"></div>
+</div>
+
+<script type="text/javascript">
+function loadAllowed(){
+    fetch("<%= luci.dispatcher.build_url('admin/services/informasi/allowed_data') %>")
+    .then(response => response.json())
+    .then(data => {
+        let container = document.getElementById("allowed_list");
+        container.innerHTML = "";
+        data.forEach(function(item){
+            let card = document.createElement("div");
+            card.className = "ip-card";
+            
+            let html = `
+              <div class="ip-info">
+                <div class="ip-detail">
+                  <div class="ip-detail-label">Alamat IP</div>
+                  <div class="ip-detail-value">${item.ip}</div>
+                </div>
+                <div class="ip-detail">
+                  <div class="ip-detail-label">Hostname</div>
+                  <div class="ip-detail-value">${item.hostname}</div>
+                </div>
+              </div>
+              <div class="ip-actions">
+                <button class="btn-delete" onclick="deleteAllowed('${item.ip}')">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                    <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                  </svg>
+                  Hapus
+                </button>
+              </div>
+            `;
+            
+            card.innerHTML = html;
+            container.appendChild(card);
+        });
+    })
+    .catch(error => console.log("Error:", error));
+}
+
+function deleteAllowed(ip){
+    if(confirm(`Yakin ingin menghapus IP ${ip} dari daftar diizinkan?`)){
+        fetch("<%= luci.dispatcher.build_url('admin/services/informasi/allowed/delete') %>?ip=" + ip)
+        .then(response => response.text())
+        .then(text => {
+            showNotification(text);
+            loadAllowed();
+        });
+    }
+}
+
+function showNotification(message) {
+    let toast = document.createElement("div");
+    toast.className = "notification-toast";
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+setInterval(loadAllowed, 5000);
+loadAllowed();
+</script>
+
+<%+footer%>
