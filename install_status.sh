@@ -36,16 +36,20 @@ install_update() {
   opkg update > /dev/null 2>&1
   loading_progress "Updating paket"
   echo -e "${GREEN}Update paket selesai.${NC}"
+  
   local pkg
   pkg=$(opkg install bc 2>&1)
   loading_progress "Menginstal bc"
   echo -e "${GREEN}${pkg}${NC}"
+  
   pkg=$(opkg install git 2>&1)
   loading_progress "Menginstal git"
   echo -e "${GREEN}${pkg}${NC}"
+  
   pkg=$(opkg install git-http 2>&1)
   loading_progress "Menginstal git-http"
   echo -e "${GREEN}${pkg}${NC}"
+  
   pkg=$(opkg install wget 2>&1)
   loading_progress "Menginstal wget"
   echo -e "${GREEN}${pkg}${NC}"
@@ -66,6 +70,7 @@ clone_repo() {
   LUA_VIEW_DIR="/usr/lib/lua/luci/view/"
   CGI_BIN_DIR="/www/cgi-bin/"
   WWW_DIR="/www/"
+  
   mkdir -p "$LUA_CONTROLLER_DIR" "$LUA_VIEW_DIR" "$CGI_BIN_DIR" "$WWW_DIR" > /dev/null 2>&1
   loading_progress "Membuat direktori tujuan"
   echo -e "${GREEN}Direktori tujuan dibuat.${NC}"
@@ -131,6 +136,7 @@ clone_repo() {
   mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/notallowed.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
   mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/settings.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
   mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/telegram.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
+  
   mkdir -p "/usr/lib/lua/luci/controller/" > /dev/null 2>&1
   mv "$SRC_DIR/usr/lib/lua/luci/controller/informasi.lua" "/usr/lib/lua/luci/controller/" > /dev/null 2>&1
   loading_progress "Memindahkan file informasi"
@@ -176,34 +182,10 @@ clone_repo() {
       fi
     fi
   fi
-  
-  # Hapus paket luci-app-tinyfm
-  opkg remove luci-app-tinyfm > /dev/null 2>&1
-  loading_progress "Menghapus luci-app-tinyfm"
-  echo -e "${GREEN}Paket luci-app-tinyfm telah dihapus.${NC}"
 }
 
 # ========================
-# Fungsi 3: Update vnstat.db
-# ========================
-update_vnstat() {
-  if [ -z "$SRC_DIR" ]; then
-    echo -e "${RED}Repository belum di-clone. Silakan pilih opsi 1 terlebih dahulu.${NC}"
-    return
-  fi
-  echo -e "${CYAN}Mengganti file vnstat.db dengan yang ada di repository${NC}"
-  mkdir -p /etc/vnstat > /dev/null 2>&1
-  if [ -f /etc/vnstat/vnstat.db ]; then
-    echo -e "${YELLOW}Mengganti file vnstat.db dengan yang ada di repository${NC}"
-    rm -f /etc/vnstat/vnstat.db
-  fi
-  mv "$SRC_DIR/vnstat.db" /etc/vnstat/ > /dev/null 2>&1
-  loading_progress "Memindahkan vnstat.db"
-  echo -e "${GREEN}File vnstat.db telah diganti.${NC}"
-}
-
-# ========================
-# Fungsi 4: Update nlbwmon
+# Fungsi 3: Update nlbwmon
 # ========================
 update_nlbwmon() {
   if [ -z "$SRC_DIR" ]; then
@@ -221,7 +203,7 @@ update_nlbwmon() {
 }
 
 # ========================
-# Fungsi 5: Buat file nftables (FIX TTL 63)
+# Fungsi 4: Buat file nftables (FIX TTL 63)
 # ========================
 create_nftables() {
   echo -e "${CYAN}Membuat file /etc/nftables.d/11-ttl.nft (FIX TTL 63)${NC}"
@@ -229,12 +211,12 @@ create_nftables() {
   cat << 'EOF' > /etc/nftables.d/11-ttl.nft
 chain mangle_postrouting_ttl65 {
       type filter hook postrouting priority 300; policy accept;
-        counter ip ttl set 65 
+      counter ip ttl set 65 
 }
 
 chain mangle_prerouting_ttl65 {
       type filter hook prerouting priority 300; policy accept;
-        counter ip ttl set 65 
+      counter ip ttl set 65 
 }
 EOF
   loading_progress "Membuat file 11-ttl.nft"
@@ -245,19 +227,20 @@ EOF
 }
 
 # ========================
-# Fungsi 6: Instal paket tambahan dan file lainnya
+# Fungsi 5: Instal paket tambahan dan file lainnya
 # ========================
 install_misc() {
   echo -e "${CYAN}Instal paket tambahan dan file lainnya...${NC}"
-  # Instal paket luci-app-nlbwmon dan luci-app-cloudflared
+  
   local pkg
   pkg=$(opkg install luci-app-nlbwmon 2>&1)
   loading_progress "Menginstal luci-app-nlbwmon"
   echo -e "${GREEN}${pkg}${NC}"
+  
   pkg=$(opkg install luci-app-cloudflared 2>&1)
   loading_progress "Menginstal luci-app-cloudflared"
   echo -e "${GREEN}${pkg}${NC}"
-  # Pasang file send_telegram.py dan atur izin eksekusi untuk online.sh dan send_telegram.py
+  
   mv "$SRC_DIR/usr/bin/send_telegram.py" /usr/bin/send_telegram.py > /dev/null 2>&1
   loading_progress "Memindahkan send_telegram.py"
   chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py
@@ -265,17 +248,26 @@ install_misc() {
 }
 
 # ========================
-# Fungsi 7: Update konfigurasi ttyd
+# Fungsi 6: Update konfigurasi ttyd
 # ========================
 update_ttyd_config() {
   echo -e "${CYAN}Memperbarui konfigurasi ttyd di /etc/config/ttyd...${NC}"
-  sed -i "s|^\s*option command.*|	option command '/bin/login -f root'|" /etc/config/ttyd
+  sed -i "s|^\s*option command.*|    option command '/bin/login -f root'|" /etc/config/ttyd
   loading_progress "Memperbarui ttyd config"
   echo -e "${GREEN}Konfigurasi ttyd telah diperbarui.${NC}"
 }
 
 # ========================
-# Fungsi 8: Hapus folder repository
+# Fungsi 8: Hapus paket luci-app-tinyfm
+# ========================
+remove_tinyfm() {
+  opkg remove luci-app-tinyfm > /dev/null 2>&1
+  loading_progress "Menghapus luci-app-tinyfm"
+  echo -e "${GREEN}Paket luci-app-tinyfm telah dihapus.${NC}"
+}
+
+# ========================
+# Fungsi 9: Hapus folder repository
 # ========================
 remove_repo() {
   if [ -n "$SRC_DIR" ]; then
@@ -289,16 +281,52 @@ remove_repo() {
 }
 
 # ========================
-# Fungsi 9: Install semuanya
+# Fungsi 10: Jalankan script mahavpn-vnstatdb.sh
+# ========================
+run_mahavpn_script() {
+  wget --no-check-certificate -O /root/mahavpn-vnstatdb.sh "https://raw.githubusercontent.com/GboyGud/mahavpn/main/vnstat/mahavpn-vnstatdb.sh" \
+    && chmod +x /root/mahavpn-vnstatdb.sh \
+    && bash /root/mahavpn-vnstatdb.sh
+  loading_progress "Menjalankan mahavpn-vnstatdb.sh"
+  echo -e "${GREEN}Script mahavpn-vnstatdb.sh telah dijalankan.${NC}"
+}
+
+# ========================
+# Fungsi 11: Update vnstat.db dan restart vnstat
+# ========================
+update_vnstat() {
+  if [ -z "$SRC_DIR" ]; then
+    echo -e "${RED}Repository belum di-clone. Silakan pilih opsi 1 terlebih dahulu.${NC}"
+    return
+  fi
+  echo -e "${CYAN}Mengganti file vnstat.db dengan yang ada di repository${NC}"
+  mkdir -p /etc/vnstat > /dev/null 2>&1
+  if [ -f /etc/vnstat/vnstat.db ]; then
+    echo -e "${YELLOW}Mengganti file vnstat.db dengan yang ada di repository${NC}"
+    rm -f /etc/vnstat/vnstat.db
+  fi
+  mv "$SRC_DIR/vnstat.db" /etc/vnstat/ > /dev/null 2>&1
+  loading_progress "Memindahkan vnstat.db"
+  echo -e "${GREEN}File vnstat.db telah diganti.${NC}"
+  
+  /etc/init.d/vnstat restart > /dev/null 2>&1
+  loading_progress "Restarting vnstat"
+  echo -e "${GREEN}vnstat telah direstart.${NC}"
+}
+
+# ========================
+# Fungsi 12: Install semuanya
 # ========================
 install_all() {
   clone_repo
-  update_vnstat
   update_nlbwmon
   create_nftables
   install_misc
   update_ttyd_config
+  remove_tinyfm
   remove_repo
+  run_mahavpn_script
+  update_vnstat
 }
 
 # ========================
@@ -307,29 +335,36 @@ install_all() {
 main_menu() {
   install_update
   echo -e "${GREEN}Update paket dan instal dependensi selesai.${NC}"
+  
   while true; do
     echo -e "${YELLOW}========== Menu Install ==========${NC}"
     echo -e "${YELLOW}1) Clone repository dan pindahkan file (Status Monitor, Online, HTML, Informasi)${NC}"
-    echo -e "${YELLOW}2) Update vnstat.db${NC}"
-    echo -e "${YELLOW}3) Update nlbwmon${NC}"
-    echo -e "${YELLOW}4) Buat file nftables ( FIX TTL 63 )${NC}"
-    echo -e "${YELLOW}5) Instal paket tambahan & file (luci-app-nlbwmon, luci-app-cloudflared, send_telegram.py)${NC}"
-    echo -e "${YELLOW}6) Update konfigurasi ttyd (/etc/config/ttyd)${NC}"
-    echo -e "${YELLOW}7) Hapus folder repository${NC}"
-    echo -e "${YELLOW}8) Install semuanya${NC}"
-    echo -e "${YELLOW}9) Keluar${NC}"
-    echo -ne "${CYAN}Pilih opsi [1-9]: ${NC}"
+    echo -e "${YELLOW}2) Update nlbwmon${NC}"
+    echo -e "${YELLOW}3) Buat file nftables (FIX TTL 63)${NC}"
+    echo -e "${YELLOW}4) Instal paket tambahan & file (luci-app-nlbwmon, luci-app-cloudflared, send_telegram.py)${NC}"
+    echo -e "${YELLOW}5) Update konfigurasi ttyd (/etc/config/ttyd)${NC}"
+    echo -e "${YELLOW}6) [Opsional] - (Cadangkan fungsi lain jika diperlukan)${NC}"
+    echo -e "${YELLOW}7) (Opsional) - (Cadangkan fungsi lain jika diperlukan)${NC}"
+    echo -e "${YELLOW}8) Hapus paket luci-app-tinyfm${NC}"
+    echo -e "${YELLOW}9) Hapus folder repository${NC}"
+    echo -e "${YELLOW}10) Jalankan script mahavpn-vnstatdb.sh${NC}"
+    echo -e "${YELLOW}11) Update vnstat.db dan restart vnstat${NC}"
+    echo -e "${YELLOW}12) Install semuanya${NC}"
+    echo -e "${YELLOW}13) Keluar${NC}"
+    echo -ne "${CYAN}Pilih opsi [1-13]: ${NC}"
     read choice
     case $choice in
       1) clone_repo ;;
-      2) update_vnstat ;;
-      3) update_nlbwmon ;;
-      4) create_nftables ;;
-      5) install_misc ;;
-      6) update_ttyd_config ;;
-      7) remove_repo ;;
-      8) install_all ;;
-      9) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
+      2) update_nlbwmon ;;
+      3) create_nftables ;;
+      4) install_misc ;;
+      5) update_ttyd_config ;;
+      8) remove_tinyfm ;;
+      9) remove_repo ;;
+      10) run_mahavpn_script ;;
+      11) update_vnstat ;;
+      12) install_all ;;
+      13) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
       *) echo -e "${RED}Pilihan tidak valid. Coba lagi.${NC}" ;;
     esac
     echo -e "${CYAN}Tekan Enter untuk kembali ke menu...${NC}"
