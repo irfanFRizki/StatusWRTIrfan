@@ -87,7 +87,7 @@ clone_repo() {
   loading_progress "Memindahkan status_monitor.htm"
   echo -e "${GREEN}File status_monitor.htm dipindahkan.${NC}"
   
-  # Pindahkan file online.sh (online.lua & online.htm dihapus sesuai permintaan)
+  # Pindahkan file online.sh (online.lua & online.htm dihapus)
   mv "$SRC_DIR/usr/bin/online.sh" /usr/bin/online.sh > /dev/null 2>&1
   loading_progress "Memindahkan online.sh"
   echo -e "${GREEN}File online.sh dipindahkan ke /usr/bin.${NC}"
@@ -228,50 +228,7 @@ install_misc() {
 }
 
 # ========================
-# Fungsi 7: Tambahkan konfigurasi domain ke DHCP
-# ========================
-update_dhcp() {
-  echo -e "${CYAN}Menambahkan konfigurasi domain ke file DHCP (/etc/config/dhcp)${NC}"
-  cat << 'EOF' >> /etc/config/dhcp
-
-config domain
-	option name 'HP_IRFAN'
-	option ip '192.168.1.245'
-
-config domain
-	option name 'HP_TAB'
-	option ip '192.168.1.106'
-
-config domain
-	option name 'HP_ANITA'
-	option ip '192.168.1.220'
-
-config domain
-	option name 'HP_AQILLA'
-	option ip '192.168.1.122'
-
-config domain
-	option name 'HP_JAMAL'
-	option ip '192.168.1.169'
-
-config domain
-	option name 'LAPTOP'
-	option ip '192.168.1.123'
-
-config domain
-	option name 'HP_AMAT'
-	option ip '192.168.1.166'
-
-config domain
-	option name 'HP_BAPAK'
-	option ip '192.168.1.233'
-EOF
-  loading_progress "Memperbarui DHCP"
-  echo -e "${GREEN}Konfigurasi DHCP telah diperbarui.${NC}"
-}
-
-# ========================
-# Fungsi 8: Hapus folder repository
+# Fungsi 7: Hapus folder repository
 # ========================
 remove_repo() {
   if [ -n "$SRC_DIR" ]; then
@@ -285,7 +242,7 @@ remove_repo() {
 }
 
 # ========================
-# Fungsi 9: Install semuanya
+# Fungsi 8: Install semuanya
 # ========================
 install_all() {
   clone_repo
@@ -293,13 +250,13 @@ install_all() {
   update_nlbwmon
   create_nftables
   install_misc
-  update_dhcp
+  # Catatan: update_dhcp dihapus, sehingga tidak dipanggil di sini
   show_instructions
   remove_repo
 }
 
 # ========================
-# Fungsi 10: Tampilkan instruksi konfigurasi manual
+# Fungsi 9: Tampilkan instruksi konfigurasi manual
 # ========================
 show_instructions() {
   echo -e "${CYAN}-----------------------------------------------------------${NC}"
@@ -326,12 +283,11 @@ main_menu() {
     echo -e "${YELLOW}3) Update nlbwmon${NC}"
     echo -e "${YELLOW}4) Buat file nftables ( FIX TTL 63 )${NC}"
     echo -e "${YELLOW}5) Pasang file mm.ipk & instal paket tambahan (luci-app-nlbwmon & luci-app-cloudflared) serta file send_telegram.py${NC}"
-    echo -e "${YELLOW}6) Tambahkan konfigurasi domain ke DHCP${NC}"
-    echo -e "${YELLOW}7) Tampilkan instruksi konfigurasi manual${NC}"
-    echo -e "${YELLOW}8) Hapus folder repository${NC}"
-    echo -e "${YELLOW}9) Install semuanya${NC}"
-    echo -e "${YELLOW}10) Keluar${NC}"
-    echo -ne "${CYAN}Pilih opsi [1-10]: ${NC}"
+    echo -e "${YELLOW}6) Tampilkan instruksi konfigurasi manual${NC}"
+    echo -e "${YELLOW}7) Hapus folder repository${NC}"
+    echo -e "${YELLOW}8) Install semuanya${NC}"
+    echo -e "${YELLOW}9) Keluar${NC}"
+    echo -ne "${CYAN}Pilih opsi [1-9]: ${NC}"
     read choice
     case $choice in
       1) clone_repo ;;
@@ -339,11 +295,10 @@ main_menu() {
       3) update_nlbwmon ;;
       4) create_nftables ;;
       5) install_misc ;;
-      6) update_dhcp ;;
-      7) show_instructions ;;
-      8) remove_repo ;;
-      9) install_all ;;
-      10) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
+      6) show_instructions ;;
+      7) remove_repo ;;
+      8) install_all ;;
+      9) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
       *) echo -e "${RED}Pilihan tidak valid. Coba lagi.${NC}" ;;
     esac
     echo -e "${CYAN}Tekan Enter untuk kembali ke menu...${NC}"
