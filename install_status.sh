@@ -30,7 +30,7 @@ loading_progress() {
 }
 
 # ========================
-# Fungsi 1: Update paket & Instal dependensi
+# Fungsi 1: Update paket & instal dependensi
 # ========================
 install_update() {
   echo -e "${CYAN}Memulai update paket dan instalasi dependensi...${NC}"
@@ -68,12 +68,12 @@ clone_repo() {
   
   SRC_DIR="/root/StatusWRTIrfan"
   
-  # Direktori tujuan
+  # Direktori tujuan LuCI dan CGI
   LUA_CONTROLLER_DIR="/usr/lib/lua/luci/controller/"
   LUA_VIEW_DIR="/usr/lib/lua/luci/view/"
   CGI_BIN_DIR="/www/cgi-bin/"
   WWW_DIR="/www/"
-  
+
   mkdir -p "$LUA_CONTROLLER_DIR" "$LUA_VIEW_DIR" "$CGI_BIN_DIR" "$WWW_DIR" > /dev/null 2>&1
   loading_progress "Membuat direktori tujuan"
   echo -e "${GREEN}Direktori tujuan dibuat.${NC}"
@@ -87,18 +87,10 @@ clone_repo() {
   loading_progress "Memindahkan status_monitor.htm"
   echo -e "${GREEN}File status_monitor.htm dipindahkan.${NC}"
   
-  # Pindahkan file online
+  # Pindahkan file online.sh (online.lua & online.htm dihapus sesuai permintaan)
   mv "$SRC_DIR/usr/bin/online.sh" /usr/bin/online.sh > /dev/null 2>&1
   loading_progress "Memindahkan online.sh"
   echo -e "${GREEN}File online.sh dipindahkan ke /usr/bin.${NC}"
-  
-  mv "$SRC_DIR/usr/lib/lua/luci/controller/online.lua" "$LUA_CONTROLLER_DIR" > /dev/null 2>&1
-  loading_progress "Memindahkan online.lua"
-  echo -e "${GREEN}File online.lua dipindahkan.${NC}"
-  
-  mv "$SRC_DIR/usr/lib/lua/luci/view/online.htm" "$LUA_VIEW_DIR" > /dev/null 2>&1
-  loading_progress "Memindahkan online.htm"
-  echo -e "${GREEN}File online.htm dipindahkan.${NC}"
   
   # Pindahkan file CGI scripts
   mv "$SRC_DIR/www/cgi-bin/load_biaya" "$CGI_BIN_DIR" > /dev/null 2>&1
@@ -117,6 +109,20 @@ clone_repo() {
   loading_progress "Memindahkan file HTML status_monitor"
   echo -e "${GREEN}File HTML status_monitor dipindahkan.${NC}"
   
+  # Pasang file informasi (view dan controller)
+  mkdir -p "/usr/lib/lua/luci/view/informasi" > /dev/null 2>&1
+  mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/allowed.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
+  mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/info.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
+  mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/informasi.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
+  mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/log.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
+  mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/notallowed.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
+  mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/settings.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
+  mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/telegram.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
+  mkdir -p "/usr/lib/lua/luci/controller/" > /dev/null 2>&1
+  mv "$SRC_DIR/usr/lib/lua/luci/controller/informasi.lua" "/usr/lib/lua/luci/controller/" > /dev/null 2>&1
+  loading_progress "Memindahkan file informasi"
+  echo -e "${GREEN}File informasi telah dipasang.${NC}"
+  
   chmod +x "$CGI_BIN_DIR"/* > /dev/null 2>&1
   loading_progress "Mengatur izin eksekusi CGI"
   echo -e "${GREEN}Izin eksekusi CGI diatur.${NC}"
@@ -127,62 +133,7 @@ clone_repo() {
 }
 
 # ========================
-# Fungsi 3: Instal & Konfigurasi Paket Nikki (gabungan dengan proses blm.tar.gz & update INDO.yaml)
-# ========================
-install_nikki() {
-  echo -e "${CYAN}Memulai instalasi paket Nikki...${NC}"
-  curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash > /dev/null 2>&1
-  loading_progress "Menjalankan feed script nikki"
-  echo -e "${GREEN}Feed script nikki selesai dijalankan.${NC}"
-  
-  local pkg
-  pkg=$(opkg install nikki 2>&1)
-  loading_progress "Menginstal paket nikki"
-  echo -e "${GREEN}${pkg}${NC}"
-  
-  pkg=$(opkg install luci-app-nikki 2>&1)
-  loading_progress "Menginstal luci-app-nikki"
-  echo -e "${GREEN}${pkg}${NC}"
-  
-  pkg=$(opkg install luci-i18n-nikki-zh-cn 2>&1)
-  loading_progress "Menginstal luci-i18n-nikki-zh-cn"
-  echo -e "${GREEN}${pkg}${NC}"
-  
-  pkg=$(apk add --allow-untrusted nikki 2>&1)
-  loading_progress "APK: Menginstal nikki"
-  echo -e "${GREEN}${pkg}${NC}"
-  
-  pkg=$(apk add --allow-untrusted luci-app-nikki 2>&1)
-  loading_progress "APK: Menginstal luci-app-nikki"
-  echo -e "${GREEN}${pkg}${NC}"
-  
-  pkg=$(apk add --allow-untrusted luci-i18n-nikki-zh-cn 2>&1)
-  loading_progress "APK: Menginstal luci-i18n-nikki-zh-cn"
-  echo -e "${GREEN}${pkg}${NC}"
-  
-  # Proses file blm.tar.gz dan update INDO.yaml
-  if [ -z "$SRC_DIR" ]; then
-    echo -e "${RED}Repository belum di-clone. Silakan pilih opsi 1 terlebih dahulu.${NC}"
-    return
-  fi
-  mkdir -p /etc/nikki/ > /dev/null 2>&1
-  mv "$SRC_DIR/blm.tar.gz" /etc/nikki/ > /dev/null 2>&1
-  cd /etc/nikki/ || return
-  tar -xzvf blm.tar.gz > /dev/null 2>&1
-  loading_progress "Mengekstrak blm.tar.gz"
-  echo -e "${GREEN}blm.tar.gz diekstrak.${NC}"
-  
-  mkdir -p /etc/nikki/run/proxy_provider/ > /dev/null 2>&1
-  loading_progress "Membuat direktori proxy_provider"
-  echo -e "${GREEN}Direktori proxy_provider dibuat.${NC}"
-  
-  base64 -d "$SRC_DIR/PID.txt" > /etc/nikki/run/proxy_provider/INDO.yaml
-  loading_progress "Memperbarui INDO.yaml"
-  echo -e "${GREEN}File INDO.yaml telah diperbarui.${NC}"
-}
-
-# ========================
-# Fungsi 4: Update vnstat.db
+# Fungsi 3: Update vnstat.db
 # ========================
 update_vnstat() {
   if [ -z "$SRC_DIR" ]; then
@@ -201,7 +152,7 @@ update_vnstat() {
 }
 
 # ========================
-# Fungsi 5: Update nlbwmon
+# Fungsi 4: Update nlbwmon
 # ========================
 update_nlbwmon() {
   if [ -z "$SRC_DIR" ]; then
@@ -219,7 +170,7 @@ update_nlbwmon() {
 }
 
 # ========================
-# Fungsi 6: Buat file nftables (FIX TTL 63)
+# Fungsi 5: Buat file nftables (FIX TTL 63)
 # ========================
 create_nftables() {
   echo -e "${CYAN}Membuat file /etc/nftables.d/11-ttl.nft (FIX TTL 63)${NC}"
@@ -244,38 +195,79 @@ EOF
 }
 
 # ========================
-# Fungsi 7: Instal & Konfigurasi wrtbwmon
+# Fungsi 6: Pasang file mm.ipk, instal paket tambahan, dan file lain
 # ========================
-install_wrtbwmon() {
-  echo -e "${CYAN}Menginstal dan mengkonfigurasi wrtbwmon...${NC}"
-  sleep 2
-  local pkg
-  pkg=$(opkg install wget 2>&1)
-  loading_progress "Menginstal wget"
+install_misc() {
+  echo -e "${CYAN}Memasang file mm.ipk dan instal paket tambahan...${NC}"
+  
+  # Pindahkan mm.ipk dari /root dan instal
+  if [ -f /root/mm.ipk ]; then
+    mv /root/mm.ipk /tmp/mm.ipk
+    loading_progress "Memindahkan mm.ipk"
+    pkg=$(opkg install /tmp/mm.ipk 2>&1)
+    loading_progress "Menginstal mm.ipk"
+    echo -e "${GREEN}${pkg}${NC}"
+  else
+    echo -e "${YELLOW}File /root/mm.ipk tidak ditemukan.${NC}"
+  fi
+  
+  # Instal paket luci-app-nlbwmon dan luci-app-cloudflared
+  pkg=$(opkg install luci-app-nlbwmon 2>&1)
+  loading_progress "Menginstal luci-app-nlbwmon"
   echo -e "${GREEN}${pkg}${NC}"
   
-  cd /tmp || return
-  wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.11/wrtbwmon_2.0.11_all.ipk > /dev/null 2>&1
-  loading_progress "Mengunduh wrtbwmon ipk"
-  echo -e "${GREEN}wrtbwmon ipk diunduh.${NC}"
-  
-  pkg=$(opkg install /tmp/wrtbwmon_2.0.11_all.ipk 2>&1)
-  loading_progress "Menginstal wrtbwmon"
+  pkg=$(opkg install luci-app-cloudflared 2>&1)
+  loading_progress "Menginstal luci-app-cloudflared"
   echo -e "${GREEN}${pkg}${NC}"
   
-  wget https://github.com/brvphoenix/luci-app-wrtbwmon/releases/download/release-2.0.11/luci-app-wrtbwmon_2.0.11_all.ipk > /dev/null 2>&1
-  loading_progress "Mengunduh luci-app-wrtbwmon ipk"
-  echo -e "${GREEN}luci-app-wrtbwmon ipk diunduh.${NC}"
-  
-  pkg=$(opkg install /tmp/luci-app-wrtbwmon_2.0.11_all.ipk 2>&1)
-  loading_progress "Menginstal luci-app-wrtbwmon"
-  echo -e "${GREEN}${pkg}${NC}"
-  
-  sleep 2
-  /etc/init.d/wrtbwmon enable > /dev/null 2>&1
-  /etc/init.d/wrtbwmon start > /dev/null 2>&1
-  loading_progress "Memulai wrtbwmon"
-  echo -e "${GREEN}wrtbwmon telah diaktifkan dan dijalankan.${NC}"
+  # Pasang file send_telegram.py dan atur izin eksekusi untuk online.sh dan send_telegram.py
+  mv "$SRC_DIR/usr/bin/send_telegram.py" /usr/bin/send_telegram.py > /dev/null 2>&1
+  loading_progress "Memindahkan send_telegram.py"
+  chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py
+  echo -e "${GREEN}File online.sh dan send_telegram.py sudah diatur sebagai executable.${NC}"
+}
+
+# ========================
+# Fungsi 7: Tambahkan konfigurasi domain ke DHCP
+# ========================
+update_dhcp() {
+  echo -e "${CYAN}Menambahkan konfigurasi domain ke file DHCP (/etc/config/dhcp)${NC}"
+  cat << 'EOF' >> /etc/config/dhcp
+
+config domain
+	option name 'HP_IRFAN'
+	option ip '192.168.1.245'
+
+config domain
+	option name 'HP_TAB'
+	option ip '192.168.1.106'
+
+config domain
+	option name 'HP_ANITA'
+	option ip '192.168.1.220'
+
+config domain
+	option name 'HP_AQILLA'
+	option ip '192.168.1.122'
+
+config domain
+	option name 'HP_JAMAL'
+	option ip '192.168.1.169'
+
+config domain
+	option name 'LAPTOP'
+	option ip '192.168.1.123'
+
+config domain
+	option name 'HP_AMAT'
+	option ip '192.168.1.166'
+
+config domain
+	option name 'HP_BAPAK'
+	option ip '192.168.1.233'
+EOF
+  loading_progress "Memperbarui DHCP"
+  echo -e "${GREEN}Konfigurasi DHCP telah diperbarui.${NC}"
 }
 
 # ========================
@@ -297,17 +289,17 @@ remove_repo() {
 # ========================
 install_all() {
   clone_repo
-  install_nikki
   update_vnstat
   update_nlbwmon
   create_nftables
-  install_wrtbwmon
+  install_misc
+  update_dhcp
   show_instructions
   remove_repo
 }
 
 # ========================
-# Fungsi 10: Tampilkan instruksi konfigurasi manual wrtbwmon
+# Fungsi 10: Tampilkan instruksi konfigurasi manual
 # ========================
 show_instructions() {
   echo -e "${CYAN}-----------------------------------------------------------${NC}"
@@ -330,12 +322,12 @@ main_menu() {
   while true; do
     echo -e "${YELLOW}========== Menu Install ==========${NC}"
     echo -e "${YELLOW}1) Clone repository dan pindahkan file (Status Monitor & Online)${NC}"
-    echo -e "${YELLOW}2) Instal dan konfigurasi paket Nikki (blm.tar.gz & INDO.yaml)${NC}"
-    echo -e "${YELLOW}3) Update vnstat.db${NC}"
-    echo -e "${YELLOW}4) Update nlbwmon${NC}"
-    echo -e "${YELLOW}5) Buat file nftables ( FIX TTL 63 )${NC}"
-    echo -e "${YELLOW}6) Instal dan konfigurasi wrtbwmon${NC}"
-    echo -e "${YELLOW}7) Tampilkan instruksi konfigurasi manual wrtbwmon${NC}"
+    echo -e "${YELLOW}2) Update vnstat.db${NC}"
+    echo -e "${YELLOW}3) Update nlbwmon${NC}"
+    echo -e "${YELLOW}4) Buat file nftables ( FIX TTL 63 )${NC}"
+    echo -e "${YELLOW}5) Pasang file mm.ipk & instal paket tambahan (luci-app-nlbwmon & luci-app-cloudflared) serta file send_telegram.py${NC}"
+    echo -e "${YELLOW}6) Tambahkan konfigurasi domain ke DHCP${NC}"
+    echo -e "${YELLOW}7) Tampilkan instruksi konfigurasi manual${NC}"
     echo -e "${YELLOW}8) Hapus folder repository${NC}"
     echo -e "${YELLOW}9) Install semuanya${NC}"
     echo -e "${YELLOW}10) Keluar${NC}"
@@ -343,11 +335,11 @@ main_menu() {
     read choice
     case $choice in
       1) clone_repo ;;
-      2) install_nikki ;;
-      3) update_vnstat ;;
-      4) update_nlbwmon ;;
-      5) create_nftables ;;
-      6) install_wrtbwmon ;;
+      2) update_vnstat ;;
+      3) update_nlbwmon ;;
+      4) create_nftables ;;
+      5) install_misc ;;
+      6) update_dhcp ;;
       7) show_instructions ;;
       8) remove_repo ;;
       9) install_all ;;
