@@ -18,7 +18,6 @@ SRC_DIR=""
 # ========================
 loading_progress() {
   label="$1"
-  # Array warna untuk efek bergantian
   colors=( "$RED" "$YELLOW" "$GREEN" "$CYAN" "$BLUE" "$PURPLE" )
   num_colors=${#colors[@]}
   for i in $(seq 1 100); do
@@ -37,20 +36,16 @@ install_update() {
   opkg update > /dev/null 2>&1
   loading_progress "Updating paket"
   echo -e "${GREEN}Update paket selesai.${NC}"
-  
   local pkg
   pkg=$(opkg install bc 2>&1)
   loading_progress "Menginstal bc"
   echo -e "${GREEN}${pkg}${NC}"
-  
   pkg=$(opkg install git 2>&1)
   loading_progress "Menginstal git"
   echo -e "${GREEN}${pkg}${NC}"
-  
   pkg=$(opkg install git-http 2>&1)
   loading_progress "Menginstal git-http"
   echo -e "${GREEN}${pkg}${NC}"
-  
   pkg=$(opkg install wget 2>&1)
   loading_progress "Menginstal wget"
   echo -e "${GREEN}${pkg}${NC}"
@@ -65,20 +60,16 @@ clone_repo() {
   git clone https://github.com/irfanFRizki/StatusWRTIrfan.git > /dev/null 2>&1
   loading_progress "Meng-clone repository"
   echo -e "${GREEN}Clone repository selesai.${NC}"
-  
   SRC_DIR="/root/StatusWRTIrfan"
   
-  # Direktori tujuan LuCI dan CGI
   LUA_CONTROLLER_DIR="/usr/lib/lua/luci/controller/"
   LUA_VIEW_DIR="/usr/lib/lua/luci/view/"
   CGI_BIN_DIR="/www/cgi-bin/"
   WWW_DIR="/www/"
-
   mkdir -p "$LUA_CONTROLLER_DIR" "$LUA_VIEW_DIR" "$CGI_BIN_DIR" "$WWW_DIR" > /dev/null 2>&1
   loading_progress "Membuat direktori tujuan"
   echo -e "${GREEN}Direktori tujuan dibuat.${NC}"
   
-  # Pindahkan file status_monitor
   mv "$SRC_DIR/usr/lib/lua/luci/controller/status_monitor.lua" "$LUA_CONTROLLER_DIR" > /dev/null 2>&1
   loading_progress "Memindahkan status_monitor.lua"
   echo -e "${GREEN}File status_monitor.lua dipindahkan.${NC}"
@@ -87,12 +78,10 @@ clone_repo() {
   loading_progress "Memindahkan status_monitor.htm"
   echo -e "${GREEN}File status_monitor.htm dipindahkan.${NC}"
   
-  # Pindahkan file online.sh (online.lua & online.htm diabaikan)
   mv "$SRC_DIR/usr/bin/online.sh" /usr/bin/online.sh > /dev/null 2>&1
   loading_progress "Memindahkan online.sh"
   echo -e "${GREEN}File online.sh dipindahkan ke /usr/bin.${NC}"
   
-  # Pindahkan file-file HTML tambahan
   mv "$SRC_DIR/www/display.html" /www/display.html > /dev/null 2>&1
   loading_progress "Memindahkan display.html"
   echo -e "${GREEN}File display.html dipindahkan.${NC}"
@@ -105,7 +94,6 @@ clone_repo() {
   loading_progress "Memindahkan vpn.html"
   echo -e "${GREEN}File vpn.html dipindahkan.${NC}"
   
-  # Pindahkan file CGI scripts yang sudah ada sebelumnya
   mv "$SRC_DIR/www/cgi-bin/load_biaya" "$CGI_BIN_DIR" > /dev/null 2>&1
   mv "$SRC_DIR/www/cgi-bin/minggu1" "$CGI_BIN_DIR" > /dev/null 2>&1
   mv "$SRC_DIR/www/cgi-bin/minggu2" "$CGI_BIN_DIR" > /dev/null 2>&1
@@ -116,7 +104,6 @@ clone_repo() {
   mv "$SRC_DIR/www/cgi-bin/save_biaya" "$CGI_BIN_DIR" > /dev/null 2>&1
   mv "$SRC_DIR/www/cgi-bin/status" "$CGI_BIN_DIR" > /dev/null 2>&1
   
-  # Pindahkan file CGI baru
   mv "$SRC_DIR/www/cgi-bin/online" "$CGI_BIN_DIR" > /dev/null 2>&1
   loading_progress "Memindahkan online (CGI)"
   echo -e "${GREEN}File online dipindahkan.${NC}"
@@ -136,7 +123,6 @@ clone_repo() {
   loading_progress "Memindahkan file HTML status_monitor"
   echo -e "${GREEN}File HTML status_monitor dipindahkan.${NC}"
   
-  # Pasang file informasi (view dan controller)
   mkdir -p "/usr/lib/lua/luci/view/informasi" > /dev/null 2>&1
   mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/allowed.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
   mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/info.htm" "/usr/lib/lua/luci/view/informasi/" > /dev/null 2>&1
@@ -157,15 +143,50 @@ clone_repo() {
   /etc/init.d/uhttpd restart > /dev/null 2>&1
   loading_progress "Restarting uhttpd"
   echo -e "${GREEN}uhttpd telah direstart.${NC}"
+  
+  # --- Pengecekan dan instalasi file mm.ipk dan tl.ipk ---
+  if [ -f /root/mm.ipk ] || [ -f /root/tl.ipk ]; then
+    [ -f /root/mm.ipk ] && {
+      loading_progress "Menginstal mm.ipk"
+      pkg=$(opkg install /root/mm.ipk 2>&1)
+      echo -e "${GREEN}${pkg}${NC}"
+    }
+    [ -f /root/tl.ipk ] && {
+      loading_progress "Menginstal tl.ipk"
+      pkg=$(opkg install /root/tl.ipk 2>&1)
+      echo -e "${GREEN}${pkg}${NC}"
+    }
+  else
+    if [ -d "$SRC_DIR/root" ]; then
+      if [ -f "$SRC_DIR/root/mm.ipk" ]; then
+        mv "$SRC_DIR/root/mm.ipk" /root/mm.ipk
+        loading_progress "Memindahkan mm.ipk ke /root"
+        echo -e "${GREEN}File mm.ipk dipindahkan ke /root.${NC}"
+        pkg=$(opkg install /root/mm.ipk 2>&1)
+        loading_progress "Menginstal mm.ipk"
+        echo -e "${GREEN}${pkg}${NC}"
+      fi
+      if [ -f "$SRC_DIR/root/tl.ipk" ]; then
+        mv "$SRC_DIR/root/tl.ipk" /root/tl.ipk
+        loading_progress "Memindahkan tl.ipk ke /root"
+        echo -e "${GREEN}File tl.ipk dipindahkan ke /root.${NC}"
+        pkg=$(opkg install /root/tl.ipk 2>&1)
+        loading_progress "Menginstal tl.ipk"
+        echo -e "${GREEN}${pkg}${NC}"
+      fi
+    fi
+  fi
+  
+  # Hapus paket luci-app-tinyfm
+  opkg remove luci-app-tinyfm > /dev/null 2>&1
+  loading_progress "Menghapus luci-app-tinyfm"
+  echo -e "${GREEN}Paket luci-app-tinyfm telah dihapus.${NC}"
 }
 
 # ========================
-# Fungsi 3: Update vnstat.db (sebelum dijalankan, pastikan fungsi 11 telah dijalankan)
+# Fungsi 3: Update vnstat.db
 # ========================
 update_vnstat() {
-  # Jalankan fungsi 11 terlebih dahulu
-  install_mahavpn_vnstatdb
-
   if [ -z "$SRC_DIR" ]; then
     echo -e "${RED}Repository belum di-clone. Silakan pilih opsi 1 terlebih dahulu.${NC}"
     return
@@ -218,38 +239,24 @@ chain mangle_prerouting_ttl65 {
 EOF
   loading_progress "Membuat file 11-ttl.nft"
   echo -e "${GREEN}File 11-ttl.nft telah dibuat.${NC}"
-  
   /etc/init.d/firewall restart > /dev/null 2>&1
   loading_progress "Restarting firewall"
   echo -e "${GREEN}Firewall telah direstart.${NC}"
 }
 
 # ========================
-# Fungsi 6: Pasang file mm.ipk, instal paket tambahan, dan file lain
+# Fungsi 6: Instal paket tambahan dan file lainnya
 # ========================
 install_misc() {
-  echo -e "${CYAN}Memasang file mm.ipk dan instal paket tambahan...${NC}"
-  
-  # Pindahkan mm.ipk dari /root dan instal
-  if [ -f /root/mm.ipk ]; then
-    mv /root/mm.ipk /tmp/mm.ipk
-    loading_progress "Memindahkan mm.ipk"
-    pkg=$(opkg install /tmp/mm.ipk 2>&1)
-    loading_progress "Menginstal mm.ipk"
-    echo -e "${GREEN}${pkg}${NC}"
-  else
-    echo -e "${YELLOW}File /root/mm.ipk tidak ditemukan.${NC}"
-  fi
-  
+  echo -e "${CYAN}Instal paket tambahan dan file lainnya...${NC}"
   # Instal paket luci-app-nlbwmon dan luci-app-cloudflared
+  local pkg
   pkg=$(opkg install luci-app-nlbwmon 2>&1)
   loading_progress "Menginstal luci-app-nlbwmon"
   echo -e "${GREEN}${pkg}${NC}"
-  
   pkg=$(opkg install luci-app-cloudflared 2>&1)
   loading_progress "Menginstal luci-app-cloudflared"
   echo -e "${GREEN}${pkg}${NC}"
-  
   # Pasang file send_telegram.py dan atur izin eksekusi untuk online.sh dan send_telegram.py
   mv "$SRC_DIR/usr/bin/send_telegram.py" /usr/bin/send_telegram.py > /dev/null 2>&1
   loading_progress "Memindahkan send_telegram.py"
@@ -268,54 +275,7 @@ update_ttyd_config() {
 }
 
 # ========================
-# Fungsi 8: Uninstall Package
-# ========================
-uninstall_package() {
-    echo "Menghapus \$PACKAGE_NAME..."
-    opkg remove "$PACKAGE_NAME"
-    find / -type d -name "*tinyfm*" -exec rm -rf {} + 2>/dev/null
-    find / -type f -name "*tinyfm*" -delete 2>/dev/null
-    echo "Paket \$PACKAGE_NAME dan file-file terkait berhasil dihapus."
-    read -p "Tekan Enter untuk melanjutkan..."
-}
-
-# ========================
-# Fungsi 9: Install Package
-# ========================
-install_package() {
-    bash -c "$(curl -fsSL https://raw.githubusercontent.com/bobbyunknown/luci-app-tinyfm/refs/heads/main/install.sh)"
-}
-
-# ========================
-# Fungsi 10: Pasang file tl.ipk dan install
-# ========================
-install_tl() {
-  echo -e "${CYAN}Memasang file tl.ipk...${NC}"
-  if [ -f /root/tl.ipk ]; then
-    mv /root/tl.ipk /tmp/tl.ipk
-    loading_progress "Memindahkan tl.ipk"
-    pkg=$(opkg install /tmp/tl.ipk 2>&1)
-    loading_progress "Menginstal tl.ipk"
-    echo -e "${GREEN}${pkg}${NC}"
-  else
-    echo -e "${YELLOW}File /root/tl.ipk tidak ditemukan.${NC}"
-  fi
-}
-
-# ========================
-# Fungsi 11: Pasang dan jalankan mahavpn-vnstatdb
-# ========================
-install_mahavpn_vnstatdb() {
-  echo -e "${CYAN}Mengunduh dan menjalankan mahavpn-vnstatdb.sh...${NC}"
-  wget --no-check-certificate -O /root/mahavpn-vnstatdb.sh "https://raw.githubusercontent.com/GboyGud/mahavpn/main/vnstat/mahavpn-vnstatdb.sh" > /dev/null 2>&1
-  chmod +x /root/mahavpn-vnstatdb.sh
-  /root/mahavpn-vnstatdb.sh
-  loading_progress "Menjalankan mahavpn-vnstatdb.sh"
-  echo -e "${GREEN}mahavpn-vnstatdb.sh telah dijalankan.${NC}"
-}
-
-# ========================
-# Fungsi 12: Hapus folder repository
+# Fungsi 8: Hapus folder repository
 # ========================
 remove_repo() {
   if [ -n "$SRC_DIR" ]; then
@@ -329,7 +289,7 @@ remove_repo() {
 }
 
 # ========================
-# Fungsi 13: Install semuanya
+# Fungsi 9: Install semuanya
 # ========================
 install_all() {
   clone_repo
@@ -338,27 +298,7 @@ install_all() {
   create_nftables
   install_misc
   update_ttyd_config
-  uninstall_package   # Jika diperlukan, fungsi ini dapat dipanggil sesuai alur
-  install_package
-  install_tl
-  install_mahavpn_vnstatdb
-  show_instructions
   remove_repo
-}
-
-# ========================
-# Fungsi 14: Tampilkan instruksi konfigurasi manual
-# ========================
-show_instructions() {
-  echo -e "${CYAN}-----------------------------------------------------------${NC}"
-  echo -e "${CYAN}Buka menu Network > Traffic Status di LuCI.${NC}"
-  echo -e "${CYAN}Kemudian klik CONFIGURE OPTIONS dan atur sebagai berikut:${NC}"
-  echo -e "${CYAN}  Default Refresh Intervals: 2 Seconds${NC}"
-  echo -e "${CYAN}  Default More Columns: Centang${NC}"
-  echo -e "${CYAN}  Show Zeros: Jangan dicentang${NC}"
-  echo -e "${CYAN}  Upstream Bandwidth: 100${NC}"
-  echo -e "${CYAN}  Downstream Bandwidth: 100${NC}"
-  echo -e "${CYAN}-----------------------------------------------------------${NC}"
 }
 
 # ========================
@@ -373,17 +313,12 @@ main_menu() {
     echo -e "${YELLOW}2) Update vnstat.db${NC}"
     echo -e "${YELLOW}3) Update nlbwmon${NC}"
     echo -e "${YELLOW}4) Buat file nftables ( FIX TTL 63 )${NC}"
-    echo -e "${YELLOW}5) Pasang file mm.ipk & instal paket tambahan (luci-app-nlbwmon & luci-app-cloudflared) serta file send_telegram.py${NC}"
+    echo -e "${YELLOW}5) Instal paket tambahan & file (luci-app-nlbwmon, luci-app-cloudflared, send_telegram.py)${NC}"
     echo -e "${YELLOW}6) Update konfigurasi ttyd (/etc/config/ttyd)${NC}"
-    echo -e "${YELLOW}7) Uninstall Package (uninstall_package)${NC}"
-    echo -e "${YELLOW}8) Install Package (install_package)${NC}"
-    echo -e "${YELLOW}9) Pasang file tl.ipk dan install${NC}"
-    echo -e "${YELLOW}10) Pasang & jalankan mahavpn-vnstatdb${NC}"
-    echo -e "${YELLOW}11) Tampilkan instruksi konfigurasi manual${NC}"
-    echo -e "${YELLOW}12) Hapus folder repository${NC}"
-    echo -e "${YELLOW}13) Install semuanya${NC}"
-    echo -e "${YELLOW}14) Keluar${NC}"
-    echo -ne "${CYAN}Pilih opsi [1-14]: ${NC}"
+    echo -e "${YELLOW}7) Hapus folder repository${NC}"
+    echo -e "${YELLOW}8) Install semuanya${NC}"
+    echo -e "${YELLOW}9) Keluar${NC}"
+    echo -ne "${CYAN}Pilih opsi [1-9]: ${NC}"
     read choice
     case $choice in
       1) clone_repo ;;
@@ -392,14 +327,9 @@ main_menu() {
       4) create_nftables ;;
       5) install_misc ;;
       6) update_ttyd_config ;;
-      7) uninstall_package ;;
-      8) install_package ;;
-      9) install_tl ;;
-      10) install_mahavpn_vnstatdb ;;
-      11) show_instructions ;;
-      12) remove_repo ;;
-      13) install_all ;;
-      14) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
+      7) remove_repo ;;
+      8) install_all ;;
+      9) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
       *) echo -e "${RED}Pilihan tidak valid. Coba lagi.${NC}" ;;
     esac
     echo -e "${CYAN}Tekan Enter untuk kembali ke menu...${NC}"
