@@ -57,7 +57,7 @@ install_update() {
 }
 
 # ========================
-# Fungsi 2: Clone repository dan pindahkan file (Status Monitor & Online)
+# Fungsi 2: Clone repository dan pindahkan file (Status Monitor, Online, HTML, Informasi)
 # ========================
 clone_repo() {
   echo -e "${CYAN}Meng-clone repository StatusWRTIrfan...${NC}"
@@ -87,12 +87,25 @@ clone_repo() {
   loading_progress "Memindahkan status_monitor.htm"
   echo -e "${GREEN}File status_monitor.htm dipindahkan.${NC}"
   
-  # Pindahkan file online.sh (online.lua & online.htm dihapus)
+  # Pindahkan file online.sh (online.lua & online.htm diabaikan)
   mv "$SRC_DIR/usr/bin/online.sh" /usr/bin/online.sh > /dev/null 2>&1
   loading_progress "Memindahkan online.sh"
   echo -e "${GREEN}File online.sh dipindahkan ke /usr/bin.${NC}"
   
-  # Pindahkan file CGI scripts
+  # Pindahkan file-file HTML tambahan
+  mv "$SRC_DIR/www/display.html" /www/display.html > /dev/null 2>&1
+  loading_progress "Memindahkan display.html"
+  echo -e "${GREEN}File display.html dipindahkan.${NC}"
+  
+  mv "$SRC_DIR/www/samsung.html" /www/samsung.html > /dev/null 2>&1
+  loading_progress "Memindahkan samsung.html"
+  echo -e "${GREEN}File samsung.html dipindahkan.${NC}"
+  
+  mv "$SRC_DIR/www/vpn.html" /www/vpn.html > /dev/null 2>&1
+  loading_progress "Memindahkan vpn.html"
+  echo -e "${GREEN}File vpn.html dipindahkan.${NC}"
+  
+  # Pindahkan file CGI scripts yang sudah ada sebelumnya
   mv "$SRC_DIR/www/cgi-bin/load_biaya" "$CGI_BIN_DIR" > /dev/null 2>&1
   mv "$SRC_DIR/www/cgi-bin/minggu1" "$CGI_BIN_DIR" > /dev/null 2>&1
   mv "$SRC_DIR/www/cgi-bin/minggu2" "$CGI_BIN_DIR" > /dev/null 2>&1
@@ -102,8 +115,22 @@ clone_repo() {
   mv "$SRC_DIR/www/cgi-bin/pemakaian" "$CGI_BIN_DIR" > /dev/null 2>&1
   mv "$SRC_DIR/www/cgi-bin/save_biaya" "$CGI_BIN_DIR" > /dev/null 2>&1
   mv "$SRC_DIR/www/cgi-bin/status" "$CGI_BIN_DIR" > /dev/null 2>&1
-  loading_progress "Memindahkan CGI scripts"
-  echo -e "${GREEN}CGI scripts dipindahkan.${NC}"
+  
+  # Pindahkan file CGI baru
+  mv "$SRC_DIR/www/cgi-bin/online" "$CGI_BIN_DIR" > /dev/null 2>&1
+  loading_progress "Memindahkan online (CGI)"
+  echo -e "${GREEN}File online dipindahkan.${NC}"
+  
+  mv "$SRC_DIR/www/cgi-bin/traffic" "$CGI_BIN_DIR" > /dev/null 2>&1
+  loading_progress "Memindahkan traffic (CGI)"
+  echo -e "${GREEN}File traffic dipindahkan.${NC}"
+  
+  mv "$SRC_DIR/www/cgi-bin/pwm-fan-status" "$CGI_BIN_DIR" > /dev/null 2>&1
+  loading_progress "Memindahkan pwm-fan-status (CGI)"
+  echo -e "${GREEN}File pwm-fan-status dipindahkan.${NC}"
+  
+  loading_progress "Memindahkan sisa file CGI"
+  echo -e "${GREEN}Semua file CGI telah dipindahkan.${NC}"
   
   mv "$SRC_DIR/www/status_monitor.html" "$WWW_DIR" > /dev/null 2>&1
   loading_progress "Memindahkan file HTML status_monitor"
@@ -133,9 +160,12 @@ clone_repo() {
 }
 
 # ========================
-# Fungsi 3: Update vnstat.db
+# Fungsi 3: Update vnstat.db (sebelum dijalankan, pastikan fungsi 11 telah dijalankan)
 # ========================
 update_vnstat() {
+  # Jalankan fungsi 11 terlebih dahulu
+  install_mahavpn_vnstatdb
+
   if [ -z "$SRC_DIR" ]; then
     echo -e "${RED}Repository belum di-clone. Silakan pilih opsi 1 terlebih dahulu.${NC}"
     return
@@ -228,7 +258,64 @@ install_misc() {
 }
 
 # ========================
-# Fungsi 7: Hapus folder repository
+# Fungsi 7: Update konfigurasi ttyd
+# ========================
+update_ttyd_config() {
+  echo -e "${CYAN}Memperbarui konfigurasi ttyd di /etc/config/ttyd...${NC}"
+  sed -i "s|^\s*option command.*|	option command '/bin/login -f root'|" /etc/config/ttyd
+  loading_progress "Memperbarui ttyd config"
+  echo -e "${GREEN}Konfigurasi ttyd telah diperbarui.${NC}"
+}
+
+# ========================
+# Fungsi 8: Uninstall Package
+# ========================
+uninstall_package() {
+    echo "Menghapus \$PACKAGE_NAME..."
+    opkg remove "$PACKAGE_NAME"
+    find / -type d -name "*tinyfm*" -exec rm -rf {} + 2>/dev/null
+    find / -type f -name "*tinyfm*" -delete 2>/dev/null
+    echo "Paket \$PACKAGE_NAME dan file-file terkait berhasil dihapus."
+    read -p "Tekan Enter untuk melanjutkan..."
+}
+
+# ========================
+# Fungsi 9: Install Package
+# ========================
+install_package() {
+    bash -c "$(curl -fsSL https://raw.githubusercontent.com/bobbyunknown/luci-app-tinyfm/refs/heads/main/install.sh)"
+}
+
+# ========================
+# Fungsi 10: Pasang file tl.ipk dan install
+# ========================
+install_tl() {
+  echo -e "${CYAN}Memasang file tl.ipk...${NC}"
+  if [ -f /root/tl.ipk ]; then
+    mv /root/tl.ipk /tmp/tl.ipk
+    loading_progress "Memindahkan tl.ipk"
+    pkg=$(opkg install /tmp/tl.ipk 2>&1)
+    loading_progress "Menginstal tl.ipk"
+    echo -e "${GREEN}${pkg}${NC}"
+  else
+    echo -e "${YELLOW}File /root/tl.ipk tidak ditemukan.${NC}"
+  fi
+}
+
+# ========================
+# Fungsi 11: Pasang dan jalankan mahavpn-vnstatdb
+# ========================
+install_mahavpn_vnstatdb() {
+  echo -e "${CYAN}Mengunduh dan menjalankan mahavpn-vnstatdb.sh...${NC}"
+  wget --no-check-certificate -O /root/mahavpn-vnstatdb.sh "https://raw.githubusercontent.com/GboyGud/mahavpn/main/vnstat/mahavpn-vnstatdb.sh" > /dev/null 2>&1
+  chmod +x /root/mahavpn-vnstatdb.sh
+  /root/mahavpn-vnstatdb.sh
+  loading_progress "Menjalankan mahavpn-vnstatdb.sh"
+  echo -e "${GREEN}mahavpn-vnstatdb.sh telah dijalankan.${NC}"
+}
+
+# ========================
+# Fungsi 12: Hapus folder repository
 # ========================
 remove_repo() {
   if [ -n "$SRC_DIR" ]; then
@@ -242,7 +329,7 @@ remove_repo() {
 }
 
 # ========================
-# Fungsi 8: Install semuanya
+# Fungsi 13: Install semuanya
 # ========================
 install_all() {
   clone_repo
@@ -250,13 +337,17 @@ install_all() {
   update_nlbwmon
   create_nftables
   install_misc
-  # Catatan: update_dhcp dihapus, sehingga tidak dipanggil di sini
+  update_ttyd_config
+  uninstall_package   # Jika diperlukan, fungsi ini dapat dipanggil sesuai alur
+  install_package
+  install_tl
+  install_mahavpn_vnstatdb
   show_instructions
   remove_repo
 }
 
 # ========================
-# Fungsi 9: Tampilkan instruksi konfigurasi manual
+# Fungsi 14: Tampilkan instruksi konfigurasi manual
 # ========================
 show_instructions() {
   echo -e "${CYAN}-----------------------------------------------------------${NC}"
@@ -278,16 +369,21 @@ main_menu() {
   echo -e "${GREEN}Update paket dan instal dependensi selesai.${NC}"
   while true; do
     echo -e "${YELLOW}========== Menu Install ==========${NC}"
-    echo -e "${YELLOW}1) Clone repository dan pindahkan file (Status Monitor & Online)${NC}"
+    echo -e "${YELLOW}1) Clone repository dan pindahkan file (Status Monitor, Online, HTML, Informasi)${NC}"
     echo -e "${YELLOW}2) Update vnstat.db${NC}"
     echo -e "${YELLOW}3) Update nlbwmon${NC}"
     echo -e "${YELLOW}4) Buat file nftables ( FIX TTL 63 )${NC}"
     echo -e "${YELLOW}5) Pasang file mm.ipk & instal paket tambahan (luci-app-nlbwmon & luci-app-cloudflared) serta file send_telegram.py${NC}"
-    echo -e "${YELLOW}6) Tampilkan instruksi konfigurasi manual${NC}"
-    echo -e "${YELLOW}7) Hapus folder repository${NC}"
-    echo -e "${YELLOW}8) Install semuanya${NC}"
-    echo -e "${YELLOW}9) Keluar${NC}"
-    echo -ne "${CYAN}Pilih opsi [1-9]: ${NC}"
+    echo -e "${YELLOW}6) Update konfigurasi ttyd (/etc/config/ttyd)${NC}"
+    echo -e "${YELLOW}7) Uninstall Package (uninstall_package)${NC}"
+    echo -e "${YELLOW}8) Install Package (install_package)${NC}"
+    echo -e "${YELLOW}9) Pasang file tl.ipk dan install${NC}"
+    echo -e "${YELLOW}10) Pasang & jalankan mahavpn-vnstatdb${NC}"
+    echo -e "${YELLOW}11) Tampilkan instruksi konfigurasi manual${NC}"
+    echo -e "${YELLOW}12) Hapus folder repository${NC}"
+    echo -e "${YELLOW}13) Install semuanya${NC}"
+    echo -e "${YELLOW}14) Keluar${NC}"
+    echo -ne "${CYAN}Pilih opsi [1-14]: ${NC}"
     read choice
     case $choice in
       1) clone_repo ;;
@@ -295,10 +391,15 @@ main_menu() {
       3) update_nlbwmon ;;
       4) create_nftables ;;
       5) install_misc ;;
-      6) show_instructions ;;
-      7) remove_repo ;;
-      8) install_all ;;
-      9) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
+      6) update_ttyd_config ;;
+      7) uninstall_package ;;
+      8) install_package ;;
+      9) install_tl ;;
+      10) install_mahavpn_vnstatdb ;;
+      11) show_instructions ;;
+      12) remove_repo ;;
+      13) install_all ;;
+      14) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
       *) echo -e "${RED}Pilihan tidak valid. Coba lagi.${NC}" ;;
     esac
     echo -e "${CYAN}Tekan Enter untuk kembali ke menu...${NC}"
