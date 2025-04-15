@@ -49,7 +49,15 @@ install_update() {
   pkg=$(opkg install git-http 2>&1)
   loading_progress "Menginstal git-http"
   echo -e "${GREEN}${pkg}${NC}"
-  
+
+  pkg=$(opkg install python3-requests 2>&1)
+  loading_progress "Menginstal git-http"
+  echo -e "${GREEN}${pkg}${NC}"
+
+  pkg=$(pip3 install requests 2>&1)
+  loading_progress "Menginstal git-http"
+  echo -e "${GREEN}${pkg}${NC}"
+
   pkg=$(opkg install wget 2>&1)
   loading_progress "Menginstal wget"
   echo -e "${GREEN}${pkg}${NC}"
