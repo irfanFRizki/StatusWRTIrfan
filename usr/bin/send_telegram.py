@@ -4,34 +4,46 @@ import sys
 import json
 from datetime import datetime
 
-# Konfigurasi Bot Telegram (ganti sesuai dengan milik kamu)
+# Konfigurasi Bot Telegram (ganti sesuai milik Anda)
 BOT_TOKEN = "6901960737:AAEUEW0ZLHqRC1dwgol019_oo14zVF82xc8"
-CHAT_ID = "5645537022"
-LOG_FILE = "/tmp/telegram_log.txt"
+CHAT_ID   = "5645537022"
+LOG_FILE  = "/tmp/telegram_log.txt"
 
-# Ambil pesan dari argumen
-if len(sys.argv) < 2:
-    print("Usage: send_telegram.py \"message text\"")
-    sys.exit(1)
+def log(line):
+    # Tambah newline sendiri
+    with open(LOG_FILE, "a") as f:
+        f.write(f"[{datetime.now()}] {line}\n")
 
-message = sys.argv[1]
+def main():
+    # Ambil pesan dari argumen
+    if len(sys.argv) < 2:
+        print("Usage: send_telegram.py \"message text\"")
+        sys.exit(1)
 
-# Kirim pesan ke Telegram
-url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-payload = {
-    "chat_id": CHAT_ID,
-    "text": message,
-    "parse_mode": "Markdown"
-}
+    message = sys.argv[1]
 
-try:
-    response = requests.post(url, json=payload)
-    result = response.json()
-    status = "OK" if result.get("ok") else "FAIL"
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": message,
+        "parse_mode": "HTML"
+    }
 
-    # Simpan log
-    with open(LOG_FILE, "a") as log:
-        log.write(f"[{datetime.now()}] {status}: {message}\n")
-except Exception as e:
-    with open(LOG_FILE, "a") as log:
-        log.write(f"[{datetime.now()}] ERROR: {str(e)}\n")
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        result = response.json()
+
+        # Log full JSON response
+        log("RESPONSE: " + json.dumps(result, ensure_ascii=False))
+
+        if result.get("ok"):
+            status = "OK"
+        else:
+            status = "FAIL"
+        log(f"{status}: {message}")
+
+    except Exception as e:
+        log("ERROR_EXCEPTION: " + str(e))
+
+if __name__ == "__main__":
+    main()
