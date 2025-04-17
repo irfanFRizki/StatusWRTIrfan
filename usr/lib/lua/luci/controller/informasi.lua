@@ -1,4 +1,5 @@
 
+-- SPDX-License-Identifier: GPL-2.0-or-later
 module("luci.controller.informasi", package.seeall)
 
 local fs = require "nixio.fs"
@@ -9,7 +10,7 @@ local function shell_quote(str)
 end
 
 -----------------------------------------------------------------------
--- Fungsi pembantu: Baca whitelist dari /etc/allowed_ips.conf (format: ip,hostname)
+-- Baca whitelist dari /etc/allowed_ips.conf (format: ip,hostname)
 local function read_allowed_ips()
     local allowed_file = "/etc/allowed_ips.conf"
     local ips = {}
@@ -23,16 +24,13 @@ local function read_allowed_ips()
         end
         f:close()
     else
-        f = io.open(allowed_file, "w")
-        if f then f:close() end
+        io.open(allowed_file, "w"):close()
     end
     return ips
 end
 
--- Simpan whitelist ke /etc/allowed_ips.conf
 local function write_allowed_ips(ips_table)
-    local allowed_file = "/etc/allowed_ips.conf"
-    local f = io.open(allowed_file, "w")
+    local f = io.open("/etc/allowed_ips.conf", "w")
     if f then
         for ip, hostname in pairs(ips_table) do
             f:write(ip .. "," .. hostname .. "\n")
@@ -42,85 +40,70 @@ local function write_allowed_ips(ips_table)
 end
 
 -----------------------------------------------------------------------
--- Fungsi pembantu: Baca daftar kicked IP dari /etc/kicked_ips.conf
+-- Baca kicked IPs
 local function read_kicked_ips()
-    local kicked_file = "/etc/kicked_ips.conf"
+    local file = "/etc/kicked_ips.conf"
     local ips = {}
-    local f = io.open(kicked_file, "r")
+    local f = io.open(file, "r")
     if f then
         for line in f:lines() do
             local ip = line:match("^%s*(.-)%s*$")
-            if ip and ip ~= "" then
-                ips[ip] = true
-            end
+            if ip and ip ~= "" then ips[ip] = true end
         end
         f:close()
     else
-        f = io.open(kicked_file, "w")
-        if f then f:close() end
+        io.open(file, "w"):close()
     end
     return ips
 end
 
--- Simpan daftar kicked IP ke /etc/kicked_ips.conf
 local function write_kicked_ips(ips_table)
-    local kicked_file = "/etc/kicked_ips.conf"
-    local f = io.open(kicked_file, "w")
+    local f = io.open("/etc/kicked_ips.conf", "w")
     if f then
-        for ip, _ in pairs(ips_table) do
-            f:write(ip .. "\n")
-        end
+        for ip in pairs(ips_table) do f:write(ip .. "\n") end
         f:close()
     end
 end
 
 -----------------------------------------------------------------------
--- Fungsi pembantu: Baca daftar IP yang sudah diberi notifikasi dari /etc/notified_ips.conf
+-- Baca notified IPs
 local function read_notified_ips()
-    local notified_file = "/etc/notified_ips.conf"
+    local file = "/etc/notified_ips.conf"
     local ips = {}
-    local f = io.open(notified_file, "r")
+    local f = io.open(file, "r")
     if f then
         for line in f:lines() do
             local ip = line:match("^%s*(.-)%s*$")
-            if ip and ip ~= "" then
-                ips[ip] = true
-            end
+            if ip and ip ~= "" then ips[ip] = true end
         end
         f:close()
     else
-        f = io.open(notified_file, "w")
-        if f then f:close() end
+        io.open(file, "w"):close()
     end
     return ips
 end
 
--- Simpan daftar IP yang sudah diberi notifikasi ke /etc/notified_ips.conf
 local function write_notified_ips(ips_table)
-    local notified_file = "/etc/notified_ips.conf"
-    local f = io.open(notified_file, "w")
+    local f = io.open("/etc/notified_ips.conf", "w")
     if f then
-        for ip, _ in pairs(ips_table) do
-            f:write(ip .. "\n")
-        end
+        for ip in pairs(ips_table) do f:write(ip .. "\n") end
         f:close()
     end
 end
 
 -----------------------------------------------------------------------
--- Fungsi pembantu: Mendapatkan informasi device (hostname dan MAC) untuk IP tertentu dari output online.sh
+-- Dapatkan info device dari online.sh
 local function get_device_info(target_ip)
-    local hostname = "-"
-    local mac = "-"
+    local hostname, mac = "-", "-"
     local f = io.popen("/usr/bin/online.sh")
     if f then
         local content = f:read("*all")
         f:close()
         for line in content:gmatch("[^\r\n]+") do
-            local current_ip = line:match("IP:%s*([^,]+)")
-            if current_ip == target_ip then
-                hostname = line:match("Hostname:%s*([^,]+)") or "-"
-                mac = line:match("MAC:%s*([^,]+)") or "-"
+            local ip = line:match("IP:%s*([^,]+)")
+            if ip == target_ip then
+                hostname = line:match("Hostname:%s*([^,]+)") or hostname
+                mac      = line:match("MAC:%s*([^,]+)") or mac
                 break
             end
         end
@@ -130,227 +113,183 @@ end
 
 -----------------------------------------------------------------------
 function index()
-    entry({"admin", "services", "informasi"}, template("informasi/informasi"), _("Informasi Jaringan"), 90.5)
-    entry({"admin", "services", "informasi", "data"}, call("action_data"), nil)
+    entry({"admin","services","informasi"},              template("informasi/informasi"),       _("Informasi Jaringan"),         90.5)
+    entry({"admin","services","informasi","data"},       call("action_data"),                   nil)
 
-    entry({"admin", "services", "informasi", "telegram"}, template("informasi/telegram"), _("Daftar IP Baru"), 91)
-    entry({"admin", "services", "informasi", "telegram_data"}, call("action_telegram_data"), nil)
-    entry({"admin", "services", "informasi", "aksi"}, call("action_aksi"), nil)
+    entry({"admin","services","informasi","telegram"},   template("informasi/telegram"),        _("Daftar IP Baru"),             91)
+    entry({"admin","services","informasi","telegram_data"}, call("action_telegram_data"),       nil)
+    entry({"admin","services","informasi","aksi"},       call("action_aksi"),                   nil)
 
-    entry({"admin", "services", "informasi", "info"}, template("informasi/info"), _("Info"), 90)
+    entry({"admin","services","informasi","info"},       template("informasi/info"),            _("Info"),                       90)
 
-    entry({"admin", "services", "informasi", "settings"}, template("informasi/settings"), _("Telegram Settings"), 92)
-    entry({"admin", "services", "informasi", "settings", "save"}, call("action_save_settings"), nil)
-    entry({"admin", "services", "informasi", "settings", "botinfo"}, call("action_botinfo"), nil)
+    entry({"admin","services","informasi","allowed"},    template("informasi/allowed"),         _("Daftar IP Diizinkan"),        93)
+    entry({"admin","services","informasi","allowed_data"}, call("action_allowed_data"),        nil)
+    entry({"admin","services","informasi","allowed","delete"}, call("action_delete_allowed"),   nil)
 
-    entry({"admin", "services", "informasi", "allowed"}, template("informasi/allowed"), _("Daftar IP Diizinkan"), 93)
-    entry({"admin", "services", "informasi", "allowed_data"}, call("action_allowed_data"), nil)
-    entry({"admin", "services", "informasi", "allowed", "delete"}, call("action_delete_allowed"), nil)
+    entry({"admin","services","informasi","notallowed"}, template("informasi/notallowed"),      _("Daftar IP Tidak Diizinkan"),  94)
+    entry({"admin","services","informasi","notallowed_data"}, call("action_notallowed_data"),  nil)
+    entry({"admin","services","informasi","notallowed","delete"}, call("action_delete_notallowed"), nil)
 
-    entry({"admin", "services", "informasi", "notallowed"}, template("informasi/notallowed"), _("Daftar IP Tidak Diizinkan"), 94)
-    entry({"admin", "services", "informasi", "notallowed_data"}, call("action_notallowed_data"), nil)
-    entry({"admin", "services", "informasi", "notallowed", "delete"}, call("action_delete_notallowed"), nil)
+    entry({"admin","services","informasi","log"},        template("informasi/log"),             _("Log Telegram"),               95)
 
-    -- Menu log, tampil setelah Daftar IP Tidak Diizinkan (prioritas 95)
-    entry({"admin", "services", "informasi", "log"}, template("informasi/log"), _("Log Telegram"), 95)
-
-    -- Endpoint untuk mengirim pesan ke Telegram (dipanggil via JavaScript)
-    entry({"admin", "services", "informasi", "send_telegram"}, call("action_send_telegram"), nil).leaf = true
+    entry({"admin","services","informasi","send_telegram"}, call("action_send_telegram"),       nil).leaf = true
 end
 
 -----------------------------------------------------------------------
--- Fungsi: Ambil data jaringan dari /usr/bin/online.sh
 function action_data()
-    local content = ""
-    local f = io.popen("/usr/bin/online.sh")
-    if f then
-        content = f:read("*all")
-        f:close()
-    else
-        content = "Tidak dapat menjalankan skrip."
-    end
+    local f       = io.popen("/usr/bin/online.sh")
+    local content = f and f:read("*all") or "Tidak dapat menjalankan skrip."
+    if f then f:close() end
     luci.http.prepare_content("text/plain")
     luci.http.write(content)
 end
 
 -----------------------------------------------------------------------
--- Endpoint Notifikasi Telegram untuk IP Baru
--- Jika ada IP baru (belum ada di whitelist dan kicked), kirim pesan dengan format pesan sesuai data dari online.sh
+-- Notifikasi IP Baru (HTML mode)
 function action_telegram_data()
-    local json = require "luci.jsonc"
-    local allowed_ips = read_allowed_ips()
-    local kicked_ips = read_kicked_ips()
-    local notified_ips = read_notified_ips()
-    local result = {}
-    local f = io.popen("/usr/bin/online.sh")
-    if f then
-        local content = f:read("*all")
-        f:close()
-        for line in content:gmatch("[^\r\n]+") do
-            -- Lewati header atau baris yang tidak sesuai format
-            if not line:match("^IP,") then
-                local ip = line:match("IP:%s*([^,]+)")
-                if ip and not allowed_ips[ip] and not kicked_ips[ip] then
-                    local hostname, mac = get_device_info(ip)
-                    local wifiStatus = (line:match("TERHUBUNG") or line:match("Online")) and "Online" or "Offline"
-                    if not notified_ips[ip] then
-                        local msg = "🔔 *BOSS, ADA IP BARU!* 🔔\n" ..
-          "══════════════════════════\n" ..
-          "📛 Nama Perangkat: " .. (hostname or "-") .. "\n" ..
-          "🆔 IP\t\t: " .. ip .. "\n" ..
-          "📡 MAC\t\t: " .. mac .. "\n" ..
-          "🌐 Status WIFI\t: " .. wifiStatus .. "\n" ..
-          "🚩 Status\t\t: *IP BARU*" ..
-          "\n══════════════════════════\n" ..
-          "ℹ️ _Pantau terus di panel admin untuk aksi lebih lanjut_"
-                        os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
-                        notified_ips[ip] = true
-                    end
-                    table.insert(result, { ip = ip, hostname = hostname or "", info = line })
+    local json    = require "luci.jsonc"
+    local allowed = read_allowed_ips()
+    local kicked  = read_kicked_ips()
+    local noted   = read_notified_ips()
+    local result  = {}
+
+    for line in io.popen("/usr/bin/online.sh"):lines() do
+        if not line:match("^IP,") then
+            local ip = line:match("IP:%s*([^,]+)")
+            if ip and not allowed[ip] and not kicked[ip] then
+                local hn, mac = get_device_info(ip)
+                local wifi    = line:match("TERHUBUNG") and "Online" or "Offline"
+                if not noted[ip] then
+                    local msg = table.concat({
+                        "<b>🔔 BOSS, ADA IP BARU!</b>",
+                        "══════════════════════════",
+                        string.format("<b>Nama Perangkat:</b> %s", hn or "-"),
+                        string.format("<b>IP:</b> %s", ip),
+                        string.format("<b>MAC:</b> %s", mac),
+                        string.format("<b>Status WiFi:</b> %s", wifi),
+                        string.format("<b>State:</b> <i>IP BARU</i>"),
+                        "══════════════════════════",
+                        "<i>Pantau terus di panel admin untuk aksi lebih lanjut</i>"
+                    }, "\n")
+
+                    os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
+                    noted[ip] = true
                 end
+                table.insert(result, { ip = ip, hostname = hn or "", info = line })
             end
         end
-        write_notified_ips(notified_ips)
     end
+
+    write_notified_ips(noted)
     luci.http.prepare_content("application/json")
     luci.http.write(json.stringify(result))
 end
 
 -----------------------------------------------------------------------
--- Aksi allow/kick untuk IP (Notifikasi dengan format pesan yang terstruktur)
+-- Aksi allow/kick (HTML mode)
 function action_aksi()
-    local ip = luci.http.formvalue("ip")
-    local aksi = luci.http.formvalue("aksi")
-    local allowed_ips = read_allowed_ips()
-    local kicked_ips = read_kicked_ips()
-    local notified_ips = read_notified_ips()
-    local msg = ""
-    if ip and aksi then
-        if aksi == "allow" then
-            os.execute("iptables -D INPUT -s " .. ip .. " -j DROP")
-            local hostname, mac = get_device_info(ip)
-            allowed_ips[ip] = hostname
-            write_allowed_ips(allowed_ips)
-            if kicked_ips[ip] then
-                kicked_ips[ip] = nil
-                write_kicked_ips(kicked_ips)
-            end
-            if notified_ips[ip] then
-                notified_ips[ip] = nil
-                write_notified_ips(notified_ips)
-            end
-            msg = "✅ *IP DIIZINKAN* ✅\n" ..
-          "══════════════════════════\n" ..
-          "📛 Nama Perangkat: " .. hostname .. "\n" ..
-          "🆔 IP\t\t: " .. ip .. "\n" ..
-          "📡 MAC\t\t: " .. mac .. "\n" ..
-          "🌐 Status WIFI\t: Online\n" ..
-          "✅ Status\t\t: *DIIZINKAN*" ..
-          "\n══════════════════════════\n" ..
-          "💡 _Device ini dapat akses internet dan akan terus dipantau_"
-            os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
-        elseif aksi == "kick" then
-            os.execute("iptables -I INPUT -s " .. ip .. " -j DROP")
-            local hostname, mac = get_device_info(ip)
-            msg = "⛔ *IP DIBLOKIR* ⛔\n" ..
-          "══════════════════════════\n" ..
-          "📛 Nama Perangkat: " .. hostname .. "\n" ..
-          "🆔 IP\t\t: " .. ip .. "\n" ..
-          "📡 MAC\t\t: " .. mac .. "\n" ..
-          "🌐 Status WIFI\t: Offline\n" ..
-          "⛔ Status\t\t: *DIBLOKIR*" ..
-          "\n══════════════════════════\n" ..
-          "💡 _Akses internet untuk device ini telah ditutup_"
-            os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
-            kicked_ips[ip] = true
-            write_kicked_ips(kicked_ips)
-            if notified_ips[ip] then
-                notified_ips[ip] = nil
-                write_notified_ips(notified_ips)
-            end
-        else
-            msg = "Aksi tidak dikenal."
-        end
-    else
-        msg = "Parameter tidak lengkap."
+    local ip      = luci.http.formvalue("ip")
+    local aksi    = luci.http.formvalue("aksi")
+    local allowed = read_allowed_ips()
+    local kicked  = read_kicked_ips()
+
+    if not ip or not aksi then
+        luci.http.status(400, "Parameter tidak lengkap.")
+        return luci.http.write("Parameter tidak lengkap.")
     end
+
+    local hn, mac = get_device_info(ip)
+    local msg
+
+    if aksi == "allow" then
+        os.execute("iptables -D INPUT -s " .. ip .. " -j DROP")
+        allowed[ip] = hn
+        write_allowed_ips(allowed)
+        kicked[ip] = nil; write_kicked_ips(kicked)
+
+        msg = table.concat({
+            "<b>✅ IP DIIZINKAN ✅</b>",
+            "══════════════════════════",
+            string.format("<b>Nama:</b> %s", hn),
+            string.format("<b>IP:</b> %s", ip),
+            string.format("<b>MAC:</b> %s", mac),
+            "<b>Status WiFi:</b> Online",
+            "<b>State:</b> <i>DIIZINKAN</i>",
+            "══════════════════════════",
+            "<i>Device ini dapat akses internet dan akan terus dipantau</i>"
+        }, "\n")
+
+    elseif aksi == "kick" then
+        os.execute("iptables -I INPUT -s " .. ip .. " -j DROP")
+        kicked[ip] = true; write_kicked_ips(kicked)
+        allowed[ip] = nil; write_allowed_ips(allowed)
+
+        msg = table.concat({
+            "<b>⛔ IP DIBLOKIR ⛔</b>",
+            "══════════════════════════",
+            string.format("<b>Nama:</b> %s", hn),
+            string.format("<b>IP:</b> %s", ip),
+            string.format("<b>MAC:</b> %s", mac),
+            "<b>Status WiFi:</b> Offline",
+            "<b>State:</b> <i>DIBLOKIR</i>",
+            "══════════════════════════",
+            "<i>Akses internet untuk device ini telah ditutup</i>"
+        }, "\n")
+
+    else
+        msg = "Aksi tidak dikenal."
+    end
+
+    os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
     luci.http.prepare_content("text/plain")
     luci.http.write(msg)
 end
 
 -----------------------------------------------------------------------
--- Menyimpan konfigurasi Telegram (tidak digunakan lagi karena konfigurasi diambil di skrip Python)
-function action_save_settings()
-    luci.http.prepare_content("text/plain")
-    luci.http.write("Pengaturan Telegram sekarang dikelola melalui skrip Python (/usr/bin/send_telegram.py).")
-end
-
------------------------------------------------------------------------
--- Endpoint untuk mendapatkan informasi Telegram Bot dari skrip CLI /usr/bin/get_bot_info.sh
-function action_botinfo()
-    local f = io.popen("/usr/bin/get_bot_info.sh")
-    local content = ""
-    if f then
-        content = f:read("*all")
-        f:close()
-    else
-        content = '{"ok": false, "description": "Gagal menjalankan skrip get_bot_info.sh"}'
-    end
-    luci.http.prepare_content("application/json")
-    luci.http.write(content)
-end
-
------------------------------------------------------------------------
--- Mengembalikan daftar IP diizinkan (dengan hostname)
+-- Daftar IP Diizinkan (JSON)
 function action_allowed_data()
-    local json = require "luci.jsonc"
-    local allowed_ips = read_allowed_ips()
-    local list = {}
-    for ip, hostname in pairs(allowed_ips) do
-        table.insert(list, { ip = ip, hostname = hostname })
+    local json    = require "luci.jsonc"
+    local allowed = read_allowed_ips()
+    local list    = {}
+    for ip, hn in pairs(allowed) do
+        table.insert(list, { ip = ip, hostname = hn })
     end
     luci.http.prepare_content("application/json")
     luci.http.write(json.stringify(list))
 end
 
 -----------------------------------------------------------------------
--- Menghapus IP dari whitelist
+-- Hapus IP dari whitelist
 function action_delete_allowed()
     local ip = luci.http.formvalue("ip")
-    if ip then
-        local allowed_ips = read_allowed_ips()
-        if allowed_ips[ip] then
-            allowed_ips[ip] = nil
-            write_allowed_ips(allowed_ips)
-            luci.http.prepare_content("text/plain")
-            luci.http.write("IP " .. ip .. " telah dihapus dari daftar diizinkan.")
-        else
-            luci.http.prepare_content("text/plain")
-            luci.http.write("IP " .. ip .. " tidak ditemukan dalam daftar diizinkan.")
-        end
-    else
+    if not ip then
         luci.http.status(400, "Parameter tidak lengkap.")
-        luci.http.write("Parameter tidak lengkap.")
+        return luci.http.write("Parameter tidak lengkap.")
+    end
+    local allowed = read_allowed_ips()
+    if allowed[ip] then
+        allowed[ip] = nil
+        write_allowed_ips(allowed)
+        luci.http.prepare_content("text/plain")
+        luci.http.write("IP " .. ip .. " telah dihapus dari daftar diizinkan.")
+    else
+        luci.http.prepare_content("text/plain")
+        luci.http.write("IP " .. ip .. " tidak ditemukan dalam daftar diizinkan.")
     end
 end
 
 -----------------------------------------------------------------------
--- Mengembalikan daftar IP tidak diizinkan (yang ada di kicked list)
+-- Daftar IP Tidak Diizinkan (JSON)
 function action_notallowed_data()
-    local json = require "luci.jsonc"
-    local kicked_ips = read_kicked_ips()
+    local json   = require "luci.jsonc"
+    local kicked = read_kicked_ips()
     local result = {}
-    local f = io.popen("/usr/bin/online.sh")
-    if f then
-        local content = f:read("*all")
-        f:close()
-        for line in content:gmatch("[^\r\n]+") do
-            if not line:match("^IP,") then
-                local ip = line:match("IP:%s*([^,]+)")
-                if ip and kicked_ips[ip] then
-                    local hostname = line:match("Hostname:%s*([^,]+)") or "-"
-                    table.insert(result, { ip = ip, hostname = hostname })
-                end
+    for line in io.popen("/usr/bin/online.sh"):lines() do
+        if not line:match("^IP,") then
+            local ip = line:match("IP:%s*([^,]+)")
+            if ip and kicked[ip] then
+                local hn = line:match("Hostname:%s*([^,]+)") or "-"
+                table.insert(result, { ip = ip, hostname = hn })
             end
         end
     end
@@ -359,30 +298,33 @@ function action_notallowed_data()
 end
 
 -----------------------------------------------------------------------
--- Menghapus IP dari daftar Tidak Diizinkan (un-kick: hapus rule iptables dan hapus dari kicked)
+-- Hapus IP dari kicked list dan buka kembali
 function action_delete_notallowed()
-    local ip = luci.http.formvalue("ip")
-    if ip then
-        local kicked_ips = read_kicked_ips()
-        if kicked_ips[ip] then
-            os.execute("iptables -D INPUT -s " .. ip .. " -j DROP")
-            kicked_ips[ip] = nil
-            write_kicked_ips(kicked_ips)
-            local msg = "🔄 *IP DIBUKA KEMBALI* 🔄\n" ..
-          "══════════════════════════\n" ..
-          "🆔 IP\t\t: " .. ip .. "\n" ..
-          "🌐 Status\t\t: *DIPANTAU ULANG*" ..
-          "\n══════════════════════════\n" ..
-          "ℹ️ _Device ini akan dipantau dan notifikasi akan aktif kembali_"
-            os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
-            luci.http.prepare_content("text/plain")
-            luci.http.write(msg)
-        else
-            luci.http.prepare_content("text/plain")
-            luci.http.write("IP " .. ip .. " tidak ditemukan dalam daftar Tidak Diizinkan.")
-        end
-    else
+    local ip     = luci.http.formvalue("ip")
+    if not ip then
         luci.http.status(400, "Parameter tidak lengkap.")
-        luci.http.write("Parameter tidak lengkap.")
+        return luci.http.write("Parameter tidak lengkap.")
+    end
+    local kicked = read_kicked_ips()
+    if kicked[ip] then
+        os.execute("iptables -D INPUT -s " .. ip .. " -j DROP")
+        kicked[ip] = nil
+        write_kicked_ips(kicked)
+
+        local msg = table.concat({
+            "🔄 <b>IP DIBUKA KEMBALI</b> 🔄",
+            "══════════════════════════",
+            string.format("<b>IP:</b> %s", ip),
+            "<b>State:</b> <i>DIPANTAU ULANG</i>",
+            "══════════════════════════",
+            "<i>Device ini akan dipantau dan notifikasi akan aktif kembali</i>"
+        }, "\n")
+
+        os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
+        luci.http.prepare_content("text/plain")
+        luci.http.write(msg)
+    else
+        luci.http.prepare_content("text/plain")
+        luci.http.write("IP " .. ip .. " tidak ditemukan dalam daftar Tidak Diizinkan.")
     end
 end
