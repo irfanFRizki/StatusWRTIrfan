@@ -117,10 +117,6 @@ module("luci.controller.informasi", package.seeall)
  
      entry({"admin", "services", "informasi", "info"}, template("informasi/info"), _("Info"), 90)
  
-     entry({"admin", "services", "informasi", "settings"}, template("informasi/settings"), _("Telegram Settings"), 92)
-     entry({"admin", "services", "informasi", "settings", "save"}, call("action_save_settings"), nil)
-     entry({"admin", "services", "informasi", "settings", "botinfo"}, call("action_botinfo"), nil)
- 
      entry({"admin", "services", "informasi", "allowed"}, template("informasi/allowed"), _("Daftar IP Diizinkan"), 93)
      entry({"admin", "services", "informasi", "allowed_data"}, call("action_allowed_data"), nil)
      entry({"admin", "services", "informasi", "allowed", "delete"}, call("action_delete_allowed"), nil)
