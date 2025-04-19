@@ -124,9 +124,6 @@
  <div class="info-container">
    <h2>Status Jaringan Perangkat WIFI</h2>
    
-   <!-- Tombol untuk mengirim notifikasi Telegram -->
-   <button class="btn-telegram" id="btn-kirim-telegram">Kirim Notifikasi Telegram</button>
-   
    <table id="info-table">
      <thead>
        <tr>
@@ -204,28 +201,6 @@
        document.querySelector('#info-table tbody').innerHTML = '<tr><td colspan="5">Gagal memuat data perangkat online.</td></tr>';
      });
  }
- 
- // Fungsi untuk mengirim notifikasi ke Telegram melalui endpoint LuCI
- function kirimPesanTelegram(pesan) {
-   const url = '<%= luci.dispatcher.build_url("admin/services/informasi/send_telegram") %>?msg=' + encodeURIComponent(pesan);
-   fetch(url)
-     .then(response => response.text())
-     .then(result => {
-       console.log("Hasil pengiriman:", result);
-       alert("Notifikasi Telegram terkirim: " + result);
-     })
-     .catch(err => {
-       console.error("Gagal mengirim pesan ke Telegram:", err);
-       alert("Gagal mengirim notifikasi.");
-     });
- }
- 
- // Contoh pemanggilan ketika tombol diklik
- document.getElementById("btn-kirim-telegram").addEventListener("click", function() {
-   // Contoh pesan, kamu bisa modifikasi atau ambil data dinamis
-   const pesan = "Notifikasi: Perangkat baru terdeteksi.";
-   kirimPesanTelegram(pesan);
- });
  
  // Auto-refresh data setiap 5 detik
  updateInfoTable();
