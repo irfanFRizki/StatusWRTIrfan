@@ -213,21 +213,18 @@ module("luci.controller.informasi", package.seeall)
              local mac = "-"
              local f = io.popen("/usr/bin/online.sh")
              if f then
-                 local content = f:read("*all")
-                 f:close()
-                 hostname = content:match("Hostname:%s*([^,]+)") or "-"
-                 mac = content:match("MAC:%s*([^,]+)") or "-"
+                 local content = f:read("*all"); f:close()
+                 for line in content:gmatch("[^\r\n]+") do
+                     if line:match("IP:%s*" .. ip .. "[,\s]") then
+                         hostname = line:match("Hostname:%s*([^,]+)") or "-"
+                         mac = line:match("MAC:%s*([^,]+)") or "-"
+                         break
+                     end
+                 end
              end
-             allowed_ips[ip] = hostname
-             write_allowed_ips(allowed_ips)
-             if kicked_ips[ip] then
-                 kicked_ips[ip] = nil
-                 write_kicked_ips(kicked_ips)
-             end
-             if notified_ips[ip] then
-                 notified_ips[ip] = nil
-                 write_notified_ips(notified_ips)
-             end
+             allowed_ips[ip] = hostname; write_allowed_ips(allowed_ips)
+             kicked_ips[ip] = nil; write_kicked_ips(kicked_ips)
+             notified_ips[ip] = nil; write_notified_ips(notified_ips)
              msg = "✅ *IP DIIZINKAN* ✅\n" ..
        "══════════════════════════\n" ..
        "📛 Nama Perangkat: " .. hostname .. "\n" ..
@@ -244,11 +241,17 @@ module("luci.controller.informasi", package.seeall)
              local mac = "-"
              local f = io.popen("/usr/bin/online.sh")
              if f then
-                 local content = f:read("*all")
-                 f:close()
-                 hostname = content:match("Hostname:%s*([^,]+)") or "-"
-                 mac = content:match("MAC:%s*([^,]+)") or "-"
+                 local content = f:read("*all"); f:close()
+                 for line in content:gmatch("[^\r\n]+") do
+                     if line:match("IP:%s*" .. ip .. "[,\s]") then
+                         hostname = line:match("Hostname:%s*([^,]+)") or "-"
+                         mac = line:match("MAC:%s*([^,]+)") or "-"
+                         break
+                     end
+                 end
              end
+             kicked_ips[ip] = true; write_kicked_ips(kicked_ips)
+             notified_ips[ip] = nil; write_notified_ips(notified_ips)
              msg = "⛔ *IP DIBLOKIR* ⛔\n" ..
        "══════════════════════════\n" ..
        "📛 Nama Perangkat: " .. hostname .. "\n" ..
