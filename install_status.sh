@@ -22,7 +22,7 @@ loading_progress() {
   num_colors=${#colors[@]}
   for i in $(seq 1 100); do
     color=${colors[$(( (i-1) % num_colors ))]}
-    printf "\r${color}%s: %d%%%${NC}" "$label" "$i"
+    printf "\r${color}%s: %d%%${NC}" "$label" "$i"
     sleep 0.03
   done
   printf "\n"
