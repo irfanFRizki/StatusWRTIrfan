@@ -36,11 +36,18 @@ install_update() {
   opkg update > /dev/null 2>&1
   loading_progress "Updating paket"
   echo -e "${GREEN}Update paket selesai.${NC}"
-  for pkg in bc git git-http wget curl ash; do
+  
+  # Install dependencies
+  for pkg in bc git git-http wget curl ash python3-requests; do
     loading_progress "Menginstal $pkg"
     opkg install $pkg > /dev/null 2>&1
     echo -e "${GREEN}$pkg terinstal.${NC}"
   done
+  
+  # Install Python requests via pip3
+  loading_progress "Menginstal pip3 requests"
+  pip3 install requests > /dev/null 2>&1
+  echo -e "${GREEN}requests (pip3) terinstal.${NC}"
 }
 
 # ========================
@@ -86,8 +93,8 @@ clone_repo() {
   done
 
   chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py "$CGI_BIN/online" "$CGI_BIN/traffic" "$CGI_BIN/pwm-fan-status" > /dev/null 2>&1
-
   loading_progress "Memindahkan dan set izin file"
+
   /etc/init.d/uhttpd restart > /dev/null 2>&1
   loading_progress "Restarting uhttpd"
   echo -e "${GREEN}Clone & setup file selesai.${NC}"
@@ -300,4 +307,5 @@ main_menu() {
   done
 }
 
-# Jalankan program\ nmain_menu
+# Jalankan program
+main_menu
