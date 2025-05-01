@@ -18,7 +18,8 @@ SRC_DIR=""
 # ========================
 loading_progress() {
   label="$1"
-  colors=("$RED" "$YELLOW" "$GREEN" "$CYAN" "$BLUE" "$PURPLE")
+  # Array warna untuk efek bergantian
+  colors=( "$RED" "$YELLOW" "$GREEN" "$CYAN" "$BLUE" "$PURPLE" )
   num_colors=${#colors[@]}
   for i in $(seq 1 100); do
     color=${colors[$(( (i-1) % num_colors ))]}
@@ -27,7 +28,6 @@ loading_progress() {
   done
   printf "\n"
 }
-
 # ========================
 # Fungsi 1: Update paket & Instal dependensi
 # ========================
