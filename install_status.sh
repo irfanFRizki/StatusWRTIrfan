@@ -18,11 +18,12 @@ SRC_DIR=""
 # ========================
 loading_progress() {
   label="$1"
-  colors=("$RED" "$YELLOW" "$GREEN" "$CYAN" "$BLUE" "$PURPLE")
+  # Array warna untuk efek bergantian
+  colors=( "$RED" "$YELLOW" "$GREEN" "$CYAN" "$BLUE" "$PURPLE" )
   num_colors=${#colors[@]}
   for i in $(seq 1 100); do
-    color=${colors[$(((i-1) % num_colors))]}
-    printf "\r${color}%s: %d%%%s" "$label" "$i" "$NC"
+    color=${colors[$(( (i-1) % num_colors ))]}
+    printf "\r${color}%s: %d%%${NC}" "$label" "$i"
     sleep 0.03
   done
   printf "\n"
