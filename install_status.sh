@@ -18,16 +18,16 @@ SRC_DIR=""
 # ========================
 loading_progress() {
   label="$1"
-  # Array warna untuk efek bergantian
-  colors=( "$RED" "$YELLOW" "$GREEN" "$CYAN" "$BLUE" "$PURPLE" )
+  colors=("$RED" "$YELLOW" "$GREEN" "$CYAN" "$BLUE" "$PURPLE")
   num_colors=${#colors[@]}
   for i in $(seq 1 100); do
-    color=${colors[$(( (i-1) % num_colors ))]}
-    printf "\r${color}%s: %d%%${NC}" "$label" "$i"
+    color=${colors[$(((i-1) % num_colors))]}
+    printf "\r${color}%s: %d%%%s" "$label" "$i" "$NC"
     sleep 0.03
   done
   printf "\n"
 }
+
 # ========================
 # Fungsi 1: Update paket & Instal dependensi
 # ========================
@@ -36,22 +36,14 @@ install_update() {
   opkg update > /dev/null 2>&1
   loading_progress "Updating paket"
   echo -e "${GREEN}Update paket selesai.${NC}"
-  
-  # Install dependencies
-  for pkg in bc git git-http wget curl ash python3-requests; do
+  for pkg in bc git git-http wget; do
     loading_progress "Menginstal $pkg"
-    opkg install $pkg > /dev/null 2>&1
-    echo -e "${GREEN}$pkg terinstal.${NC}"
+    echo -e "${GREEN}$(opkg install $pkg 2>&1)${NC}"
   done
-  
-  # Install Python requests via pip3
-  loading_progress "Menginstal pip3 requests"
-  pip3 install requests > /dev/null 2>&1
-  echo -e "${GREEN}requests (pip3) terinstal.${NC}"
 }
 
 # ========================
-# Fungsi 2: Clone repository & Pindahkan file
+# Fungsi 2: Clone repository dan pindahkan file (Status Monitor)
 # ========================
 clone_repo() {
   echo -e "${CYAN}Meng-clone repository StatusWRTIrfan...${NC}"
@@ -59,69 +51,54 @@ clone_repo() {
   git clone https://github.com/irfanFRizki/StatusWRTIrfan.git > /dev/null 2>&1
   loading_progress "Meng-clone repository"
   echo -e "${GREEN}Clone repository selesai.${NC}"
-
   SRC_DIR="/root/StatusWRTIrfan"
-  LUA_CTRL="/usr/lib/lua/luci/controller"
-  LUA_VIEW="/usr/lib/lua/luci/view"
-  CGI_BIN="/www/cgi-bin"
-  WWW_DIR="/www"
 
-  mkdir -p "$LUA_CTRL" "$LUA_VIEW/informasi" "$CGI_BIN" "$WWW_DIR" > /dev/null 2>&1
+  # Direktori tujuan
+  LUA_CTRL="/usr/lib/lua/luci/controller/"
+  LUA_VIEW="/usr/lib/lua/luci/view/"
+  CGI_BIN="/www/cgi-bin/"
+  WWW_DIR="/www/"
+  mkdir -p "$LUA_CTRL" "$LUA_VIEW" "$CGI_BIN" "$WWW_DIR" > /dev/null 2>&1
+  loading_progress "Membuat direktori tujuan"
+  echo -e "${GREEN}Direktori tujuan dibuat.${NC}"
 
-  # Pindahkan status monitor
-  mv "$SRC_DIR/usr/lib/lua/luci/controller/status_monitor.lua" "$LUA_CTRL/" > /dev/null 2>&1
-  mv "$SRC_DIR/usr/lib/lua/luci/view/status_monitor.htm" "$LUA_VIEW/" > /dev/null 2>&1
+  mv "$SRC_DIR/usr/lib/lua/luci/controller/status_monitor.lua" "$LUA_CTRL" > /dev/null 2>&1
+  loading_progress "Memindahkan status_monitor.lua"
+  echo -e "${GREEN}File status_monitor.lua dipindahkan.${NC}"
 
-  # Pindahkan skrip utama
-  mv "$SRC_DIR/usr/bin/online.sh" /usr/bin/online.sh > /dev/null 2>&1
-  mv "$SRC_DIR/usr/bin/send_telegram.py" /usr/bin/send_telegram.py > /dev/null 2>&1
-
-  # Pindahkan CGI scripts
-  for script in load_biaya minggu1 minggu2 minggu3 minggu4 mingguterakhir pemakaian save_biaya status online traffic pwm-fan-status; do
-    mv "$SRC_DIR/www/cgi-bin/$script" "$CGI_BIN/" > /dev/null 2>&1
-  done
-
-  # Pindahkan view/controller informasi
-  for view in allowed.htm info.htm informasi.htm log.htm notallowed.htm settings.htm telegram.htm; do
-    mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/$view" "$LUA_VIEW/informasi/" > /dev/null 2>&1
-  done
-  mv "$SRC_DIR/usr/lib/lua/luci/controller/informasi.lua" "$LUA_CTRL/" > /dev/null 2>&1
-
-  # Pindahkan halaman statis WWW
-  for page in display.html samsung.html vpn.html; do
-    mv "$SRC_DIR/www/$page" "$WWW_DIR/" > /dev/null 2>&1
-  done
-
-  chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py "$CGI_BIN/online" "$CGI_BIN/traffic" "$CGI_BIN/pwm-fan-status" > /dev/null 2>&1
-  loading_progress "Memindahkan dan set izin file"
-
-  /etc/init.d/uhttpd restart > /dev/null 2>&1
-  loading_progress "Restarting uhttpd"
-  echo -e "${GREEN}Clone & setup file selesai.${NC}"
+  mv "$SRC_DIR/usr/lib/lua/luci/view/status_monitor.htm" "$LUA_VIEW" > /dev/null 2>&1
+  loading_progress "Memindahkan status_monitor.htm"
+  echo -e "${GREEN}File status_monitor.htm dipindahkan.${NC}"
 }
 
 # ========================
-# Fungsi 3: Instal & Konfigurasi Nikki
+# Fungsi 3: Instal & Konfigurasi Paket Nikki
 # ========================
 install_nikki() {
   echo -e "${CYAN}Memulai instalasi paket Nikki...${NC}"
-  curl -sL https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash > /dev/null 2>&1
-  loading_progress "Feed script nikki"
+  curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash > /dev/null 2>&1
+  loading_progress "Menjalankan feed script nikki"
+  echo -e "${GREEN}Feed script nikki selesai dijalankan.${NC}"
   for pkg in nikki luci-app-nikki luci-i18n-nikki-zh-cn; do
-    opkg install $pkg > /dev/null 2>&1
     loading_progress "Menginstal $pkg"
+    echo -e "${GREEN}$(opkg install $pkg 2>&1)${NC}"
   done
-
   if [ -z "$SRC_DIR" ]; then
-    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone terlebih dahulu.${NC}"
+    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
     return
   fi
-  mkdir -p /etc/nikki/run/proxy_provider > /dev/null 2>&1
+  mkdir -p /etc/nikki/ > /dev/null 2>&1
   mv "$SRC_DIR/blm.tar.gz" /etc/nikki/ > /dev/null 2>&1
-  cd /etc/nikki || return
+  cd /etc/nikki/ || return
   tar -xzvf blm.tar.gz > /dev/null 2>&1
+  loading_progress "Mengekstrak blm.tar.gz"
+  echo -e "${GREEN}blm.tar.gz diekstrak.${NC}"
+  mkdir -p /etc/nikki/run/proxy_provider/ > /dev/null 2>&1
+  loading_progress "Membuat direktori proxy_provider"
+  echo -e "${GREEN}Direktori proxy_provider dibuat.${NC}"
   base64 -d "$SRC_DIR/PID.txt" > /etc/nikki/run/proxy_provider/INDO.yaml
-  loading_progress "Setup Nikki selesai"
+  loading_progress "Memperbarui INDO.yaml"
+  echo -e "${GREEN}File INDO.yaml telah diperbarui.${NC}"
 }
 
 # ========================
@@ -129,13 +106,15 @@ install_nikki() {
 # ========================
 update_vnstat() {
   if [ -z "$SRC_DIR" ]; then
-    echo -e "${RED}Clone repo dulu (opsi 1).${NC}"; return
+    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
+    return
   fi
-  echo -e "${CYAN}Mengganti vnstat.db...${NC}"
-  mkdir -p /etc/vnstat
-  rm -f /etc/vnstat/vnstat.db
+  echo -e "${CYAN}Mengganti file vnstat.db dengan yang ada di repository...${NC}"
+  mkdir -p /etc/vnstat > /dev/null 2>&1
+  [ -f /etc/vnstat/vnstat.db ] && rm -f /etc/vnstat/vnstat.db
   mv "$SRC_DIR/vnstat.db" /etc/vnstat/ > /dev/null 2>&1
-  loading_progress "vnstat.db diganti"
+  loading_progress "Memindahkan vnstat.db"
+  echo -e "${GREEN}File vnstat.db telah diganti.${NC}"
 }
 
 # ========================
@@ -143,21 +122,23 @@ update_vnstat() {
 # ========================
 update_nlbwmon() {
   if [ -z "$SRC_DIR" ]; then
-    echo -e "${RED}Clone repo dulu (opsi 1).${NC}"; return
+    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
+    return
   fi
-  echo -e "${CYAN}Updating nlbwmon...${NC}"
-  rm -rf /etc/nlbwmon/*
-  mkdir -p /etc/nlbwmon
-  cp -r "$SRC_DIR/etc/nlbwmon/"* /etc/nlbwmon/
-  loading_progress "nlbwmon updated"
+  echo -e "${CYAN}Memperbarui file di /etc/nlbwmon/...${NC}"
+  rm -rf /etc/nlbwmon/* > /dev/null 2>&1
+  mkdir -p /etc/nlbwmon/ > /dev/null 2>&1
+  cp -r "$SRC_DIR/etc/nlbwmon/"* /etc/nlbwmon/ > /dev/null 2>&1
+  loading_progress "Memperbarui /etc/nlbwmon/"
+  echo -e "${GREEN}File di /etc/nlbwmon/ telah diperbarui.${NC}"
 }
 
 # ========================
 # Fungsi 6: Buat file nftables (FIX TTL 63)
 # ========================
 create_nftables() {
-  echo -e "${CYAN}Membuat konfigurasi nftables...${NC}"
-  mkdir -p /etc/nftables.d
+  echo -e "${CYAN}Membuat file /etc/nftables.d/11-ttl.nft (FIX TTL 63)...${NC}"
+  mkdir -p /etc/nftables.d/ > /dev/null 2>&1
   cat << 'EOF' > /etc/nftables.d/11-ttl.nft
 chain mangle_postrouting_ttl65 {
     type filter hook postrouting priority 300; policy accept;
@@ -169,111 +150,149 @@ chain mangle_prerouting_ttl65 {
     counter ip ttl set 65
 }
 EOF
+  loading_progress "Membuat file 11-ttl.nft"
   /etc/init.d/firewall restart > /dev/null 2>&1
-  loading_progress "nftables created & firewall restarted"
+  loading_progress "Restarting firewall"
+  echo -e "${GREEN}Firewall telah direstart.${NC}"
 }
 
 # ========================
-# Fungsi 7: Instal mm.ipk & tl.ipk
+# Fungsi 7: Pindahkan & Install mm.ipk dan tl.ipk
 # ========================
-install_mm_tl() {
-  echo -e "${CYAN}Memindahkan & instal mm.ipk & tl.ipk...${NC}"
+install_ipk() {
   if [ -z "$SRC_DIR" ]; then
-    echo -e "${RED}Clone repo dulu (opsi 1).${NC}"; return
+    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
+    return
   fi
+  echo -e "${CYAN}Memindahkan mm.ipk dan tl.ipk ke /root dan instalasi...${NC}"
   mv "$SRC_DIR/mm.ipk" /root/ > /dev/null 2>&1
+  loading_progress "Memindahkan mm.ipk"
+  opkg install /root/mm.ipk > /dev/null 2>&1
+  echo -e "${GREEN}mm.ipk diinstal.${NC}"
   mv "$SRC_DIR/tl.ipk" /root/ > /dev/null 2>&1
-  opkg install /root/mm.ipk /root/tl.ipk > /dev/null 2>&1
-  loading_progress "mm.ipk & tl.ipk installed"
+  loading_progress "Memindahkan tl.ipk"
+  opkg install /root/tl.ipk > /dev/null 2>&1
+  echo -e "${GREEN}tl.ipk diinstal.${NC}"
 }
 
 # ========================
-# Fungsi 8: Instal Luci Apps tambahan
+# Fungsi 8: Instal paket tambahan & pip
 # ========================
-install_luci_apps() {
-  echo -e "${CYAN}Menginstal luci-app-nlbwmon & cloudflared...${NC}"
-  opkg install luci-app-nlbwmon > /dev/null 2>&1; loading_progress "luci-app-nlbwmon"
-  opkg install luci-app-cloudflared > /dev/null 2>&1; loading_progress "luci-app-cloudflared"
+install_extra() {
+  echo -e "${CYAN}Menginstal paket tambahan...${NC}"
+  for pkg in luci-app-nlbwmon luci-app-cloudflared git-http python3-requests; do
+    loading_progress "Menginstal $pkg"
+    opkg install $pkg > /dev/null 2>&1
+    echo -e "${GREEN}$pkg diinstal.${NC}"
+  done
+  loading_progress "pip3 install requests"
+  pip3 install requests > /dev/null 2>&1
+  echo -e "${GREEN}requests (pip3) diinstal.${NC}"
 }
 
 # ========================
-# Fungsi 9: Update DHCP Config
+# Fungsi 9: Tambah entri domain DHCP
 # ========================
-update_dhcp_config() {
-  echo -e "${CYAN}Menambahkan static DHCP...${NC}"
-  cat << 'EOF' >> /etc/config/dhcp
+configure_dhcp_domains() {
+  echo -e "${CYAN}Menambahkan entri domain di /etc/config/dhcp...${NC}"
+  cat >> /etc/config/dhcp << EOF
+config domain
+    option name 'HP_IRFAN'
+    option ip '192.168.1.245'
 
 config domain
-	option name 'HP_IRFAN'
-	option ip '192.168.1.245'
+    option name 'HP_TAB'
+    option ip '192.168.1.106'
 
 config domain
-	option name 'HP_TAB'
-	option ip '192.168.1.106'
+    option name 'HP_ANITA'
+    option ip '192.168.1.220'
 
 config domain
-	option name 'HP_ANITA'
-	option ip '192.168.1.220'
+    option name 'HP_AQILLA'
+    option ip '192.168.1.122'
 
 config domain
-	option name 'HP_AQILLA'
-	option ip '192.168.1.122'
+    option name 'HP_JAMAL'
+    option ip '192.168.1.169'
 
 config domain
-	option name 'HP_JAMAL'
-	option ip '192.168.1.169'
+    option name 'LAPTOP'
+    option ip '192.168.1.123'
 
 config domain
-	option name 'LAPTOP'
-	option ip '192.168.1.123'
+    option name 'HP_AMAT'
+    option ip '192.168.1.166'
 
 config domain
-	option name 'HP_AMAT'
-	option ip '192.168.1.166'
-
-config domain
-	option name 'HP_BAPAK'
-	option ip '192.168.1.233'
+    option name 'HP_BAPAK'
+    option ip '192.168.1.233'
 EOF
-  loading_progress "Static DHCP ditambahkan"
+  echo -e "${GREEN}Entri domain DHCP ditambahkan.${NC}"
 }
 
 # ========================
-# Fungsi 10: Konfigurasi ttyd
+# Fungsi 10: Deploy scripts Telegram
 # ========================
-configure_ttyd() {
-  echo -e "${CYAN}Mengonfigurasi ttyd...${NC}"
-  sed -i "s|option command .*|option command='\/bin\/login -f root'|" /etc/config/ttyd
-  /etc/init.d/ttyd restart > /dev/null 2>&1
-  loading_progress "ttyd diupdate"
+deploy_telegram() {
+  echo -e "${CYAN}Menyalin dan memberikan izin untuk skrip Telegram...${NC}"
+  cp "/usr/bin/online.sh" /usr/bin/ > /dev/null 2>&1
+  cp "/usr/bin/send_telegram.py" /usr/bin/ > /dev/null 2>&1
+  chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py
+  echo -e "${GREEN}Skrip Telegram siap digunakan.${NC}"
 }
 
 # ========================
-# Fungsi 11: Hapus folder repository
+# Fungsi 11: Deploy informasi LuCI
 # ========================
-remove_repo() {
-  if [ -n "$SRC_DIR" ]; then
-    rm -rf "$SRC_DIR"
-    loading_progress "Menghapus folder repository"
-    SRC_DIR=""
-  else
-    echo -e "${YELLOW}Belum ada repo untuk dihapus.${NC}"
-  fi
+deploy_informasi() {
+  echo -e "${CYAN}Menyalin view/controller LuCI Informasi...${NC}"
+  mkdir -p /usr/lib/lua/luci/view/informasi/ > /dev/null 2>&1
+  cp "$SRC_DIR/usr/lib/lua/luci/view/informasi/"* /usr/lib/lua/luci/view/informasi/ > /dev/null 2>&1
+  cp "$SRC_DIR/usr/lib/lua/luci/controller/informasi.lua" /usr/lib/lua/luci/controller/ > /dev/null 2>&1
+  echo -e "${GREEN}LuCI Informasi dipasang.${NC}"
 }
 
 # ========================
-# Fungsi 12: Install semuanya
+# Fungsi 12: Deploy halaman WWW
+# ========================
+deploy_www_pages() {
+  echo -e "${CYAN}Menyalin halaman WWW...${NC}"
+  for page in display.html samsung.html vpn.html; do
+    cp "$SRC_DIR/www/$page" /www/ > /dev/null 2>&1
+    echo -e "${GREEN}$page dipindahkan.${NC}"
+  done
+}
+
+# ========================
+# Fungsi 13: Deploy CGI scripts
+# ========================
+deploy_cgi_scripts() {
+  echo -e "${CYAN}Menyalin CGI scripts...${NC}"
+  for script in online traffic pwm-fan-status; do
+    cp "$SRC_DIR/www/cgi-bin/$script" /www/cgi-bin/ > /dev/null 2>&1
+    chmod +x "/www/cgi-bin/$script"
+    echo -e "${GREEN}$script dipindahkan dan dieksekusi.${NC}"
+  done
+}
+
+# ========================
+# Fungsi: Install semua langkah
 # ========================
 install_all() {
+  install_update
   clone_repo
   install_nikki
   update_vnstat
   update_nlbwmon
   create_nftables
-  install_mm_tl
-  install_luci_apps
-  update_dhcp_config
-  configure_ttyd
+  install_ipk
+  install_extra
+  configure_dhcp_domains
+  deploy_telegram
+  deploy_informasi
+  deploy_www_pages
+  deploy_cgi_scripts
   remove_repo
 }
 
@@ -283,29 +302,34 @@ install_all() {
 main_menu() {
   install_update
   while true; do
-    echo -e "${YELLOW}======== Menu Install ========${NC}"
-    echo -e "${YELLOW}1) Clone repo & setup files${NC}"
-    echo -e "${YELLOW}2) Instal Nikki${NC}"
+    echo -e "${YELLOW}========== Menu Install ==========${NC}"
+    echo -e "${YELLOW}1) Clone repository dan pindahkan file (Status Monitor)${NC}"
+    echo -e "${YELLOW}2) Instal dan konfigurasi paket Nikki${NC}"
     echo -e "${YELLOW}3) Update vnstat.db${NC}"
     echo -e "${YELLOW}4) Update nlbwmon${NC}"
-    echo -e "${YELLOW}5) Buat nftables TTL fix${NC}"
-    echo -e "${YELLOW}6) Instal mm.ipk & tl.ipk${NC}"
-    echo -e "${YELLOW}7) Instal Luci-app tambahan${NC}"
-    echo -e "${YELLOW}8) Update DHCP Config${NC}"
-    echo -e "${YELLOW}9) Konfigurasi ttyd${NC}"
-    echo -e "${YELLOW}10) Hapus repo${NC}"
-    echo -e "${YELLOW}11) Install semuanya${NC}"
-    echo -e "${YELLOW}12) Keluar${NC}"
-    echo -ne "${CYAN}Pilih [1-12]: ${NC}"; read choice
+    echo -e "${YELLOW}5) Buat file nftables (FIX TTL 63)${NC}"
+    echo -e "${YELLOW}6) Pindahkan & Install mm.ipk dan tl.ipk${NC}"
+    echo -e "${YELLOW}7) Instal paket tambahan & pip${NC}"
+    echo -e "${YELLOW}8) Tambah entri domain DHCP${NC}"
+    echo -e "${YELLOW}9) Deploy skrip Telegram${NC}"
+    echo -e "${YELLOW}10) Deploy LuCI Informasi${NC}"
+    echo -e "${YELLOW}11) Deploy halaman WWW${NC}"
+    echo -e "${YELLOW}12) Deploy CGI scripts${NC}"
+    echo -e "${YELLOW}13) Install semuanya${NC}"
+    echo -e "${YELLOW}14) Keluar${NC}"
+    echo -ne "${CYAN}Pilih opsi [1-14]: ${NC}"
+    read choice
     case $choice in
       1) clone_repo ;; 2) install_nikki ;; 3) update_vnstat ;; 4) update_nlbwmon ;; 5) create_nftables ;;
-      6) install_mm_tl ;; 7) install_luci_apps ;; 8) update_dhcp_config ;; 9) configure_ttyd ;;
-      10) remove_repo ;; 11) install_all ;; 12) echo -e "${GREEN}Selesai.${NC}"; exit 0 ;;
-      *) echo -e "${RED}Pilihan tidak valid.${NC}" ;;
+      6) install_ipk ;; 7) install_extra ;; 8) configure_dhcp_domains ;; 9) deploy_telegram ;;
+      10) deploy_informasi ;; 11) deploy_www_pages ;; 12) deploy_cgi_scripts ;;
+      13) install_all ;; 14) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
+      *) echo -e "${RED}Pilihan tidak valid. Coba lagi.${NC}" ;;
     esac
-    echo -e "${CYAN}Tekan Enter untuk kembali...${NC}"; read
+    echo -e "${CYAN}Tekan Enter untuk kembali ke menu...${NC}"
+    read
   done
 }
 
-# Jalankan program
+# Mulai Program
 main_menu
