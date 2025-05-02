@@ -37,7 +37,7 @@ install_update() {
   opkg update > /dev/null 2>&1
   loading_progress "Updating paket"
   echo -e "${GREEN}Update paket selesai.${NC}"
-  for pkg in bc git git-http wget; do
+  for pkg in coreutils-sleep bc git git-http wget; do
     loading_progress "Menginstal $pkg"
     echo -e "${GREEN}$(opkg install $pkg 2>&1)${NC}"
   done
