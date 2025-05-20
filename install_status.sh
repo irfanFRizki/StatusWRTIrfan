@@ -76,14 +76,10 @@ clone_repo() {
 # Fungsi 3: Instal & Konfigurasi Paket Nikki
 # ========================
 install_nikki() {
-  echo -e "${CYAN}Memulai instalasi paket Nikki...${NC}"
+  echo -e "${CYAN}Memulai konfigurasi Nikki proxy provider...${NC}"
   curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash > /dev/null 2>&1
   loading_progress "Menjalankan feed script nikki"
   echo -e "${GREEN}Feed script nikki selesai dijalankan.${NC}"
-  for pkg in nikki luci-app-nikki luci-i18n-nikki-zh-cn; do
-    loading_progress "Menginstal $pkg"
-    echo -e "${GREEN}$(opkg install $pkg 2>&1)${NC}"
-  done
   if [ -z "$SRC_DIR" ]; then
     echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
     return
