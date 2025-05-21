@@ -96,6 +96,9 @@ install_nikki() {
   base64 -d "$SRC_DIR/PID.txt" > /etc/nikki/run/proxy_provider/INDO.yaml
   loading_progress "Memperbarui INDO.yaml"
   echo -e "${GREEN}File INDO.yaml telah diperbarui.${NC}"
+  base64 -d "$SRC_DIR/PSG.txt" > /etc/nikki/run/proxy_provider/SGP.yaml
+  loading_progress "Memperbarui SGP.yaml"
+  echo -e "${GREEN}File SGP.yaml telah diperbarui.${NC}"
 }
 
 # ========================
