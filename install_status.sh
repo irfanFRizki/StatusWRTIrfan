@@ -154,22 +154,26 @@ EOF
 }
 
 # ========================
-# Fungsi 7: Pindahkan & Install mm.ipk dan tl.ipk
+# Fungsi 7: Install mm.ipk dan tl.ipk langsung dari repo
 # ========================
 install_ipk() {
   if [ -z "$SRC_DIR" ]; then
     echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
     return
   fi
-  echo -e "${CYAN}Memindahkan mm.ipk dan tl.ipk ke /root dan instalasi...${NC}"
-  mv "$SRC_DIR/mm.ipk" /root/ > /dev/null 2>&1
-  loading_progress "Memindahkan mm.ipk"
-  opkg install /root/mm.ipk > /dev/null 2>&1
-  echo -e "${GREEN}mm.ipk diinstal.${NC}"
-  mv "$SRC_DIR/tl.ipk" /root/ > /dev/null 2>&1
-  loading_progress "Memindahkan tl.ipk"
-  opkg install /root/tl.ipk > /dev/null 2>&1
-  echo -e "${GREEN}tl.ipk diinstal.${NC}"
+  
+  echo -e "${CYAN}Menginstal mm.ipk dan tl.ipk langsung dari repository...${NC}"
+  
+  loading_progress "Menginstal mm.ipk"
+  opkg install "$SRC_DIR/root/mm.ipk" > /dev/null 2>&1
+  echo -e "${GREEN}mm.ipk berhasil diinstal${NC}"
+  
+  loading_progress "Menginstal tl.ipk" 
+  opkg install "$SRC_DIR/root/tl.ipk" > /dev/null 2>&1
+  echo -e "${GREEN}tl.ipk berhasil diinstal${NC}"
+  
+  # Hapus file ipk dari repo jika diperlukan
+  # rm -f "$SRC_DIR/root/mm.ipk" "$SRC_DIR/root/tl.ipk"
 }
 
 # ========================
@@ -177,7 +181,7 @@ install_ipk() {
 # ========================
 install_extra() {
   echo -e "${CYAN}Menginstal paket tambahan...${NC}"
-  for pkg in luci-app-nlbwmon luci-app-cloudflared git-http python3-requests; do
+  for pkg in git-http python3-requests; do
     loading_progress "Menginstal $pkg"
     opkg install $pkg > /dev/null 2>&1
     echo -e "${GREEN}$pkg diinstal.${NC}"
@@ -207,7 +211,7 @@ config domain
 
 config domain
     option name 'HP_AQILLA'
-    option ip '192.168.1.122'
+    option ip '192.168.1.177'
 
 config domain
     option name 'HP_JAMAL'
@@ -229,14 +233,27 @@ EOF
 }
 
 # ========================
-# Fungsi 10: Deploy scripts Telegram
+# Fungsi 10: Deploy scripts Telegram (Menggunakan MV)
 # ========================
 deploy_telegram() {
-  echo -e "${CYAN}Menyalin dan memberikan izin untuk skrip Telegram...${NC}"
-  cp "/usr/bin/online.sh" /usr/bin/ > /dev/null 2>&1
-  cp "/usr/bin/send_telegram.py" /usr/bin/ > /dev/null 2>&1
+  if [ -z "$SRC_DIR" ]; then
+    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
+    return
+  fi
+  
+  echo -e "${CYAN}Memindahkan dan memberikan izin untuk skrip Telegram...${NC}"
+  
+  # File sumber di repository
+  SRC_TELEGRAM="$SRC_DIR/usr/bin"
+  
+  # Pindahkan file dari repo ke /usr/bin
+  mv "$SRC_TELEGRAM/online.sh" /usr/bin/ > /dev/null 2>&1
+  mv "$SRC_TELEGRAM/send_telegram.py" /usr/bin/ > /dev/null 2>&1
+  
+  # Berikan izin eksekusi
   chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py
-  echo -e "${GREEN}Skrip Telegram siap digunakan.${NC}"
+  
+  echo -e "${GREEN}Skrip Telegram berhasil dipindahkan dan diaktifkan.${NC}"
 }
 
 # ========================
