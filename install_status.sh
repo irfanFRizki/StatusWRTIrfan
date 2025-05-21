@@ -260,24 +260,50 @@ deploy_telegram() {
 }
 
 # ========================
-# Fungsi 11: Deploy informasi LuCI
+# Fungsi 11: Deploy informasi LuCI (Menggunakan MV)
 # ========================
 deploy_informasi() {
-  echo -e "${CYAN}Menyalin view/controller LuCI Informasi...${NC}"
+  if [ -z "$SRC_DIR" ]; then
+    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
+    return
+  fi
+  
+  echo -e "${CYAN}Memindahkan view/controller LuCI Informasi...${NC}"
+  
+  # Buat direktori tujuan jika belum ada
   mkdir -p /usr/lib/lua/luci/view/informasi/ > /dev/null 2>&1
-  cp "$SRC_DIR/usr/lib/lua/luci/view/informasi/"* /usr/lib/lua/luci/view/informasi/ > /dev/null 2>&1
-  cp "$SRC_DIR/usr/lib/lua/luci/controller/informasi.lua" /usr/lib/lua/luci/controller/ > /dev/null 2>&1
-  echo -e "${GREEN}LuCI Informasi dipasang.${NC}"
+  
+  # Pindahkan file view
+  mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/"* /usr/lib/lua/luci/view/informasi/ > /dev/null 2>&1
+  
+  # Pindahkan file controller
+  mv "$SRC_DIR/usr/lib/lua/luci/controller/informasi.lua" /usr/lib/lua/luci/controller/ > /dev/null 2>&1
+  
+  echo -e "${GREEN}File LuCI Informasi berhasil dipindahkan ke sistem${NC}"
 }
 
 # ========================
-# Fungsi 12: Deploy halaman WWW
+# Fungsi 12: Deploy CGI scripts (Menggunakan MV)
 # ========================
-deploy_www_pages() {
-  echo -e "${CYAN}Menyalin halaman WWW...${NC}"
-  for page in display.html samsung.html vpn.html; do
-    cp "$SRC_DIR/www/$page" /www/ > /dev/null 2>&1
-    echo -e "${GREEN}$page dipindahkan.${NC}"
+deploy_cgi_scripts() {
+  if [ -z "$SRC_DIR" ]; then
+    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
+    return
+  fi
+  
+  echo -e "${CYAN}Memindahkan CGI scripts ke sistem...${NC}"
+  
+  # Buat direktori tujuan
+  mkdir -p /www/cgi-bin/ > /dev/null 2>&1
+  
+  for script in online traffic pwm-fan-status; do
+    # Pindahkan file dari repo ke sistem
+    mv "$SRC_DIR/www/cgi-bin/$script" /www/cgi-bin/ > /dev/null 2>&1
+    
+    # Berikan izin eksekusi
+    chmod +x "/www/cgi-bin/$script"
+    
+    echo -e "${GREEN}$script berhasil dipindahkan dan dieksekusi${NC}"
   done
 }
 
