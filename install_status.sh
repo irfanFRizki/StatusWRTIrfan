@@ -283,47 +283,37 @@ deploy_informasi() {
 }
 
 # ========================
-# Fungsi 12: Deploy SEMUA CGI scripts (Menggunakan MV)
+# Fungsi 12: Deploy halaman WWW (Menggunakan MV)
+# ========================
+deploy_www_pages() {
+  if [ -z "$SRC_DIR" ]; then
+    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
+    return
+  fi
+  
+  echo -e "${CYAN}Memindahkan halaman WWW...${NC}"
+  # Pindahkan semua file html dari repo ke /www
+  mv "$SRC_DIR/www/"*.html /www/ > /dev/null 2>&1
+  echo -e "${GREEN}Semua file HTML berhasil dipindahkan ke /www${NC}"
+}
+
+# ========================
+# Fungsi 13: Deploy CGI scripts (Menggunakan MV)
 # ========================
 deploy_cgi_scripts() {
   if [ -z "$SRC_DIR" ]; then
     echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
     return
   fi
-
-  local SRC_CGI="$SRC_DIR/www/cgi-bin"
   
-  # Cek apakah direktori sumber ada dan tidak kosong
-  if [ ! -d "$SRC_CGI" ] || [ -z "$(ls -A "$SRC_CGI")" ]; then
-    echo -e "${YELLOW}Direktori CGI di repository kosong atau tidak ditemukan${NC}"
-    return
-  fi
-
-  echo -e "${CYAN}Memindahkan SEMUA CGI scripts ke /www/cgi-bin/...${NC}"
-  
-  # Buat direktori tujuan
-  mkdir -p /www/cgi-bin/ > /dev/null 2>&1
-  
-  # Pindahkan semua file dan subdirektori
-  mv "$SRC_CGI"/* /www/cgi-bin/ > /dev/null 2>&1
+  echo -e "${CYAN}Memindahkan CGI scripts...${NC}"
+  # Pindahkan seluruh isi direktori cgi-bin dari repo
+  mv "$SRC_DIR/www/cgi-bin/"* /www/cgi-bin/ > /dev/null 2>&1
   
   # Berikan izin eksekusi ke semua file
   chmod +x /www/cgi-bin/*
   
-  echo -e "${GREEN}Berhasil dipindahkan:${NC}"
-  echo -e "${GREEN}$(ls /www/cgi-bin/)${NC}"
-}
-
-# ========================
-# Fungsi 13: Deploy CGI scripts
-# ========================
-deploy_cgi_scripts() {
-  echo -e "${CYAN}Menyalin CGI scripts...${NC}"
-  for script in online traffic pwm-fan-status; do
-    cp "$SRC_DIR/www/cgi-bin/$script" /www/cgi-bin/ > /dev/null 2>&1
-    chmod +x "/www/cgi-bin/$script"
-    echo -e "${GREEN}$script dipindahkan dan dieksekusi.${NC}"
-  done
+  echo -e "${GREEN}Semua script CGI berhasil dipindahkan dan diaktifkan${NC}"
 }
 
 # ========================
