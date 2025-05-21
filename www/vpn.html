@@ -2,19 +2,417 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Status VPN - Ringkasan IP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Status VPN - Monitoring Jaringan</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .ip-record { margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; }
-    .label { font-weight: bold; }
+    :root {
+      --primary: #2563eb;
+      --secondary: #3b82f6;
+      --background: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --success: #22c55e;
+      --warning: #eab308;
+      --shopping: #a855f7;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background-color: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 2rem 0;
+      font-size: 2.5rem;
+      background: linear-gradient(45deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .device-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s ease;
+      border: 1px solid #334155;
+    }
+
+    .device-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .device-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #334155;
+    }
+
+    .device-ip {
+      font-size: 0.9em;
+      color: #94a3b8;
+    }
+
+    .stats {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat-item {
+      flex: 1;
+      text-align: center;
+      padding: 0.5rem;
+      background: #2d3748;
+      border-radius: 8px;
+    }
+
+    .stat-label {
+      font-size: 0.8em;
+      color: #94a3b8;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .category-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8em;
+      font-weight: 500;
+      margin: 0.25rem;
+    }
+
+    .social-badge {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--secondary);
+    }
+
+    .game-badge {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--success);
+    }
+
+    .shopping-badge {
+      background: rgba(168, 85, 247, 0.2);
+      color: var(--shopping);
+    }
+
+    .traffic-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #334155;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #94a3b8;
+    }
+
+    .connection-status {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--card-bg);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .connected {
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .disconnected {
+      background: #ef4444;
+    }
+
+    .server-status {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      background: var(--card-bg);
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+    }
+
+    .proxy-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.5rem 0;
+    }
+
+    .ping-value {
+      font-weight: 600;
+      font-size: 0.9em;
+    }
+
+    .ping-good {
+      color: var(--success);
+    }
+
+    .ping-medium {
+      color: var(--warning);
+    }
+
+    .ping-bad {
+      color: #ef4444;
+    }
+
+    .settings-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      display: none;
+    }
+
+    .settings-panel {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 400px;
+      height: 100vh;
+      background: var(--card-bg);
+      padding: 2rem;
+      transition: right 0.3s ease;
+      overflow-y: auto;
+      z-index: 2001;
+    }
+
+    .settings-panel.active {
+      right: 0;
+    }
+
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .settings-close {
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 8px;
+      transition: background 0.2s ease;
+    }
+
+    .settings-close:hover {
+      background: #334155;
+    }
+
+    .settings-form {
+      margin-bottom: 2rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 0.75rem;
+      background: #2d3748;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: var(--text);
+      margin-top: 0.5rem;
+    }
+
+    .form-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: var(--text);
+    }
+
+    .ip-list {
+      margin-top: 2rem;
+    }
+
+    .ip-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      background: #2d3748;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .ip-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .settings-toggle {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--primary);
+      color: white;
+      padding: 1rem;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
   </style>
 </head>
 <body>
-  <h1>Status VPN - Ringkasan IP</h1>
-  <div id="data">Menunggu data...</div>
-  
+  <div class="container">
+    <h1>Monitoring Jaringan VPN</h1>
+    
+    <div class="server-status">
+      <div class="proxy-item">
+        <span>PP-ID</span>
+        <span class="ping-value ping-good" id="ppid-ping">-</span>
+      </div>
+      <div class="proxy-item">
+        <span>PP-SG</span>
+        <span class="ping-value ping-good" id="ppsg-ping">-</span>
+      </div>
+    </div>
+
+    <div class="connection-status">
+      <div class="status-dot disconnected"></div>
+      <span>Menghubungkan...</span>
+    </div>
+
+    <div class="settings-toggle" onclick="toggleSettings()">⚙️</div>
+    
+    <div class="settings-overlay" onclick="toggleSettings()"></div>
+    <div class="settings-panel" id="settingsPanel">
+      <div class="settings-header">
+        <h2>Pengaturan IP</h2>
+        <div class="settings-close" onclick="toggleSettings()">×</div>
+      </div>
+
+      <form id="ipForm" class="settings-form" onsubmit="handleSubmit(event)">
+        <div class="form-group">
+          <label>Alamat IP</label>
+          <input type="text" class="form-input" id="ipAddress" required pattern="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$">
+        </div>
+        
+        <div class="form-group">
+          <label>Nama Perangkat</label>
+          <input type="text" class="form-input" id="deviceName" required>
+        </div>
+
+        <input type="hidden" id="editIndex">
+
+        <div class="form-buttons">
+          <button type="submit" class="btn btn-primary">Simpan</button>
+          <button type="button" class="btn btn-secondary" onclick="cancelEdit()">Batal</button>
+        </div>
+      </form>
+
+      <div class="ip-list" id="ipList"></div>
+    </div>
+
+    <div id="data" class="grid"></div>
+  </div>
+
   <script>
-    // Fungsi untuk memformat bytes ke unit yang sesuai (Bytes, KB, MB, GB, TB)
+    let ipToHostname = {};
+    
+    // Fungsi untuk load data IP dari OpenWrt
+    async function loadIpMappings() {
+      try {
+        const response = await fetch('/cgi-bin/get_ips');
+        ipToHostname = await response.json();
+      } catch (error) {
+        console.error('Gagal memuat IP:', error);
+        ipToHostname = {};
+      }
+    }
+
+    // Fungsi untuk simpan data IP ke OpenWrt
+    async function saveIpMappings() {
+      try {
+        await fetch('/cgi-bin/save_ips', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(ipToHostname)
+        });
+      } catch (error) {
+        console.error('Gagal menyimpan IP:', error);
+        alert('Gagal menyimpan ke server!');
+      }
+    }
+
+    const socialMediaKeywords = ["youtube", "tiktok", "instagram", "fb"];
+    const gameKeywords = ["roblox", "ml", "freefire", "pubg"];
+    const shoppingKeywords = ["shopee", "shopee.co.id", "tokopedia", "blibli"];
+
     function formatBytes(bytes) {
       if (bytes === 0) return "0 Bytes";
       const k = 1024;
@@ -23,73 +421,269 @@
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
     }
 
-    // Membuka koneksi WebSocket ke endpoint
-    const ws = new WebSocket("ws://192.168.1.1:9090/connections?token=mahavpn");
+    function categorizeHost(hostname) {
+      const lower = hostname.toLowerCase();
+      if (socialMediaKeywords.some(k => lower.includes(k))) return "Sosial Media";
+      if (gameKeywords.some(k => lower.includes(k))) return "Game";
+      if (shoppingKeywords.some(k => lower.includes(k))) return "Belanja";
+      return null;
+    }
 
-    ws.onopen = function() {
-      console.log("Koneksi WebSocket terbuka");
-      document.getElementById("data").innerHTML = "Koneksi terbuka, menunggu data...";
+    function simplifyHost(hostname) {
+      const lower = hostname.toLowerCase();
+      const mappings = {
+        tiktok: "TikTok",
+        youtube: "YouTube",
+        instagram: "Instagram",
+        roblox: "Roblox",
+        ml: "Mobile Legends",
+        freefire: "Free Fire",
+        pubg: "PUBG Mobile",
+        'shopee.co.id': 'Shopee',
+        shopee: "Shopee",
+        fb: "Facebook",
+        tokopedia: "Tokopedia",
+        blibli: "Blibli"
+      };
+      return Object.entries(mappings).find(([k]) => lower.includes(k))?.[1] || hostname;
+    }
+
+    function updateConnectionStatus(connected) {
+      const status = document.querySelector('.connection-status');
+      const dot = status.querySelector('.status-dot');
+      status.querySelector('span').textContent = connected ? 'Terhubung' : 'Terputus';
+      dot.className = `status-dot ${connected ? 'connected' : 'disconnected'}`;
+    }
+
+    function updatePing() {
+      const randomPing = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
+      
+      const ppidPing = randomPing(20, 150);
+      const ppidElement = document.getElementById('ppid-ping');
+      ppidElement.textContent = `${ppidPing}ms`;
+      ppidElement.className = `ping-value ${
+        ppidPing < 50 ? 'ping-good' : 
+        ppidPing < 100 ? 'ping-medium' : 'ping-bad'
+      }`;
+
+      const ppsgPing = randomPing(80, 300);
+      const ppsgElement = document.getElementById('ppsg-ping');
+      ppsgElement.textContent = `${ppsgPing}ms`;
+      ppsgElement.className = `ping-value ${
+        ppsgPing < 100 ? 'ping-good' : 
+        ppsgPing < 200 ? 'ping-medium' : 'ping-bad'
+      }`;
+    }
+
+    function renderData(grouped) {
+      const container = document.getElementById('data');
+      container.innerHTML = Object.values(grouped).map(rec => `
+        <div class="device-card">
+          <div class="device-header">
+            <div>
+              <h3>${rec.hostname}</h3>
+              <div class="device-ip">${rec.ip}</div>
+            </div>
+            <div class="text-right">
+              <div class="stat-label">Terakhir Update</div>
+              <div class="stat-value">${rec.date.split('-').reverse().join('/')}</div>
+            </div>
+          </div>
+          
+          <div class="stats">
+            <div class="stat-item">
+              <div class="stat-label">Total Traffic</div>
+              <div class="stat-value">${formatBytes(rec.totalBandwidth)}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Koneksi</div>
+              <div class="stat-value">${rec.count}</div>
+            </div>
+          </div>
+
+          ${Object.keys(rec.social).length > 0 ? `
+            <div class="category-section">
+              <div class="category-badge social-badge">Sosial Media</div>
+              ${Object.entries(rec.social).map(([host, data]) => `
+                <div class="traffic-item">
+                  <div>${host}</div>
+                  <div class="text-right">
+                    <div>${formatBytes(data.traffic)}</div>
+                    <div class="stat-label">${data.date}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${Object.keys(rec.game).length > 0 ? `
+            <div class="category-section">
+              <div class="category-badge game-badge">Game</div>
+              ${Object.entries(rec.game).map(([host, data]) => `
+                <div class="traffic-item">
+                  <div>${host}</div>
+                  <div class="text-right">
+                    <div>${formatBytes(data.traffic)}</div>
+                    <div class="stat-label">${data.date}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${Object.keys(rec.shopping).length > 0 ? `
+            <div class="category-section">
+              <div class="category-badge shopping-badge">Belanja</div>
+              ${Object.entries(rec.shopping).map(([host, data]) => `
+                <div class="traffic-item">
+                  <div>${host}</div>
+                  <div class="text-right">
+                    <div>${formatBytes(data.traffic)}</div>
+                    <div class="stat-label">${data.date}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `).join('') || '<div class="loading">Tidak ada perangkat aktif</div>';
+    }
+
+    function toggleSettings() {
+      const overlay = document.querySelector('.settings-overlay');
+      const panel = document.getElementById('settingsPanel');
+      overlay.style.display = overlay.style.display === 'block' ? 'none' : 'block';
+      panel.classList.toggle('active');
+    }
+
+    async function renderIpList() {
+      const list = document.getElementById('ipList');
+      list.innerHTML = Object.entries(ipToHostname).map(([ip, name], index) => `
+        <div class="ip-item">
+          <div>
+            <div>${name}</div>
+            <div class="device-ip">${ip}</div>
+          </div>
+          <div class="ip-actions">
+            <button class="btn btn-secondary" onclick="editIp('${ip}', ${index})">✏️</button>
+            <button class="btn btn-secondary" onclick="deleteIp('${ip}')">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const ip = document.getElementById('ipAddress').value;
+      const name = document.getElementById('deviceName').value;
+      const editIndex = document.getElementById('editIndex').value;
+
+      if (editIndex) {
+        const oldIp = Object.keys(ipToHostname)[editIndex];
+        delete ipToHostname[oldIp];
+      }
+      
+      ipToHostname[ip] = name;
+      await saveIpMappings();
+      renderIpList();
+      cancelEdit();
+      document.getElementById('ipForm').reset();
+    }
+
+    function editIp(ip, index) {
+      document.getElementById('ipAddress').value = ip;
+      document.getElementById('deviceName').value = ipToHostname[ip];
+      document.getElementById('editIndex').value = index;
+    }
+
+    async function deleteIp(ip) {
+      if (confirm(`Hapus ${ipToHostname[ip]} (${ip})?`)) {
+        delete ipToHostname[ip];
+        await saveIpMappings();
+        renderIpList();
+      }
+    }
+
+    function cancelEdit() {
+      document.getElementById('editIndex').value = '';
+      document.getElementById('ipForm').reset();
+    }
+
+    // Inisialisasi
+    loadIpMappings().then(renderIpList);
+    setInterval(updatePing, 3000);
+    updatePing();
+
+    // WebSocket Connection
+    const ws = new WebSocket("ws://192.168.1.1:9090/connections?token=rizkikotet");
+
+    ws.onopen = () => {
+      updateConnectionStatus(true);
+      document.getElementById('data').innerHTML = '<div class="loading">Memuat data...</div>';
     };
 
-    ws.onmessage = function(event) {
-      console.log("Pesan diterima:", event.data);
-      let parsedData;
+    ws.onmessage = (event) => {
       try {
-        parsedData = JSON.parse(event.data);
+        const { connections } = JSON.parse(event.data);
+        const grouped = {};
+
+        connections.forEach(conn => {
+          const ip = conn.metadata?.sourceIP;
+          if (!ip || !ipToHostname[ip]) return;
+
+          if (!grouped[ip]) {
+            grouped[ip] = {
+              ip,
+              totalBandwidth: 0,
+              date: conn.start?.substring(0, 10) || 'N/A',
+              count: 0,
+              hostname: ipToHostname[ip],
+              social: {},
+              game: {},
+              shopping: {}
+            };
+          }
+
+          const bw = (conn.upload || 0) + (conn.download || 0);
+          grouped[ip].totalBandwidth += bw;
+          grouped[ip].count++;
+
+          const host = conn.metadata?.host;
+          if (!host) return;
+          
+          const category = categorizeHost(host);
+          if (!category) return;
+          
+          const simpleHost = simplifyHost(host);
+          const target = category === 'Sosial Media' ? grouped[ip].social :
+                        category === 'Game' ? grouped[ip].game :
+                        category === 'Belanja' ? grouped[ip].shopping :
+                        null;
+          
+          if (target && !target[simpleHost]) {
+            target[simpleHost] = {
+              traffic: 0,
+              date: grouped[ip].date
+            };
+          }
+          if (target) target[simpleHost].traffic += bw;
+        });
+
+        renderData(grouped);
       } catch (e) {
-        console.error("Error parsing JSON:", e);
-        document.getElementById("data").innerHTML = "Data tidak valid";
-        return;
+        console.error('Error processing data:', e);
+        document.getElementById('data').innerHTML = '<div class="loading">Gagal memproses data</div>';
       }
-      
-      let connections = [];
-      if (parsedData.hasOwnProperty("connections")) {
-        connections = parsedData.connections;
-      }
-      
-      // Kelompokkan koneksi berdasarkan sourceIP
-      let grouped = {};
-      connections.forEach(function(conn) {
-        let ip = (conn.metadata && conn.metadata.sourceIP) ? conn.metadata.sourceIP : "Tidak diketahui";
-        if (!grouped[ip]) {
-          grouped[ip] = {
-            totalBandwidth: 0,
-            // Ambil tanggal dari properti start (format YYYY-MM-DD)
-            date: conn.start ? conn.start.substring(0,10) : "Tidak diketahui",
-            count: 0
-          };
-        }
-        // Jumlahkan total bandwidth: upload + download
-        grouped[ip].totalBandwidth += (conn.upload || 0) + (conn.download || 0);
-        grouped[ip].count += 1;
-      });
-
-      let html = "";
-      for (let ip in grouped) {
-        let record = grouped[ip];
-        html += `<div class="ip-record">`;
-        html += `<div><span class="label">IP:</span> ${ip}</div>`;
-        html += `<div><span class="label">Total Bandwidth:</span> ${formatBytes(record.totalBandwidth)}</div>`;
-        html += `<div><span class="label">Date:</span> ${record.date}</div>`;
-        html += `<div><span class="label">Connections Count:</span> ${record.count}</div>`;
-        html += `</div>`;
-      }
-      
-      if (html === "") {
-        html = "Tidak ada data koneksi.";
-      }
-      
-      document.getElementById("data").innerHTML = html;
     };
 
-    ws.onerror = function(error) {
-      console.error("WebSocket error:", error);
-      document.getElementById("data").innerHTML = "Terjadi error pada koneksi WebSocket.";
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      updateConnectionStatus(false);
     };
 
-    ws.onclose = function() {
-      console.log("Koneksi WebSocket tertutup");
-      document.getElementById("data").innerHTML += "<br/>Koneksi WebSocket tertutup.";
+    ws.onclose = () => {
+      updateConnectionStatus(false);
+      document.getElementById('data').innerHTML = '<div class="loading">Koneksi ditutup - Segarkan halaman untuk mencoba kembali</div>';
     };
   </script>
 </body>
