@@ -283,28 +283,35 @@ deploy_informasi() {
 }
 
 # ========================
-# Fungsi 12: Deploy CGI scripts (Menggunakan MV)
+# Fungsi 12: Deploy SEMUA CGI scripts (Menggunakan MV)
 # ========================
 deploy_cgi_scripts() {
   if [ -z "$SRC_DIR" ]; then
     echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
     return
   fi
+
+  local SRC_CGI="$SRC_DIR/www/cgi-bin"
   
-  echo -e "${CYAN}Memindahkan CGI scripts ke sistem...${NC}"
+  # Cek apakah direktori sumber ada dan tidak kosong
+  if [ ! -d "$SRC_CGI" ] || [ -z "$(ls -A "$SRC_CGI")" ]; then
+    echo -e "${YELLOW}Direktori CGI di repository kosong atau tidak ditemukan${NC}"
+    return
+  fi
+
+  echo -e "${CYAN}Memindahkan SEMUA CGI scripts ke /www/cgi-bin/...${NC}"
   
   # Buat direktori tujuan
   mkdir -p /www/cgi-bin/ > /dev/null 2>&1
   
-  for script in online traffic pwm-fan-status; do
-    # Pindahkan file dari repo ke sistem
-    mv "$SRC_DIR/www/cgi-bin/$script" /www/cgi-bin/ > /dev/null 2>&1
-    
-    # Berikan izin eksekusi
-    chmod +x "/www/cgi-bin/$script"
-    
-    echo -e "${GREEN}$script berhasil dipindahkan dan dieksekusi${NC}"
-  done
+  # Pindahkan semua file dan subdirektori
+  mv "$SRC_CGI"/* /www/cgi-bin/ > /dev/null 2>&1
+  
+  # Berikan izin eksekusi ke semua file
+  chmod +x /www/cgi-bin/*
+  
+  echo -e "${GREEN}Berhasil dipindahkan:${NC}"
+  echo -e "${GREEN}$(ls /www/cgi-bin/)${NC}"
 }
 
 # ========================
