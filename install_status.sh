@@ -362,6 +362,10 @@ install_all() {
   deploy_cgi_scripts
   deploy_nikki_monitor
 }
+remove_repo() {
+  rm -rf "$SRC_DIR"
+  echo -e "${GREEN}Direktori repo dibersihkan.${NC}"
+}
 
 # ========================
 # Menu Utama
