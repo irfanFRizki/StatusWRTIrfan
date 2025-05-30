@@ -317,6 +317,33 @@ deploy_cgi_scripts() {
 }
 
 # ========================
+# Fungsi 14: Deploy nikki_monitor.sh dan tambahkan ke rc.local
+# ========================
+deploy_nikki_monitor() {
+  if [ -z "$SRC_DIR" ]; then
+    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
+    return
+  fi
+
+  echo -e "${CYAN}Memindahkan nikki_monitor.sh ke /root...${NC}"
+  mv "$SRC_DIR/root/nikki_monitor.sh" /root/ > /dev/null 2>&1
+  chmod +x /root/nikki_monitor.sh
+  echo -e "${GREEN}nikki_monitor.sh berhasil dipindahkan dan diaktifkan.${NC}"
+
+  echo -e "${CYAN}Menambahkan nikki_monitor.sh ke /etc/rc.local...${NC}"
+  # Cek apakah sudah ada
+  if grep -q "nikki_monitor.sh" /etc/rc.local; then
+    echo -e "${YELLOW}nikki_monitor.sh sudah ada di rc.local.${NC}"
+  else
+    # Tambahkan sebelum 'exit 0'
+    sed -i '/exit 0/d' /etc/rc.local
+    echo -e "/root/nikki_monitor.sh 15 10 &" >> /etc/rc.local
+    echo "exit 0" >> /etc/rc.local
+    echo -e "${GREEN}Berhasil ditambahkan ke rc.local.${NC}"
+  fi
+}
+
+# ========================
 # Fungsi: Install semua langkah
 # ========================
 install_all() {
@@ -333,7 +360,7 @@ install_all() {
   deploy_informasi
   deploy_www_pages
   deploy_cgi_scripts
-  remove_repo
+  deploy_nikki_monitor
 }
 
 # ========================
@@ -355,15 +382,16 @@ main_menu() {
     echo -e "${YELLOW}10) Deploy LuCI Informasi${NC}"
     echo -e "${YELLOW}11) Deploy halaman WWW${NC}"
     echo -e "${YELLOW}12) Deploy CGI scripts${NC}"
-    echo -e "${YELLOW}13) Install semuanya${NC}"
-    echo -e "${YELLOW}14) Keluar${NC}"
-    echo -ne "${CYAN}Pilih opsi [1-14]: ${NC}"
+    echo -e "${YELLOW}13) Deploy nikki_monitor.sh${NC}"
+    echo -e "${YELLOW}14) Install semuanya${NC}"
+    echo -e "${YELLOW}15) Keluar${NC}"
+    echo -ne "${CYAN}Pilih opsi [1-15]: ${NC}"
     read choice
     case $choice in
       1) clone_repo ;; 2) install_nikki ;; 3) update_vnstat ;; 4) update_nlbwmon ;; 5) create_nftables ;;
       6) install_ipk ;; 7) install_extra ;; 8) configure_dhcp_domains ;; 9) deploy_telegram ;;
       10) deploy_informasi ;; 11) deploy_www_pages ;; 12) deploy_cgi_scripts ;;
-      13) install_all ;; 14) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
+      13) deploy_nikki_monitor ;; 14) install_all ;; 15) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
       *) echo -e "${RED}Pilihan tidak valid. Coba lagi.${NC}" ;;
     esac
     echo -e "${CYAN}Tekan Enter untuk kembali ke menu...${NC}"
