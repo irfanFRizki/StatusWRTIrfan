@@ -124,6 +124,10 @@ module("luci.controller.informasi", package.seeall)
      entry({"admin", "services", "informasi", "notallowed"}, template("informasi/notallowed"), _("Daftar IP Tidak Diizinkan"), 94)
      entry({"admin", "services", "informasi", "notallowed_data"}, call("action_notallowed_data"), nil)
      entry({"admin", "services", "informasi", "notallowed", "delete"}, call("action_delete_notallowed"), nil)
+
+    -- TAMBAH: captive portal page untuk IP yang diblokir
+    entry({"captive"}, template("informasi/captive"), nil, 1).dependent = false  -- sesuai URL DNAT nanti
+    entry({"admin", "services", "informasi", "request_access"}, call("action_request_access"), nil)
  
      -- Menu log, tampil setelah Daftar IP Tidak Diizinkan (prioritas 95)
      entry({"admin", "services", "informasi", "log"}, template("informasi/log"), _("Log Telegram"), 95)
@@ -175,15 +179,15 @@ module("luci.controller.informasi", package.seeall)
                      local mac = line:match("MAC:%s*([^,]+)") or "-"
                      local wifiStatus = (line:match("TERHUBUNG") or line:match("Online")) and "Online" or "Offline"
                      if not notified_ips[ip] then
-                         local msg = "🔔 *BOSS, ADA IP BARU!* 🔔\n" ..
+                         local msg = "🔔 **BOSS, ADA IP BARU!** 🔔\n" ..
        "══════════════════════════\n" ..
        "📛 Nama Perangkat: " .. (hostname or "-") .. "\n" ..
        "🆔 IP\t\t: " .. ip .. "\n" ..
        "📡 MAC\t\t: " .. mac .. "\n" ..
        "🌐 Status WIFI\t: " .. wifiStatus .. "\n" ..
-       "🚩 Status\t\t: *IP BARU*" ..
+       "🚩 Status\t\t: **IP BARU**" ..
        "\n══════════════════════════\n" ..
-       "ℹ️ _Pantau terus di panel admin untuk aksi lebih lanjut_"
+       "ℹ️ __Pantau terus di panel admin untuk aksi lebih lanjut__"
                          os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
                          notified_ips[ip] = true
                      end
@@ -225,43 +229,55 @@ module("luci.controller.informasi", package.seeall)
              allowed_ips[ip] = hostname; write_allowed_ips(allowed_ips)
              kicked_ips[ip] = nil; write_kicked_ips(kicked_ips)
              notified_ips[ip] = nil; write_notified_ips(notified_ips)
-             msg = "✅ *IP DIIZINKAN* ✅\n" ..
+             msg = "✅ **IP DIIZINKAN** ✅\n" ..
        "══════════════════════════\n" ..
        "📛 Nama Perangkat: " .. hostname .. "\n" ..
        "🆔 IP\t\t: " .. ip .. "\n" ..
        "📡 MAC\t\t: " .. mac .. "\n" ..
        "🌐 Status WIFI\t: Online\n" ..
-       "✅ Status\t\t: *DIIZINKAN*" ..
+       "✅ Status\t\t: **DIIZINKAN**" ..
        "\n══════════════════════════\n" ..
-       "💡 _Device ini dapat akses internet dan akan terus dipantau_"
+       "💡 __Device ini dapat akses internet dan akan terus dipantau__"
              os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
-         elseif aksi == "kick" then
-             os.execute("iptables -I INPUT -s " .. ip .. " -j DROP")
-             local hostname = "-"
-             local mac = "-"
-             local f = io.popen("/usr/bin/online.sh")
-             if f then
-                 local content = f:read("*all"); f:close()
-                 for line in content:gmatch("[^\r\n]+") do
-                     if line:match("IP:%s*" .. ip .. "[,\s]") then
-                         hostname = line:match("Hostname:%s*([^,]+)") or "-"
-                         mac = line:match("MAC:%s*([^,]+)") or "-"
-                         break
-                     end
-                 end
-             end
-             kicked_ips[ip] = true; write_kicked_ips(kicked_ips)
-             notified_ips[ip] = nil; write_notified_ips(notified_ips)
-             msg = "⛔ *IP DIBLOKIR* ⛔\n" ..
-       "══════════════════════════\n" ..
-       "📛 Nama Perangkat: " .. hostname .. "\n" ..
-       "🆔 IP\t\t: " .. ip .. "\n" ..
-       "📡 MAC\t\t: " .. mac .. "\n" ..
-       "🌐 Status WIFI\t: Offline\n" ..
-       "⛔ Status\t\t: *DIBLOKIR*" ..
-       "\n══════════════════════════\n" ..
-       "💡 _Akses internet untuk device ini telah ditutup_"
-             os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
+elseif aksi == "kick" then
+    -- Block akses level IP
+    os.execute("iptables -I INPUT -s " .. ip .. " -j DROP")
+
+    -- Redirect semua HTTP (port 80) dari IP tersebut ke captive portal
+    -- Ganti 192.168.1.1 dengan IP LAN router Anda
+    local redirect_cmd = string.format(
+        "iptables -t nat -I PREROUTING -s %s -p tcp --dport 80 -j DNAT --to-destination %s:8080",
+        ip, "192.168.1.1"
+    )
+    os.execute(redirect_cmd)
+
+    -- Lanjutkan logika mengambil hostname/mac, menyimpan ke kicked_ips, kirim Telegram, dll
+    local hostname = "-"
+    local mac = "-"
+    local f = io.popen("/usr/bin/online.sh")
+    if f then
+        local content = f:read("*all"); f:close()
+        for line in content:gmatch("[^\r\n]+") do
+            if line:match("IP:%s*" .. ip .. "[,%s]") then
+                hostname = line:match("Hostname:%s*([^,]+)") or "-"
+                mac = line:match("MAC:%s*([^,]+)") or "-"
+                break
+            end
+        end
+    end
+    kicked_ips[ip] = true; write_kicked_ips(kicked_ips)
+    notified_ips[ip] = nil; write_notified_ips(notified_ips)
+
+    local msg = "⛔ **IP DIBLOKIR** ⛔\n" ..
+                "══════════════════════════\n" ..
+                "📛 Nama Perangkat: " .. hostname .. "\n" ..
+                "🆔 IP\t\t: " .. ip .. "\n" ..
+                "📡 MAC\t\t: " .. mac .. "\n" ..
+                "🌐 Status WIFI\t: Offline\n" ..
+                "⛔ Status\t\t: **DIBLOKIR**" ..
+                "\n══════════════════════════\n" ..
+                "💡 __Akses internet untuk device ini telah ditutup.__"
+    os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
              kicked_ips[ip] = true
              write_kicked_ips(kicked_ips)
              if notified_ips[ip] then
@@ -360,29 +376,40 @@ module("luci.controller.informasi", package.seeall)
  
  -----------------------------------------------------------------------
  -- Menghapus IP dari daftar Tidak Diizinkan (un-kick: hapus rule iptables dan hapus dari kicked)
- function action_delete_notallowed()
-     local ip = luci.http.formvalue("ip")
-     if ip then
-         local kicked_ips = read_kicked_ips()
-         if kicked_ips[ip] then
-             os.execute("iptables -D INPUT -s " .. ip .. " -j DROP")
-             kicked_ips[ip] = nil
-             write_kicked_ips(kicked_ips)
-             local msg = "🔄 *IP DIBUKA KEMBALI* 🔄\n" ..
-       "══════════════════════════\n" ..
-       "🆔 IP\t\t: " .. ip .. "\n" ..
-       "🌐 Status\t\t: *DIPANTAU ULANG*" ..
-       "\n══════════════════════════\n" ..
-       "ℹ️ _Device ini akan dipantau dan notifikasi akan aktif kembali_"
-             os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
-             luci.http.prepare_content("text/plain")
-             luci.http.write(msg)
-         else
-             luci.http.prepare_content("text/plain")
-             luci.http.write("IP " .. ip .. " tidak ditemukan dalam daftar Tidak Diizinkan.")
-         end
-     else
-         luci.http.status(400, "Parameter tidak lengkap.")
-         luci.http.write("Parameter tidak lengkap.")
-     end
+function action_delete_notallowed()
+    local ip = luci.http.formvalue("ip")
+    if ip then
+        local kicked_ips = read_kicked_ips()
+        if kicked_ips[ip] then
+            -- Hapus rule block INPUT
+            os.execute("iptables -D INPUT -s " .. ip .. " -j DROP")
+
+            -- Hapus rule NAT redirect HTTP
+            local del_redirect_cmd = string.format(
+                "iptables -t nat -D PREROUTING -s %s -p tcp --dport 80 -j DNAT --to-destination %s:8080",
+                ip, "192.168.1.1"
+            )
+            os.execute(del_redirect_cmd)
+
+            kicked_ips[ip] = nil
+            write_kicked_ips(kicked_ips)
+
+            local msg = "🔄 **IP DIBUKA KEMBALI** 🔄\n" ..
+              "══════════════════════════\n" ..
+              "🆔 IP\t\t: " .. ip .. "\n" ..
+              "🌐 Status\t\t: **DIPANTAU ULANG**" ..
+              "\n══════════════════════════\n" ..
+              "ℹ️ __Device ini akan dipantau dan notifikasi akan aktif kembali__"
+            os.execute("/usr/bin/send_telegram.py " .. shell_quote(msg) .. " &")
+
+            luci.http.prepare_content("text/plain")
+            luci.http.write(msg)
+        else
+            luci.http.prepare_content("text/plain")
+            luci.http.write("IP " .. ip .. " tidak ditemukan dalam daftar Tidak Diizinkan.")
+        end
+    else
+        luci.http.status(400, "Parameter tidak lengkap.")
+        luci.http.write("Parameter tidak lengkap.")
+    end
  end
