@@ -130,6 +130,16 @@ module("luci.controller.informasi", package.seeall)
  
      -- Endpoint untuk mengirim pesan ke Telegram (dipanggil via JavaScript)
      entry({"admin", "services", "informasi", "send_telegram"}, call("action_send_telegram"), nil).leaf = true
+
+-- sebelum function index()
+entry({"informasi_data","telegram"},    call("action_telegram_data"))
+entry({"informasi_data","allowed"},     call("action_allowed_data"))
+entry({"informasi_data","notallowed"},  call("action_notallowed_data"))
+entry({"informasi_data","allowed","delete"},    call("action_delete_allowed"))
+entry({"informasi_data","notallowed","delete"}, call("action_delete_notallowed"))
+entry({"informasi_data","aksi"}, call("action_aksi"))
+entry({"informasi_data","allowed","delete"},    call("action_delete_allowed"))
+entry({"informasi_data","notallowed","delete"}, call("action_delete_notallowed"))
  end
  
  -----------------------------------------------------------------------
