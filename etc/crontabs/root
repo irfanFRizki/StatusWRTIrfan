@@ -1,0 +1,4 @@
+1 21 * * * /usr/bin/mahavpn-acc-rakitan.sh
+
+*/5 * * * * /usr/bin/python3 /usr/bin/checkIP.py
+0 6 * * * cp /etc/notified_ips.log /etc/notified_ips_$(date +\%F).bak && > /etc/notified_ips.log
