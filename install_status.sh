@@ -252,9 +252,12 @@ deploy_telegram() {
   # Pindahkan file dari repo ke /usr/bin
   mv "$SRC_TELEGRAM/online.sh" /usr/bin/ > /dev/null 2>&1
   mv "$SRC_TELEGRAM/send_telegram.py" /usr/bin/ > /dev/null 2>&1
+  mv "$SRC_TELEGRAM/checkIP.py" /usr/bin/ > /dev/null 2>&1
+  mv "$SRC_TELEGRAM/vpn.py" /usr/bin/ > /dev/null 2>&1
+
   
   # Berikan izin eksekusi
-  chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py
+  chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py /usr/bin/checkIP.py /usr/bin/vpn.py
   
   echo -e "${GREEN}Skrip Telegram berhasil dipindahkan dan diaktifkan.${NC}"
 }
