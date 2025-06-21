@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IP List</title>
+  <!-- Font Awesome CDN -->
+<link
+   rel="stylesheet"
+   href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+ />
+  <style>
+    :root {
+      --gradient-new-start: #4f46e5;
+      --gradient-new-end: #6366f1;
+      --gradient-allowed-start: #10b981;
+      --gradient-allowed-end: #06b6d4;
+      --gradient-notallowed-start: #ef4444;
+      --gradient-notallowed-end: #f87171;
+      --bg-light: #f3f4f6;
+      --bg-white: #ffffff;
+      --text-dark: #1f2937;
+      --text-muted: #6b7280;
+      --border-radius: 16px;
+      --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+      --btn-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --transition-speed: 0.3s;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg-light);
+      font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+      color: var(--text-dark);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding-bottom: var(--spacing-lg);
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, var(--gradient-new-start), var(--gradient-new-end));
+      color: #fff;
+      text-align: center;
+      padding: var(--spacing-lg) var(--spacing-md);
+      border-radius: 0 0 var(--border-radius) var(--border-radius);
+      box-shadow: var(--card-shadow);
+    }
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      margin-bottom: var(--spacing-xs);
+    }
+    header p {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .container {
+      max-width: 960px;
+      margin: calc(var(--spacing-lg) * -1) auto 0;
+      padding: 0 var(--spacing-md);
+    }
+
+    .section {
+      margin-top: var(--spacing-lg);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--border-radius);
+      color: #fff;
+      box-shadow: var(--card-shadow);
+      margin-bottom: var(--spacing-md);
+      transition: background var(--transition-speed) ease;
+    }
+
+    .section-header.new {
+      background: linear-gradient(135deg, var(--gradient-new-start), var(--gradient-new-end));
+    }
+    .section-header.allowed {
+      background: linear-gradient(135deg, var(--gradient-allowed-start), var(--gradient-allowed-end));
+    }
+    .section-header.notallowed {
+      background: linear-gradient(135deg, var(--gradient-notallowed-start), var(--gradient-notallowed-end));
+    }
+
+    .section-header h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+    .section-header span.count {
+      background: rgba(255, 255, 255, 0.25);
+      padding: 0 var(--spacing-xs);
+      border-radius: var(--border-radius);
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--spacing-md);
+    }
+
+    .ip-card {
+      background: var(--bg-white);
+      border-radius: var(--border-radius);
+      box-shadow: var(--card-shadow);
+      padding: var(--spacing-md);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .ip-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .ip-info {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-md);
+    }
+    @media (min-width: 480px) {
+      .ip-info {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      }
+    }
+
+    .ip-detail-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .ip-detail-value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ip-actions {
+      display: flex;
+      gap: var(--spacing-xs);
+      justify-content: flex-end;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem var(--spacing-md);
+      font-size: 0.875rem;
+      font-weight: 500;
+      border: none;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: background var(--transition-speed) ease, box-shadow var(--transition-speed) ease, transform var(--transition-speed) ease;
+      box-shadow: var(--btn-shadow);
+      color: #fff;
+      text-decoration: none;
+    }
+    .btn:focus,
+    .btn:active {
+      outline: none;
+      transform: translateY(1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-allow {
+      background: var(--gradient-allowed-start);
+    }
+    .btn-allow:hover {
+      background: var(--gradient-allowed-end);
+    }
+
+    .btn-kick {
+      background: var(--gradient-notallowed-start);
+    }
+    .btn-kick:hover {
+      background: var(--gradient-notallowed-end);
+    }
+
+    .btn-delete {
+      background: var(--gradient-notallowed-start);
+    }
+    .btn-delete:hover {
+      background: var(--gradient-notallowed-end);
+    }
+
+    .btn-undo {
+      background: var(--gradient-new-start);
+    }
+    .btn-undo:hover {
+      background: var(--gradient-new-end);
+    }
+
+    /* Empty State */
+    .empty-state {
+      background: var(--bg-white);
+      border: 2px dashed var(--text-muted);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-xs);
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+    .empty-state i {
+      font-size: 2rem;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    /* Notification Toast */
+    .notification-toast {
+      position: fixed;
+      bottom: var(--spacing-lg);
+      right: var(--spacing-md);
+      background: var(--text-dark);
+      color: #fff;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--border-radius);
+      font-size: 0.875rem;
+      box-shadow: var(--card-shadow);
+      animation: slideIn var(--transition-speed) ease-out;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      z-index: 1000;
+    }
+    .notification-toast i {
+      font-size: 1.2rem;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to   { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Main Header -->
+  <header>
+    <h1><i class="fas fa-network-wired"></i> IP List</h1>
+    <p>Raspberry 4</p>
+  </header>
+
+  <div class="container">
+    <!-- Section: Daftar IP Baru -->
+    <section class="section">
+      <div class="section-header new">
+        <h2><i class="fas fa-exclamation-circle"></i> Daftar IP Baru</h2>
+        <span class="count" id="count-new">0</span>
+      </div>
+      <div class="card-grid" id="new_ip_list"></div>
+    </section>
+
+    <!-- Section: Daftar IP Diizinkan -->
+    <section class="section">
+      <div class="section-header allowed">
+        <h2><i class="fas fa-check-circle"></i> Daftar IP Diizinkan</h2>
+        <span class="count" id="count-allowed">0</span>
+      </div>
+      <div class="card-grid" id="allowed_list"></div>
+    </section>
+
+    <!-- Section: Daftar IP Tidak Diizinkan -->
+    <section class="section">
+      <div class="section-header notallowed">
+        <h2><i class="fas fa-ban"></i> Daftar IP Tidak Diizinkan</h2>
+        <span class="count" id="count-notallowed">0</span>
+      </div>
+      <div class="card-grid" id="notallowed_list"></div>
+    </section>
+  </div>
+
+<script type="text/javascript">
+  // Utility: toast notification
+  function showNotification(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = 'notification-toast';
+    let iconClass = 'fas fa-info-circle';
+    if (type === 'success') iconClass = 'fas fa-check-circle';
+    if (type === 'error')   iconClass = 'fas fa-exclamation-triangle';
+    toast.innerHTML = `<i class="${iconClass}"></i><span>${message}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  // Empty state
+  function renderEmpty(container, message) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-folder-open"></i>
+        <span>${message}</span>
+      </div>
+    `;
+  }
+
+  // 1) Daftar IP Baru
+  function loadNewIPs() {
+    fetch('/cgi-bin/luci/informasi_data/telegram')
+      .then(r => r.json())
+      .then(data => {
+        const c = document.getElementById('new_ip_list');
+        document.getElementById('count-new').textContent = data.length;
+        if (!data.length) return renderEmpty(c, 'Tidak ada IP baru');
+        c.innerHTML = '';
+        data.forEach(item => {
+          const ip = item.ip, hn = item.hostname||'-', info = item.info||'';
+          const card = document.createElement('div');
+          card.className = 'ip-card';
+          card.innerHTML = `
+            <div class="ip-info">
+              <div><span class="ip-detail-label">IP</span>
+                   <span class="ip-detail-value" title="${ip}">${ip}</span></div>
+              <div><span class="ip-detail-label">Hostname</span>
+                   <span class="ip-detail-value" title="${hn}">${hn}</span></div>
+              <div><span class="ip-detail-label">Info</span>
+                   <span class="ip-detail-value" title="${info}">${info}</span></div>
+            </div>
+            <div class="ip-actions">
+              <button class="btn btn-allow" data-ip="${encodeURIComponent(ip)}" data-action="allow">
+                <i class="fas fa-check"></i> Izinkan
+              </button>
+              <button class="btn btn-kick" data-ip="${encodeURIComponent(ip)}" data-action="kick">
+                <i class="fas fa-times"></i> Blokir
+              </button>
+            </div>
+          `;
+          card.querySelectorAll('button').forEach(b=>{
+            b.addEventListener('click',()=>{
+              sendAksi(decodeURIComponent(b.dataset.ip), b.dataset.action);
+            });
+          });
+          c.appendChild(card);
+        });
+      })
+      .catch(_=> showNotification('Gagal memuat IP baru','error'));
+  }
+
+  // 2) Daftar IP Diizinkan
+  function loadAllowed() {
+    fetch('/cgi-bin/luci/informasi_data/allowed')
+      .then(r => r.json())
+      .then(data => {
+        const c = document.getElementById('allowed_list');
+        document.getElementById('count-allowed').textContent = data.length;
+        if (!data.length) return renderEmpty(c, 'Tidak ada IP diizinkan');
+        c.innerHTML = '';
+        data.forEach(item => {
+          const ip = item.ip, hn = item.hostname||'-';
+          const card = document.createElement('div');
+          card.className = 'ip-card';
+          card.innerHTML = `
+            <div class="ip-info">
+              <div><span class="ip-detail-label">IP</span>
+                   <span class="ip-detail-value" title="${ip}">${ip}</span></div>
+              <div><span class="ip-detail-label">Hostname</span>
+                   <span class="ip-detail-value" title="${hn}">${hn}</span></div>
+            </div>
+            <div class="ip-actions">
+              <button class="btn btn-delete" onclick="deleteAllowed('${ip}')">
+                <i class="fas fa-trash"></i> Hapus
+              </button>
+            </div>
+          `;
+          c.appendChild(card);
+        });
+      })
+      .catch(_=> showNotification('Gagal memuat IP diizinkan','error'));
+  }
+
+  // 3) Daftar IP Tidak Diizinkan
+  function loadNotAllowed() {
+    fetch('/cgi-bin/luci/informasi_data/notallowed')
+      .then(r => r.json())
+      .then(data => {
+        const c = document.getElementById('notallowed_list');
+        document.getElementById('count-notallowed').textContent = data.length;
+        if (!data.length) return renderEmpty(c, 'Tidak ada IP diblokir');
+        c.innerHTML = '';
+        data.forEach(item => {
+          const ip = item.ip, hn = item.hostname||'-';
+          const card = document.createElement('div');
+          card.className = 'ip-card';
+          card.innerHTML = `
+            <div class="ip-info">
+              <div><span class="ip-detail-label">IP</span>
+                   <span class="ip-detail-value" title="${ip}">${ip}</span></div>
+              <div><span class="ip-detail-label">Hostname</span>
+                   <span class="ip-detail-value" title="${hn}">${hn}</span></div>
+            </div>
+            <div class="ip-actions">
+              <button class="btn btn-undo" onclick="deleteNotAllowed('${ip}')">
+                <i class="fas fa-undo"></i> Batalkan Blokir
+              </button>
+            </div>
+          `;
+          c.appendChild(card);
+        });
+      })
+      .catch(_=> showNotification('Gagal memuat IP diblokir','error'));
+  }
+
+  // Kirim aksi allow/kick
+  function sendAksi(ip, aksi) {
+    fetch(`/cgi-bin/luci/informasi_data/aksi?ip=${encodeURIComponent(ip)}&aksi=${aksi}`)
+      .then(res => res.text())
+      .then(text => {
+        showNotification(text, 'success');
+        loadNewIPs();
+        loadAllowed();
+        loadNotAllowed();
+      })
+      .catch(_ => showNotification('Gagal memproses aksi', 'error'));
+  }
+
+  // Hapus dari allowed
+  function deleteAllowed(ip) {
+    if (!confirm(`Hapus IP ${ip}?`)) return;
+    fetch(`/cgi-bin/luci/informasi_data/allowed/delete?ip=${encodeURIComponent(ip)}`)
+      .then(r=>r.text())
+      .then(txt=>{
+        showNotification(txt,'success');
+        loadAllowed();
+      })
+      .catch(_=> showNotification('Gagal menghapus IP','error'));
+  }
+
+  // Batalkan blokir
+  function deleteNotAllowed(ip) {
+    if (!confirm(`Batalkan blokir ${ip}?`)) return;
+    fetch(`/cgi-bin/luci/informasi_data/notallowed/delete?ip=${encodeURIComponent(ip)}`)
+      .then(r=>r.text())
+      .then(txt=>{
+        showNotification(txt,'success');
+        loadNotAllowed();
+      })
+      .catch(_=> showNotification('Gagal membatalkan blokir','error'));
+  }
+
+  // Inisialisasi & auto-refresh
+  document.addEventListener('DOMContentLoaded', () => {
+    loadNewIPs(); loadAllowed(); loadNotAllowed();
+    setInterval(loadNewIPs,     5000);
+    setInterval(loadAllowed,     5000);
+    setInterval(loadNotAllowed,  5000);
+  });
+</script>
+</body>
+</html>
