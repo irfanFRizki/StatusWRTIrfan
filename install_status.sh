@@ -184,14 +184,21 @@ install_ipk() {
 # ========================
 install_extra() {
   echo -e "${CYAN}Menginstal paket tambahan...${NC}"
-  for pkg in git-http python3-requests; do
+  # Paket-paket dasar
+  for pkg in git-http python3-requests python3-pip; do
     loading_progress "Menginstal $pkg"
-    opkg install $pkg > /dev/null 2>&1
+    opkg install "$pkg" > /dev/null 2>&1
     echo -e "${GREEN}$pkg diinstal.${NC}"
   done
+
+  # Instalasi paket Python via pip3
   loading_progress "pip3 install requests"
   pip3 install requests > /dev/null 2>&1
   echo -e "${GREEN}requests (pip3) diinstal.${NC}"
+
+  loading_progress "pip3 install websocket-client"
+  pip3 install websocket-client > /dev/null 2>&1
+  echo -e "${GREEN}websocket-client (pip3) diinstal.${NC}"
 }
 
 # ========================
