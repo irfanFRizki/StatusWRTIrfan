@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Network Traffic Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #4361ee;
+      --secondary: #3f37c9;
+      --success: #4cc9f0;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #6c757d;
+      --light-gray: #e9ecef;
+      --border: #dee2e6;
+      --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      --transition: all 0.3s ease;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fb; color: var(--dark);
+      line-height: 1.6; padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 30px;
+      padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    }
+    .logo { display: flex; align-items: center; gap: 15px; }
+    .logo-icon {
+      background: var(--primary); color: white;
+      width: 50px; height: 50px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+    }
+    .logo-text h1 { font-size: 28px; font-weight: 700; color: var(--primary); }
+    .logo-text p { font-size: 14px; color: var(--gray); }
+
+    .card {
+      background: white; border-radius: 16px;
+      box-shadow: var(--card-shadow); padding: 25px;
+      margin-bottom: 25px; transition: var(--transition);
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    .card-title {
+      font-size: 18px; font-weight: 600;
+      margin-bottom: 20px; color: var(--dark);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .card-title i { color: var(--primary); }
+
+    .form-row {
+      display: flex; flex-wrap: wrap;
+      gap: 20px; margin-bottom: 15px;
+      align-items: flex-end;
+    }
+    .form-group { flex: 1; min-width: 200px; }
+    label {
+      display: block; margin-bottom: 8px;
+      font-weight: 500; color: var(--dark);
+    }
+    select, input[type="date"] {
+      width: 100%; padding: 12px 15px;
+      border: 1px solid var(--border);
+      border-radius: 10px; font-size: 16px;
+      transition: var(--transition); background: white;
+    }
+    select:focus, input:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67,97,238,0.2);
+    }
+    .add-button {
+      background: var(--primary); color: white;
+      border: none; border-radius: 50%;
+      width: 36px; height: 36px; font-size: 18px;
+      cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      transition: var(--transition); margin-bottom: 12px;
+    }
+    .add-button:hover {
+      background: var(--secondary);
+      transform: rotate(90deg);
+    }
+    .button {
+      background: var(--primary); color: white;
+      border: none; border-radius: 10px;
+      padding: 14px 28px; font-size: 16px;
+      font-weight: 600; cursor: pointer;
+      transition: var(--transition);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .button:hover {
+      background: var(--secondary);
+      transform: translateY(-2px);
+    }
+    .button i { font-size: 18px; }
+
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+      gap: 20px; margin-bottom: 25px;
+    }
+    .stat-card {
+      background: white; border-radius: 16px;
+      padding: 20px; box-shadow: var(--card-shadow);
+      text-align: center; transition: var(--transition);
+    }
+    .stat-card:hover { transform: translateY(-5px); }
+    .stat-card h3 { font-size: 16px; color: var(--gray); margin-bottom: 15px; }
+    .stat-value {
+      font-size: 28px; font-weight: 700;
+      color: var(--primary); margin-bottom: 10px;
+    }
+    .stat-diff {
+      font-size: 14px; font-weight: 500;
+      padding: 4px 12px; border-radius: 20px;
+      display: inline-block;
+    }
+    .diff-positive {
+      background-color: rgba(76,201,240,0.2);
+      color: #0a9396;
+    }
+    .diff-negative {
+      background-color: rgba(240,82,82,0.2);
+      color: #d00000;
+    }
+
+    table {
+      width: 100%; border-collapse: collapse;
+      margin-top: 20px; border-radius: 12px;
+      overflow: hidden; box-shadow: var(--card-shadow);
+    }
+    thead { background: var(--primary); color: white; }
+    th, td { padding: 14px 15px; }
+    th { text-align: left; font-weight: 600; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: var(--transition); }
+    tbody tr:nth-child(even) { background: var(--light); }
+    tbody tr:hover { background: rgba(67,97,238,0.05); }
+    td.date { color: var(--gray); font-weight: 500; }
+
+    .footer {
+      text-align: center; margin-top: 30px;
+      padding-top: 20px; color: var(--gray);
+      font-size: 14px; border-top: 1px solid var(--border);
+    }
+
+    @media (max-width:768px) {
+      .form-row { flex-direction: column; }
+      header { flex-direction: column; text-align: center; gap:20px; }
+      .stats-container { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <div class="logo-icon"><i class="fas fa-chart-network"></i></div>
+        <div class="logo-text">
+          <h1>Network Traffic Dashboard</h1>
+          <p>Perbandingan Harian Penggunaan Bandwidth</p>
+        </div>
+      </div>
+      <div id="current-date"></div>
+    </header>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-sliders-h"></i> Pengaturan Perbandingan</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Interface Jaringan</label>
+          <div id="iface-container">
+            <div class="iface-item">
+              <select class="iface-select">
+                <option value="wwan0">wwan0</option>
+                <option value="wwan1">wwan1</option>
+                <option value="usb0">usb0</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Tambah Interface</label>
+          <button id="add-iface" class="add-button">＋</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="start">Tanggal Awal</label>
+          <input type="date" id="start" />
+        </div>
+        <div class="form-group">
+          <label for="end">Tanggal Akhir</label>
+          <input type="date" id="end" />
+        </div>
+      </div>
+      <div class="buttons-container">
+        <button id="btn-calc" class="button"><i class="fas fa-calculator"></i> Hitung & Tampilkan</button>
+      </div>
+    </div>
+
+    <div class="stats-container" id="stats-container">
+      <!-- Stat cards akan di-generate di JS -->
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-table"></i> Data Harian</div>
+      <table id="results" hidden>
+        <thead id="thead"></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <p>© 2025 Network Traffic Dashboard | vnStat 2.11 | Data diperbarui setiap 5 menit</p>
+    </div>
+  </div>
+
+  <script>
+    // Tampilkan tanggal saat ini
+    const now = new Date();
+    document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', {
+      weekday:'long', year:'numeric', month:'long', day:'numeric'
+    });
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k=1024, sizes=['B','KiB','MiB','GiB','TiB'];
+      const i=Math.floor(Math.log(bytes)/Math.log(k));
+      return (bytes/Math.pow(k,i)).toFixed(2)+' '+sizes[i];
+    }
+
+    // Tambah kotak interface
+    document.getElementById('add-iface').addEventListener('click', () => {
+      const item = document.querySelector('.iface-item').cloneNode(true);
+      document.getElementById('iface-container').appendChild(item);
+    });
+
+    document.getElementById('btn-calc').addEventListener('click', () => {
+      const selects = document.querySelectorAll('.iface-select');
+      const chosen = Array.from(selects).map(s => s.value);
+      const start = document.getElementById('start').value;
+      const end = document.getElementById('end').value;
+      if (!start||!end) return alert('Pilih tanggal awal dan akhir');
+      if (chosen.length<1||chosen.length>2) return alert('Pilih 1 atau 2 interface');
+
+      Promise.all(chosen.map(iface=>fetch(`/cgi-bin/vnstat-json.cgi?iface=${iface}`)
+        .then(r=>r.ok?r.json():Promise.reject(r.status))))
+      .then(results=>{
+        // Parsing data
+        const data = results.map((json,i)=>{
+          const obj = json.interfaces.find(x=>x.name===chosen[i])||json.interfaces[0];
+          return obj.traffic.day.map(d=>({
+            date:`${d.date.year}-${String(d.date.month).padStart(2,'0')}-${String(d.date.day).padStart(2,'0')}`,
+            total:(d.rx||0)+(d.tx||0)
+          }));
+        });
+        const mapArr = data.map(a=>Object.fromEntries(a.map(o=>[o.date,o.total])));
+        const dates = Object.keys(mapArr[0]).filter(d=>d>=start&&d<=end&&(mapArr.length<2||d in mapArr[1])).sort();
+
+        // Generate stats cards
+        const statsC = document.getElementById('stats-container'); statsC.innerHTML='';
+        const totals = mapArr.map(m=>dates.reduce((s,d)=>s+(m[d]||0),0));
+        chosen.forEach((iface,i)=>{
+          const card = document.createElement('div'); card.className='stat-card';
+          const diffPct = mapArr.length>1?
+            (((totals[0]-totals[1])/totals[1])*100).toFixed(1):0;
+          card.innerHTML = `
+            <h3>Total ${iface}</h3>
+            <div class="stat-value">${formatBytes(totals[i])}</div>
+            ${mapArr.length>1?`<div class="stat-diff ${i===0?(diffPct>=0?'diff-positive':'diff-negative'):(i===1?(diffPct<0?'diff-positive':'diff-negative'):'')}">
+              ${i===0?diffPct+'%':Math.abs(diffPct)+'%'}</div>`:''}
+          `;
+          statsC.appendChild(card);
+        });
+        if (chosen.length===2) {
+          const diffCard = document.createElement('div'); diffCard.className='stat-card';
+          const diff = totals[0]-totals[1];
+          diffCard.innerHTML=`
+            <h3>Selisih Total</h3>
+            <div class="stat-value">${formatBytes(Math.abs(diff))}</div>
+            <div class="stat-diff ${diff>=0?'diff-positive':'diff-negative'}">\${chosen[0]} lebih ${diff>=0?'tinggi':'rendah'}</div>
+          `;
+          statsC.appendChild(diffCard);
+        }
+
+        // Tabel
+        const thead=document.getElementById('thead');
+        let hdr='<tr><th>Tanggal</th>';
+        chosen.forEach(x=>hdr+=`<th>Total ${x}</th>`);
+        if(chosen.length===2) hdr+='<th>Selisih</th>';
+        thead.innerHTML=hdr+'</tr>';
+        const tbody=document.querySelector('#results tbody'); tbody.innerHTML='';
+        dates.forEach(d=>{
+          let r=`<tr><td class="date">${d}</td>`;
+          const vals=mapArr.map(m=>m[d]||0);
+          vals.forEach(v=>r+=`<td>${formatBytes(v)}</td>`);
+          if(vals.length===2) r+=`<td>${formatBytes(vals[0]-vals[1])}</td>`;
+          tbody.innerHTML+=r+'</tr>';
+        });
+        document.getElementById('results').hidden=false;
+      })
+      .catch(e=>alert('Error: '+e));
+    });
+  </script>
+</body>
+</html>
