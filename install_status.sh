@@ -157,26 +157,30 @@ EOF
 }
 
 # ========================
-# Fungsi 7: Install mm.ipk dan tl.ipk langsung dari repo
+# Fungsi 7: Install semua .ipk
 # ========================
 install_ipk() {
   if [ -z "$SRC_DIR" ]; then
     echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
     return
   fi
+
+  echo -e "${CYAN}Menginstal semua file .ipk di folder ipk...${NC}"
   
-  echo -e "${CYAN}Menginstal mm.ipk dan tl.ipk langsung dari repository...${NC}"
-  
-  loading_progress "Menginstal mm.ipk"
-  opkg install "$SRC_DIR/root/mm.ipk" > /dev/null 2>&1
-  echo -e "${GREEN}mm.ipk berhasil diinstal${NC}"
-  
-  loading_progress "Menginstal tl.ipk" 
-  opkg install "$SRC_DIR/root/tl.ipk" > /dev/null 2>&1
-  echo -e "${GREEN}tl.ipk berhasil diinstal${NC}"
-  
-  # Hapus file ipk dari repo jika diperlukan
-  # rm -f "$SRC_DIR/root/mm.ipk" "$SRC_DIR/root/tl.ipk"
+  IPK_DIR="$SRC_DIR/ipk"
+
+  if [ ! -d "$IPK_DIR" ]; then
+    echo -e "${RED}Direktori $IPK_DIR tidak ditemukan.${NC}"
+    return
+  fi
+
+  for ipk_file in "$IPK_DIR"/*.ipk; do
+    if [ -f "$ipk_file" ]; then
+      loading_progress "Menginstal $(basename "$ipk_file")"
+      opkg install "$ipk_file" > /dev/null 2>&1
+      echo -e "${GREEN}$(basename "$ipk_file") berhasil diinstal${NC}"
+    fi
+  done
 }
 
 # ========================
