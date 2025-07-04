@@ -397,7 +397,7 @@ main_menu() {
     echo -e "${YELLOW}3) Update vnstat.db${NC}"
     echo -e "${YELLOW}4) Update nlbwmon${NC}"
     echo -e "${YELLOW}5) Buat file nftables (FIX TTL 63)${NC}"
-    echo -e "${YELLOW}6) Pindahkan & Install mm.ipk dan tl.ipk${NC}"
+    echo -e "${YELLOW}6) Install semua ipk${NC}"
     echo -e "${YELLOW}7) Instal paket tambahan & pip${NC}"
     echo -e "${YELLOW}8) Tambah entri domain DHCP${NC}"
     echo -e "${YELLOW}9) Deploy skrip Telegram${NC}"
