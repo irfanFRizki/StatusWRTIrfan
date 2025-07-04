@@ -238,6 +238,10 @@ config domain
 config domain
     option name 'HP_BAPAK'
     option ip '192.168.1.233'
+
+config domain
+	option name 'CCTV'
+	option ip '192.168.1.138'
 EOF
   echo -e "${GREEN}Entri domain DHCP ditambahkan.${NC}"
 }
