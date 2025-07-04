@@ -305,38 +305,24 @@
 
     <h2 class="section-title animate-in" style="animation-delay: 0.6s">
       <span class="material-icons">data_usage</span>
-      Penggunaan Data XL @modem DELL DW
+      Penggunaan Data
     </h2>
     <table class="animate-in" style="animation-delay: 0.8s">
-      <thead>
-        <tr>
-          <th>Periode</th>
-          <th>Tanggal</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Hari ini</td>
-          <td id="xl-today-date">--</td>
-          <td id="xl-today-total">--</td>
-        </tr>
-        <tr>
-          <td>Kemarin</td>
-          <td id="xl-yesterday-date">--</td>
-          <td id="xl-yesterday-total">--</td>
-        </tr>
-        <tr>
-          <td>Bulan ini</td>
-          <td id="xl-month-date">--</td>
-          <td id="xl-month-total">--</td>
-        </tr>
-        <tr>
-          <td>Bulan lalu</td>
-          <td id="xl-last-month-date">--</td>
-          <td id="xl-last-month-total">--</td>
-        </tr>
-      </tbody>
+    <thead>
+      <tr>
+        <th rowspan="2">Periode</th>
+        <th rowspan="2">Tanggal</th>
+        <th colspan="1">DELL DW</th>
+        <th colspan="1">HP</th>
+      </tr>
+      <tr>
+        <th>Total</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody id="vnstat-body">
+      <tr><td colspan="5">Memuat data...</td></tr>
+    </tbody>
     </table>
 
     <h2 class="section-title animate-in" style="animation-delay: 1.0s">
@@ -453,26 +439,26 @@
       document.getElementById('temp-progress').style.width = `${Math.min(temp / 100, 1) * 100}%`;
     }
 
-    function updateData() {
-      fetch('/cgi-bin/status')
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById('uptime').textContent = data.uptime;
-          document.getElementById('cpu-temp').textContent = `${data.cpu_temp} °C`;
-          
-          const vnstat = data.vnstat['wwan0'];
-          document.getElementById('xl-today-date').textContent = vnstat.today.date;
-          document.getElementById('xl-today-total').textContent = vnstat.today.total;
-          // Update untuk periode kemarin
-          document.getElementById('xl-yesterday-date').textContent = vnstat.yesterday.date;
-          document.getElementById('xl-yesterday-total').textContent = vnstat.yesterday.total;
-          document.getElementById('xl-month-date').textContent = vnstat.month.date;
-          document.getElementById('xl-month-total').textContent = vnstat.month.total;
-          document.getElementById('xl-last-month-date').textContent = vnstat.last_month.date;
-          document.getElementById('xl-last-month-total').textContent = vnstat.last_month.total;
-          
-          updateProgressBars();
-        });
+function updateData() {
+  fetch('/cgi-bin/status').then(res => res.json()).then(data => {
+    document.getElementById('uptime').textContent = data.uptime;
+    document.getElementById('cpu-temp').textContent = `${data.cpu_temp} °C`;
+    document.getElementById('rx-speed').textContent = formatTraffic(data.rx);
+    document.getElementById('tx-speed').textContent = formatTraffic(data.tx);
+
+    const vnstatData = data.vnstat;
+    const tbody = document.getElementById('vnstat-body');
+    const periods = ['today', 'yesterday', 'month', 'last_month'];
+    const labels = ['Hari ini', 'Kemarin', 'Bulan ini', 'Bulan lalu'];
+    tbody.innerHTML = periods.map((p, i) => `
+      <tr>
+        <td>${labels[i]}</td>
+        <td>${vnstatData.wwan0[p].date}</td>
+        <td>${vnstatData.wwan0[p].total}</td>
+        <td>${vnstatData.usb0[p].total}</td>
+      </tr>
+    `).join('');
+  });
 
       fetch('/cgi-bin/pemakaian/pemakaian.sh')
         .then(res => res.json())
