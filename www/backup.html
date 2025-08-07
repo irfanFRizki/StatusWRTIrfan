@@ -1,1 +1,184 @@
-<h1>Forbidden</h1>You don't have permission to access /cgi-bin/read-file.sh?path=%2Fwww%2Fbackup.html on this server.
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenWrt GitHub Backup Manager</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:linear-gradient(135deg,#667eea,#764ba2); color:#333; min-height:100vh; }
+    .container { max-width:1200px; margin:auto; padding:20px; }
+    .header { background:rgba(255,255,255,0.95); backdrop-filter:blur(10px); border-radius:15px; padding:25px; margin-bottom:25px; box-shadow:0 8px 32px rgba(0,0,0,0.1); }
+    .header h1 { text-align:center; font-size:2.2em; color:#4a5568; margin-bottom:20px; }
+    .config-section { display:flex; gap:10px; margin-bottom:20px; align-items:flex-end; }
+    .config-section input { flex:1; padding:12px; border:2px solid #e2e8f0; border-radius:8px; }
+    .btn { background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:600; }
+    .btn:disabled { opacity:0.6; cursor:not-allowed; }
+    .main-content { display:grid; gap:25px; }
+    .card { background:rgba(255,255,255,0.95); border-radius:15px; padding:25px; box-shadow:0 8px 32px rgba(0,0,0,0.1); }
+    .breadcrumb, .search-box, .file-list, .progress-bar, .log-area { margin-bottom:15px; }
+    .breadcrumb button { background:#444; color:#fff; padding:4px 10px; border:none; border-radius:5px; cursor:pointer; margin-right:5px; }
+    .file-list { border:1px solid #e2e8f0; border-radius:8px; max-height:300px; overflow-y:auto; }
+    .file-item { padding:8px; border-bottom:1px solid #e2e8f0; cursor:pointer; }
+    .file-item.selected { background:#48bb78; color:#fff; }
+    .progress-container { display:none; }
+    .progress-bar { width:100%; height:20px; background:#e2e8f0; border-radius:10px; overflow:hidden; }
+    .progress-fill { height:100%; width:0; background:linear-gradient(45deg,#667eea,#764ba2); transition:width 0.3s; }
+    .log-area { background:#2d3748; color:#e2e8f0; padding:15px; border-radius:8px; font-family:monospace; font-size:12px; max-height:200px; overflow-y:auto; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 OpenWrt GitHub Backup Manager</h1>
+      <div class="config-section">
+        <input type="password" id="githubToken" placeholder="Masukkan GITHUB_TOKEN">
+        <button class="btn" onclick="validateGitHubToken()">Validasi Token</button>
+      </div>
+      <div id="userInfo" style="display:none; font-weight:600;">User: <span id="githubUser"></span></div>
+    </div>
+
+    <div class="main-content">
+      <div class="card">
+        <h2>📂 Explorer & Pilih File</h2>
+        <div id="breadcrumbNav" class="breadcrumb"></div>
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Cari file/folder..." onkeyup="filterFiles()">
+        </div>
+        <div id="fileExplorer" class="file-list"></div>
+        <button id="backupBtn" class="btn" onclick="backupSelectedFile()" disabled>🚀 Backup File Terpilih</button>
+      </div>
+
+      <div id="progressContainer" class="card progress-container">
+        <h3>📊 Progress Backup</h3>
+        <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+        <div id="progressText">0%</div>
+      </div>
+
+      <div class="card">
+        <h2>📋 Log Aktivitas</h2>
+        <div id="logArea" class="log-area">[INFO] Siap\n</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const repoOwner = 'irfanFRizki',
+          repoName  = 'StatusWRTIrfan',
+          branch    = 'main';
+    let githubToken = '', selectedFile = '', currentPath = '/';
+
+    function addLog(msg) {
+      const la = document.getElementById('logArea'),
+            t  = new Date().toLocaleTimeString();
+      la.textContent += `[${t}] ${msg}\n`;
+      la.scrollTop = la.scrollHeight;
+    }
+
+    async function validateGitHubToken() {
+      const tok = document.getElementById('githubToken').value;
+      if (!tok) { addLog('❌ Token kosong'); return; }
+      githubToken = tok;
+      try {
+        const res = await fetch('https://api.github.com/user',{
+          headers:{ 'Authorization':`token ${tok}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('githubUser').textContent = data.login;
+          document.getElementById('userInfo').style.display = 'block';
+          addLog('✅ Token valid');
+        } else addLog('❌ Token tidak valid');
+      } catch {
+        addLog('❌ Gagal validasi token');
+      }
+    }
+
+    function updateBreadcrumb(path) {
+      const bc = document.getElementById('breadcrumbNav');
+      bc.innerHTML = `<button onclick="scanFolder('/')">🏠 Home</button>`;
+      path.split('/').filter(Boolean).reduce((acc, cur)=>{
+        const fp = acc + '/' + cur;
+        bc.innerHTML += `<button onclick="scanFolder('${fp}')">${cur}</button>`;
+        return fp;
+      }, '');
+    }
+
+    async function scanFolder(path='/') {
+      currentPath = path;
+      selectedFile = '';
+      document.getElementById('backupBtn').disabled = true;
+      updateBreadcrumb(path);
+      document.querySelectorAll('.file-item').forEach(el=>el.classList.remove('selected'));
+      try {
+        const res = await fetch(`/cgi-bin/list-folder.sh?path=${encodeURIComponent(path)}`);
+        const data = await res.json();
+        const fe   = document.getElementById('fileExplorer');
+        fe.innerHTML = '';
+        data.forEach(it=>{
+          const d = document.createElement('div');
+          d.className = 'file-item ' + (it.isDirectory?'folder':'file');
+          d.textContent = it.name;
+          if (it.isDirectory) d.onclick = ()=>scanFolder(`${path}/${it.name}`.replace(/\/+/g,'/'));
+          else d.onclick = e=>selectFile(e.currentTarget, `${path}/${it.name}`);
+          fe.appendChild(d);
+        });
+        addLog(`📂 Direktori: ${path}`);
+      } catch {
+        addLog('❌ Gagal load folder');
+      }
+    }
+
+    function filterFiles() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      document.querySelectorAll('.file-item')
+        .forEach(i=>i.style.display = i.textContent.toLowerCase().includes(q)? 'block':'none');
+    }
+
+    function selectFile(el,path) {
+      selectedFile = path;
+      document.querySelectorAll('.file-item').forEach(x=>x.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('backupBtn').disabled = false;
+      addLog(`📄 Dipilih: ${path}`);
+    }
+
+    async function backupSelectedFile() {
+      if(!selectedFile||!githubToken){ addLog('❌ Pilih file & validasi token'); return; }
+      document.getElementById('progressContainer').style.display='block';
+      try {
+        const apiPath = selectedFile.replace(/^\//,'');
+        let sha;
+        // ambil SHA
+        const m = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${apiPath}?ref=${branch}`,{
+          headers:{ 'Authorization':`token ${githubToken}` }
+        });
+        if(m.ok) sha = (await m.json()).sha;
+        // baca file
+        const text = await fetch(`/cgi-bin/read-file.sh?path=${encodeURIComponent(selectedFile)}`).then(r=>r.text());
+        const b64  = btoa(unescape(encodeURIComponent(text)));
+        // kirim
+        const put = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${apiPath}`,{
+          method:'PUT',
+          headers:{
+            'Authorization':`token ${githubToken}`,
+            'Content-Type':'application/json'
+          },
+          body:JSON.stringify(Object.assign({
+            message:`Backup ${selectedFile}`,
+            content:b64,
+            branch
+          }, sha?{sha}:{}))
+        });
+        if(put.ok) addLog(`✅ Backup: ${selectedFile}`);
+        else addLog('❌ Gagal backup');
+      } catch {
+        addLog('❌ Error backup');
+      }
+      setTimeout(()=>document.getElementById('progressContainer').style.display='none',500);
+    }
+
+    window.onload = ()=>scanFolder('/');
+  </script>
+</body>
+</html>
