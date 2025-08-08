@@ -8,82 +8,94 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     :root{
-      --primary:#7e57c2; --primary-dark:#5e35b1; --secondary:#26a69a;
-      --glass: rgba(255,255,255,0.85); --shadow:0 10px 30px rgba(0,0,0,0.1);
+      --primary: #1a2a6c; /* kamu ubah ini */
+      --primary-dark:#12204b;
+      --secondary:#26a69a;
+      --glass: rgba(255,255,255,0.9);
+      --shadow: 0 10px 30px rgba(0,0,0,0.12);
+      --muted: #52607a;
+      --accent: #48bb78;
+      --transition: all .25s ease;
     }
-    *{margin:0;padding:0;box-sizing:border-box;font-family:'Roboto','Segoe UI',sans-serif}
+    *{box-sizing:border-box;margin:0;padding:0;font-family:'Roboto','Segoe UI',sans-serif}
     body{
       background: linear-gradient(135deg,#1a2a6c,#b21f1f,#1a2a6c);
-      background-size:400% 400%; animation:gradientBG 15s ease infinite;
-      color:#1a2a6c; min-height:100vh; padding:20px; line-height:1.6;
+      background-size:400% 400%; animation: gradientBG 15s ease infinite;
+      color:#1a2a6c ; min-height:100vh; padding:18px; line-height:1.5;
     }
     @keyframes gradientBG{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-    .container{max-width:1200px;margin:40px auto;padding:20px;animation:fadeIn .6s ease}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
-    .header{background:var(--glass);backdrop-filter:blur(12px);border-radius:20px;padding:26px;margin-bottom:26px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,0.3)}
-    .header h1{display:flex;align-items:center;justify-content:center;gap:12px;font-size:2.1rem;color:var(--primary-dark);margin-bottom:12px}
-    .repo-box{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px}
-    .repo-pill{background:linear-gradient(180deg, rgba(0,0,0,0.03), rgba(255,255,255,0.02));padding:8px 12px;border-radius:10px;border:1px solid rgba(15,23,42,0.04);color:#475569;font-weight:600;font-size:0.95rem}
-    .config-section{display:flex;gap:14px;margin-top:14px;align-items:flex-end;flex-wrap:wrap}
-    .input-group{flex:1;min-width:260px;position:relative}
-    .input-group i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--primary);font-size:18px}
-    .input-group input{width:100%;padding:14px 14px 14px 48px;border:2px solid #e2e8f0;border-radius:12px;font-size:16px;background:rgba(255,255,255,0.75);box-shadow:inset 0 2px 4px rgba(0,0,0,0.05)}
-    .input-group input:focus{outline:none;box-shadow:0 0 0 3px rgba(126,87,194,0.16);border-color:var(--primary)}
-    .btn{background:linear-gradient(45deg,var(--primary),var(--secondary));color:white;border:none;padding:12px 20px;border-radius:12px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:8px;height:48px}
-    .btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(126,87,194,0.4)}
-    .btn:disabled{opacity:0.6;cursor:not-allowed}
-    .main-content{display:grid;grid-template-columns:1fr 420px;gap:26px}
+    .container{max-width:1200px;margin:32px auto;padding:16px;animation:fadeIn .45s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    .header{background:var(--glass);backdrop-filter:blur(10px);border-radius:18px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,0.06)}
+    .header h1{display:flex;gap:12px;align-items:center;justify-content:center;color:var(--primary);font-size:1.9rem;margin-bottom:8px}
+    .repo-box{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+    .repo-pill{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));padding:8px 12px;border-radius:8px;border:1px solid rgba(0,0,0,0.04);color:var(--muted);font-weight:600}
+    .config-section{display:flex;gap:12px;align-items:flex-end;margin-top:12px;flex-wrap:wrap}
+    .input-group{flex:1;min-width:220px;position:relative}
+    .input-group i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--primary)}
+    .input-group input{width:100%;padding:12px 12px 12px 44px;border-radius:10px;border:2px solid #e2e8f0;background:rgba(255,255,255,0.9);color:#0f172a}
+    .input-group input:focus{outline:none;box-shadow:0 6px 18px rgba(26,42,108,0.12);border-color:var(--primary)}
+    .btn{background:linear-gradient(45deg,var(--primary),var(--secondary));color:white;border:none;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:var(--transition)}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,0.12)}
+    .btn[disabled]{opacity:0.6;cursor:not-allowed;transform:none;box-shadow:none}
+    .main-content{display:grid;grid-template-columns:1fr 420px;gap:18px}
     @media(max-width:980px){.main-content{grid-template-columns:1fr}}
-    .card{background:var(--glass);backdrop-filter:blur(12px);border-radius:18px;padding:20px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,0.3);display:flex;flex-direction:column}
-    .card h2{font-size:1.5rem;margin-bottom:12px;color:var(--primary-dark);display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:2px solid rgba(126,87,194,0.08)}
-    .breadcrumb{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-    .breadcrumb button{background:rgba(126,87,194,0.08);color:var(--primary);padding:8px 12px;border:none;border-radius:8px;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:8px}
+    .card{background:var(--glass);backdrop-filter:blur(8px);border-radius:14px;padding:16px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,0.05);display:flex;flex-direction:column}
+    .card h2{font-size:1.25rem;color:var(--primary);margin-bottom:10px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:2px solid rgba(0,0,0,0.03)}
+    .breadcrumb{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+    .breadcrumb button{background:rgba(0,0,0,0.06);color:var(--primary);padding:6px 10px;border-radius:8px;border:0;cursor:pointer;font-weight:600}
     .breadcrumb button:first-child{background:var(--primary);color:white}
-    .search-box{margin-bottom:12px;position:relative}
-    .search-box i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--primary)}
-    .search-box input{width:100%;padding:10px 14px 10px 44px;border:2px solid #e2e8f0;border-radius:12px;font-size:15px;background:rgba(255,255,255,0.73)}
-    .file-list{border:2px solid rgba(226,232,240,0.5);border-radius:12px;max-height:520px;overflow-y:auto;flex:1;background:rgba(255,255,255,0.78);box-shadow:inset 0 2px 8px rgba(0,0,0,0.04);padding:6px}
-    .file-item{padding:10px 12px;border-bottom:1px solid rgba(226,232,240,0.5);cursor:pointer;display:flex;align-items:center;gap:12px;transition:all .18s}
-    .file-item:hover{background:rgba(126,87,194,0.04);transform:translateX(4px)}
-    .file-item.selected{background:linear-gradient(45deg,rgba(126,87,194,0.12),rgba(38,166,154,0.12));color:var(--primary-dark);font-weight:600}
-    .file-item i{width:28px;text-align:center;color:var(--primary)}
-    .file-meta{margin-left:auto;color:#52607a;font-size:13px}
-    .selection-info{margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .selected-list{background:rgba(0,0,0,0.06);padding:8px;border-radius:8px;max-height:120px;overflow:auto;font-size:14px;color:#0f172a;background:rgba(255,255,255,0.92)}
-    .action-buttons{display:flex;gap:12px;margin-top:12px}
-    .action-buttons .btn{flex:1;justify-content:center}
-    .progress-container{display:none;margin-top:14px}
+    .controls-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+    .search-box{position:relative;flex:1;min-width:150px}
+    .search-box i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--primary)}
+    .search-box input{width:100%;padding:10px 12px 10px 36px;border-radius:8px;border:1px solid #e2e8f0;background:rgba(255,255,255,0.92);color:#0f172a}
+    .file-list{border-radius:10px;border:1px solid rgba(0,0,0,0.04);max-height:520px;overflow:auto;background:rgba(255,255,255,0.94);padding:6px}
+    .file-item{display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid rgba(0,0,0,0.03);cursor:pointer;transition:all .14s}
+    .file-item:hover{background:rgba(26,42,108,0.03);transform:translateX(6px)}
+    .file-item input[type="checkbox"]{width:16px;height:16px;margin-right:6px}
+    .file-item .name{flex:1;color:#0f172a}
+    .file-item .meta{font-size:12px;color:var(--muted);margin-left:8px}
+    .file-item.selected{background:linear-gradient(45deg, rgba(26,42,108,0.06), rgba(38,166,154,0.04));font-weight:600}
+    .selection-area{display:flex;gap:12px;align-items:flex-start;margin-top:12px;flex-wrap:wrap}
+    .selected-count{padding:8px 10px;background:rgba(255,255,255,0.95);color:#0f172a;border-radius:8px;font-weight:700}
+    .selected-list{flex:1;background:rgba(255,255,255,0.95);color:#0f172a;padding:8px;border-radius:8px;max-height:140px;overflow:auto;border:1px solid rgba(0,0,0,0.04)}
+    .selected-item{display:flex;align-items:center;justify-content:space-between;padding:6px;background:rgba(0,0,0,0.02);border-radius:6px;margin-bottom:6px}
+    .selected-item button{background:transparent;border:0;color:var(--primary);cursor:pointer;font-weight:700;padding:6px}
+    .action-buttons{display:flex;gap:8px;margin-top:10px}
+    .progress-container{display:none;margin-top:12px}
     .progress-container.show{display:block}
-    .progress-bar{width:100%;height:22px;background:rgba(226,232,240,0.72);border-radius:12px;overflow:hidden;margin-top:8px}
-    .progress-fill{height:100%;width:0;background:linear-gradient(45deg,var(--primary),var(--secondary));transition:width .45s;border-radius:12px;position:relative}
-    .progress-fill::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(45deg,rgba(255,255,255,0.07)25%,transparent25%,transparent50%,rgba(255,255,255,0.07)50%,rgba(255,255,255,0.07)75%,transparent75%);background-size:40px 40px;animation:moveStripes 1s linear infinite;border-radius:12px}
-    @keyframes moveStripes{0%{background-position:0 0}100%{background-position:40px 0}}
-    #progressText{text-align:center;font-weight:700;color:var(--primary-dark);margin-top:6px}
-    .log-container{display:flex;flex-direction:column;height:100%}
-    .log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap}
-    .log-controls{display:flex;gap:8px;align-items:center}
-    .log-controls button{background:rgba(126,87,194,0.08);color:var(--primary);border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
-    .log-area{background:rgba(25,30,40,0.88);color:#e2e8f0;padding:12px;border-radius:12px;font-family:'Fira Code',monospace;font-size:14px;flex:1;overflow:auto;border:1px solid rgba(255,255,255,0.08);box-shadow:inset 0 0 20px rgba(0,0,0,0.25);display:flex;flex-direction:column}
-    .log-messages{display:flex;flex-direction:column-reverse;overflow:auto;gap:8px}
-    .log-entry{padding:10px;border-radius:10px;position:relative;overflow:hidden;display:flex;gap:12px;align-items:flex-start;animation:logEntryAppear .34s}
-    .log-entry.info{background:rgba(33,150,243,0.06);border-left:4px solid #2196f3}
-    .log-entry.success{background:rgba(76,175,80,0.06);border-left:4px solid #4caf50}
-    .log-entry.warning{background:rgba(255,152,0,0.06);border-left:4px solid #ff9800}
-    .log-entry.error{background:rgba(244,67,54,0.06);border-left:4px solid #f44336}
-    .log-icon{font-size:16px;width:28px;text-align:center;margin-top:2px}
-    .log-timestamp{min-width:82px;color:#a0aec0;font-size:13px}
-    .log-text{color:#e6eef8;word-break:break-word}
-    @keyframes logEntryAppear{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
-    .footer{text-align:center;margin-top:20px;color:rgba(255,255,255,0.8);font-size:14px;padding:12px;background:rgba(0,0,0,0.18);border-radius:12px;backdrop-filter:blur(5px)}
-    @media(max-width:768px){.main-content{grid-template-columns:1fr}.input-group{min-width:200px}}
+    .progress-bar{width:100%;height:18px;background:rgba(0,0,0,0.06);border-radius:10px;overflow:hidden;margin-top:8px}
+    .progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--secondary));transition:width .35s;position:relative}
+    .progress-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(45deg,rgba(255,255,255,0.06)25%,transparent25%,transparent50%,rgba(255,255,255,0.06)50%);background-size:30px 30px;animation:stripMove 1s linear infinite}
+    @keyframes stripMove{0%{background-position:0 0}100%{background-position:30px 0}}
+    .progress-text{margin-top:6px;text-align:center;color:var(--primary-dark);font-weight:700}
+    .log-area{background:rgba(0,0,0,0.75);color:#e6eef8;padding:10px;border-radius:10px;font-family:'Fira Code',monospace;font-size:13px;flex:1;overflow:auto}
+    .log-entry{padding:8px;border-radius:8px;margin-bottom:8px;background:rgba(255,255,255,0.02);display:flex;gap:8px;align-items:flex-start}
+    .log-entry .time{min-width:82px;color:#9fb0d6}
+    .log-entry.info{border-left:4px solid #2196f3}
+    .log-entry.success{border-left:4px solid #4caf50}
+    .log-entry.warning{border-left:4px solid #ff9800}
+    .log-entry.error{border-left:4px solid #f44336}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999}
+    .modal-backdrop.show{display:flex}
+    .modal{background:var(--glass);padding:18px;border-radius:12px;max-width:720px;width:92%;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,0.06)}
+    .modal h3{margin-bottom:10px;color:var(--primary)}
+    .modal .file-list{max-height:260px;overflow:auto;margin-top:8px}
+    .modal .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+    .small-btn{background:transparent;border:1px solid rgba(0,0,0,0.06);padding:8px 12px;border-radius:8px;cursor:pointer}
+    .small-btn:hover{background:rgba(0,0,0,0.04)}
+    .footer{margin-top:18px;text-align:center;color:rgba(255,255,255,0.85);font-size:13px}
+    /* custom scrollbar */
+    .file-list::-webkit-scrollbar, .selected-list::-webkit-scrollbar, .log-area::-webkit-scrollbar, .modal .file-list::-webkit-scrollbar {height:10px;width:10px}
+    .file-list::-webkit-scrollbar-thumb, .selected-list::-webkit-scrollbar-thumb, .log-area::-webkit-scrollbar-thumb{background:var(--primary);border-radius:8px}
+    .file-list::-webkit-scrollbar-track{background:rgba(255,255,255,0.02);border-radius:8px}
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h1><i class="fas fa-cloud-upload-alt"></i> OpenWrt GitHub Backup Manager</h1>
-
-      <div class="repo-box" style="justify-content:center;">
+      <div class="repo-box">
         <div class="repo-pill">Owner: <strong style="margin-left:8px">irfanFRizki</strong></div>
         <div class="repo-pill">Repo: <strong style="margin-left:8px">StatusWRTIrfan</strong></div>
         <div class="repo-pill">Branch: <strong style="margin-left:8px">main</strong></div>
@@ -92,245 +104,259 @@
       <div class="config-section">
         <div class="input-group">
           <i class="fas fa-key"></i>
-          <input type="password" id="githubToken" placeholder="Masukkan GITHUB_TOKEN">
+          <input id="githubToken" type="password" placeholder="Masukkan GITHUB_TOKEN">
         </div>
         <button class="btn" onclick="validateGitHubToken()"><i class="fas fa-check-circle"></i> Validasi Token</button>
-        <div id="userInfo" style="display:none;padding:8px 12px;border-radius:10px;background:rgba(126,87,194,0.08);font-weight:700;color:var(--primary-dark)"><i class="fas fa-user-circle"></i> <span id="githubUser"></span></div>
+        <div id="userInfo" style="display:none;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,0.92);color:var(--primary);font-weight:700"><i class="fas fa-user-circle"></i> <span id="githubUser"></span></div>
       </div>
     </div>
 
     <div class="main-content">
-      <!-- Left: Explorer with multi-select -->
+      <!-- LEFT: Explorer & Multi-select -->
       <div class="card">
         <h2><i class="fas fa-folder-open"></i> Explorer & Pilih File</h2>
 
         <div id="breadcrumbNav" class="breadcrumb"></div>
 
-        <div class="search-box">
-          <i class="fas fa-search"></i>
-          <input type="text" id="searchInput" placeholder="Cari file/folder..." oninput="filterFiles()">
+        <div class="controls-row">
+          <div class="search-box"><i class="fas fa-search"></i><input id="searchInput" placeholder="Cari file/folder..." oninput="filterFiles()"></div>
+          <button class="btn small-btn" onclick="selectAllVisible()">Select all</button>
+          <button class="btn small-btn" onclick="deselectAll()">Deselect all</button>
+          <button class="btn small-btn" onclick="scanFolder('/')"><i class="fas fa-sync-alt"></i> Refresh</button>
         </div>
 
         <div id="fileExplorer" class="file-list" aria-label="File explorer">
           <div class="file-item"><i class="fas fa-spinner fa-spin"></i> Memuat...</div>
         </div>
 
-        <div class="selection-info">
-          <div id="selectedCount" style="font-weight:700;color:#0f172a;background:rgba(255,255,255,0.92);padding:8px;border-radius:8px">0 file dipilih</div>
-          <div class="selected-list" id="selectedList" style="flex:1">(Nama file terpilih akan muncul di sini)</div>
+        <div class="selection-area">
+          <div id="selectedCount" class="selected-count">0 file dipilih</div>
+          <div class="selected-list" id="selectedList">(Nama file terpilih akan muncul di sini)</div>
         </div>
 
         <div class="action-buttons">
-          <button id="backupBtn" class="btn" onclick="backupSelectedFiles()" disabled><i class="fas fa-cloud-upload-alt"></i> Backup Terpilih</button>
-          <button class="btn" onclick="scanFolder('/')" style="background:linear-gradient(45deg,#4caf50,#2e7d32)"><i class="fas fa-sync-alt"></i> Refresh</button>
+          <button id="backupBtn" class="btn" onclick="openConfirmModal()" disabled><i class="fas fa-cloud-upload-alt"></i> Backup Terpilih</button>
+          <div style="display:flex;gap:8px">
+            <label style="align-self:center;color:var(--muted);margin-right:6px">Concurrency:</label>
+            <select id="concurrency" style="padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06)">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
         </div>
 
         <div id="progressContainer" class="progress-container">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-weight:700;color:var(--primary-dark)" id="progressLabel">Progress</div>
-            <div id="progressText" style="font-weight:700;color:var(--primary-dark)">0%</div>
+            <div id="progressLabel" style="font-weight:700;color:var(--primary)">Progress</div>
+            <div id="progressText" class="progress-text">0%</div>
           </div>
           <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
         </div>
       </div>
 
-      <!-- Right: log -->
+      <!-- RIGHT: Log -->
       <div class="card">
-        <div class="log-container">
-          <div class="log-header">
-            <h2><i class="fas fa-clipboard-list"></i> Log Aktivitas</h2>
-            <div class="log-controls">
-              <button id="clearLogsBtn" onclick="clearLogs()"><i class="fas fa-trash"></i> Bersihkan</button>
-              <button id="pauseLogsBtn" onclick="togglePauseLogs()"><i class="fas fa-pause"></i> Jeda</button>
-            </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h2><i class="fas fa-clipboard-list"></i> Log Aktivitas</h2>
+          <div style="display:flex;gap:8px">
+            <button id="clearLogsBtn" class="small-btn" onclick="clearLogs()"><i class="fas fa-trash"></i> Bersihkan</button>
+            <button id="pauseLogsBtn" class="small-btn" onclick="togglePauseLogs()"><i class="fas fa-pause"></i> Jeda</button>
           </div>
-
-          <div class="log-area">
-            <div class="log-messages" id="logMessages"></div>
-          </div>
+        </div>
+        <div class="log-area">
+          <div id="logMessages"></div>
         </div>
       </div>
     </div>
 
-    <div class="footer">
-      <p>OpenWrt GitHub Backup Manager &copy; 2023 — Dipasang di OpenWrt</p>
+    <div class="footer">OpenWrt GitHub Backup Manager &copy; 2023 — Dipasang di OpenWrt</div>
+  </div>
+
+  <!-- Modal konfirmasi -->
+  <div id="modal" class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h3 id="modalTitle">Konfirmasi Upload</h3>
+      <div id="modalBody">
+        <p>Apakah Anda yakin ingin mengunggah <strong id="modalCount">0</strong> file ke GitHub?</p>
+        <div class="file-list" id="modalFileList"></div>
+      </div>
+      <div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button class="small-btn" onclick="closeModal()">Batal</button>
+        <button class="btn" onclick="startParallelUpload()"><i class="fas fa-cloud-upload-alt"></i> Lanjutkan Upload</button>
+      </div>
     </div>
   </div>
 
   <script>
+    // repo config
     const repoOwner = 'irfanFRizki', repoName = 'StatusWRTIrfan', branch = 'main';
+
     let githubToken = '', currentPath = '/', selectedFiles = [], logsPaused = false;
+    // helper escape
+    function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
 
-    /* ==== LOG FUNCTIONS ==== */
-    function addLog(msg, type = 'info') {
-      if (logsPaused && type === 'info') return;
-      const logMessages = document.getElementById('logMessages');
+    /* ---------- LOG ---------- */
+    function addLog(msg, type='info'){
+      if(logsPaused && type==='info') return;
+      const lm = document.getElementById('logMessages');
       const t = new Date();
-      const timestamp = `[${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}]`;
-      let iconClass = type==='success'? 'fa-check-circle' : type==='warning'? 'fa-exclamation-triangle' : type==='error'? 'fa-times-circle' : 'fa-info-circle';
-      const entry = document.createElement('div');
-      entry.className = `log-entry ${type}`;
-      entry.innerHTML = `<div class="log-icon"><i class="fas ${iconClass}"></i></div>
-                         <div class="log-content"><div class="log-timestamp">${timestamp}</div><div class="log-text">${escapeHtml(msg)}</div></div>`;
-      if (logMessages.firstChild) logMessages.insertBefore(entry, logMessages.firstChild); else logMessages.appendChild(entry);
-      if (logMessages.children.length > 300) logMessages.removeChild(logMessages.lastChild);
-      logMessages.parentElement.scrollTop = 0;
+      const ts = `[${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}]`;
+      const div = document.createElement('div'); div.className = `log-entry ${type}`;
+      div.innerHTML = `<div class="time">${ts}</div><div style="flex:1">${escapeHtml(msg)}</div>`;
+      lm.insertBefore(div, lm.firstChild);
+      // cap logs
+      if(lm.children.length > 400) lm.removeChild(lm.lastChild);
     }
+    function clearLogs(){ document.getElementById('logMessages').innerHTML=''; addLog('Log dibersihkan','info'); }
+    function togglePauseLogs(){ logsPaused = !logsPaused; const b = document.getElementById('pauseLogsBtn'); b.innerHTML = logsPaused ? '<i class="fas fa-play"></i> Lanjutkan' : '<i class="fas fa-pause"></i> Jeda'; addLog(logsPaused ? 'Log dijeda' : 'Log dilanjutkan', logsPaused ? 'warning' : 'info'); }
 
-    function escapeHtml(unsafe) {
-      return String(unsafe).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
-    }
-
-    function clearLogs() { document.getElementById('logMessages').innerHTML = ''; addLog('Log telah dibersihkan', 'info'); }
-    function togglePauseLogs(){ logsPaused = !logsPaused; const btn = document.getElementById('pauseLogsBtn'); if(logsPaused){ btn.innerHTML = '<i class="fas fa-play"></i> Lanjutkan'; addLog('Log dijeda','warning'); } else { btn.innerHTML = '<i class="fas fa-pause"></i> Jeda'; addLog('Log dilanjutkan','info'); } }
-
-    /* ==== TOKEN VALIDATION ==== */
+    /* ---------- Token validation ---------- */
     async function validateGitHubToken(){
       const tok = document.getElementById('githubToken').value.trim();
       if(!tok){ addLog('❌ Token tidak boleh kosong','error'); return; }
       const btn = document.querySelector('.config-section .btn');
       const orig = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memvalidasi...'; btn.disabled = true;
-      githubToken = tok; addLog('🔎 Memvalidasi token...','info');
+      githubToken = tok; addLog('Memvalidasi token...','info');
       try{
-        const res = await fetch('https://api.github.com/user',{ headers:{ 'Authorization': `token ${tok}` }});
-        if(res.ok){ const data = await res.json(); document.getElementById('githubUser').textContent = data.login; document.getElementById('userInfo').style.display = 'inline-block'; addLog(`✅ Token valid — Pengguna: ${data.login}`,'success'); }
+        const res = await fetch('https://api.github.com/user',{ headers: {'Authorization': `token ${tok}`}});
+        if(res.ok){ const j = await res.json(); document.getElementById('githubUser').textContent = j.login; document.getElementById('userInfo').style.display = 'inline-block'; addLog(`✅ Token valid — ${j.login}`,'success'); }
         else { githubToken=''; addLog(`❌ Token tidak valid (status ${res.status})`,'error'); }
-      } catch(err){ githubToken=''; addLog(`❌ Gagal validasi token: ${err.message}`,'error'); }
+      } catch(err){ githubToken=''; addLog('❌ Gagal validasi token: '+err.message,'error'); }
       finally{ btn.innerHTML = orig; btn.disabled = false; }
     }
 
-    /* ==== BREADCRUMB & SCAN FOLDER ==== */
-    function updateBreadcrumb(path){
-      currentPath = path || '/';
-      const bc = document.getElementById('breadcrumbNav'); bc.innerHTML = `<button onclick="scanFolder('/')"><i class="fas fa-home"></i> Home</button>`;
-      (path||'/').split('/').filter(Boolean).reduce((acc, cur) => {
-        const fp = acc + '/' + cur;
-        bc.innerHTML += `<button onclick="scanFolder('${fp.replace(/'/g,"\\'")}')"><i class="fas fa-folder"></i> ${cur}</button>`;
-        return fp;
-      }, '');
-    }
+    /* ---------- Breadcrumb & Scan ---------- */
+    function updateBreadcrumb(path){ currentPath = path||'/'; const bc = document.getElementById('breadcrumbNav'); bc.innerHTML = `<button onclick="scanFolder('/')"><i class="fas fa-home"></i> Home</button>`; (path||'/').split('/').filter(Boolean).reduce((acc,cur)=>{ const fp = acc + '/' + cur; bc.innerHTML += `<button onclick="scanFolder('${fp.replace(/'/g,"\\'")}')"><i class="fas fa-folder"></i> ${cur}</button>`; return fp; }, ''); }
 
     async function scanFolder(path='/'){
-      currentPath = path || '/'; selectedFiles = []; updateSelectionUI();
-      document.getElementById('backupBtn').disabled = true; updateBreadcrumb(currentPath);
+      currentPath = path || '/';
+      selectedFiles = [];
+      updateSelectionUI();
+      document.getElementById('backupBtn').disabled = true;
+      updateBreadcrumb(currentPath);
       const fe = document.getElementById('fileExplorer'); fe.innerHTML = `<div class="file-item"><i class="fas fa-spinner fa-spin"></i> Memuat folder...</div>`;
       try {
         const res = await fetch(`/cgi-bin/list-folder.sh?path=${encodeURIComponent(currentPath)}`);
         if(!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         fe.innerHTML = '';
-        if(!Array.isArray(data) || data.length===0){ fe.innerHTML = `<div class="file-item"><i class="fas fa-folder-open"></i> (Kosong)</div>`; addLog(`📂 Direktori: ${currentPath} (kosong)`, 'info'); return; }
+        if(!Array.isArray(data) || data.length===0){ fe.innerHTML = `<div class="file-item"><i class="fas fa-folder-open"></i> (Kosong)</div>`; addLog(`📂 ${currentPath} (kosong)`, 'info'); return; }
         data.forEach((it, idx) => {
-          const d = document.createElement('div');
-          d.className = 'file-item ' + (it.isDirectory ? 'folder' : 'file');
-          // checkbox for multi-select
+          const d = document.createElement('div'); d.className = 'file-item';
           const safeName = escapeHtml(it.name);
-          d.innerHTML = `<input type="checkbox" style="width:18px;height:18px;margin-right:8px" data-name="${safeName}" ${it.isDirectory? 'disabled':''}>
+          d.innerHTML = `<input type="checkbox" data-name="${safeName}" ${it.isDirectory? 'disabled':''}>
                          <i class="fas ${it.isDirectory ? 'fa-folder' : 'fa-file'}"></i>
-                         <div>${safeName}</div>
-                         <div class="file-meta">${it.isDirectory ? 'folder' : 'file'}</div>`;
-          // click handlers: checkbox toggle / open folder
-          const checkbox = d.querySelector('input[type="checkbox"]');
+                         <div class="name">${safeName}</div>
+                         <div class="meta">${it.isDirectory ? 'folder' : 'file'}</div>`;
+          const cb = d.querySelector('input[type="checkbox"]');
           if(it.isDirectory){
-            // click whole row -> open folder
-            d.onclick = ()=>scanFolder((currentPath+'/'+it.name).replace(/\/+/g,'/'));
-            checkbox.title = 'Folder — klik untuk buka';
+            d.onclick = ()=> scanFolder((currentPath + '/' + it.name).replace(/\/+/g,'/'));
+            cb.title = 'Folder — klik untuk buka';
           } else {
-            // clicking row toggles checkbox (but click on checkbox itself handled normally)
-            d.onclick = (e)=>{
-              if(e.target && e.target.tagName.toLowerCase() === 'input') return; // let checkbox handle
-              checkbox.checked = !checkbox.checked;
-              handleSelectToggle(checkbox, it.name);
-            };
-            checkbox.onchange = ()=> handleSelectToggle(checkbox, it.name);
+            cb.onchange = ()=> handleToggle(cb, it.name);
+            d.onclick = (e)=>{ if(e.target && e.target.tagName.toLowerCase() === 'input') return; cb.checked = !cb.checked; handleToggle(cb, it.name); };
           }
-          // animation delay
-          d.style.animationDelay = (idx*0.02) + 's';
+          d.style.animationDelay = (idx * 0.02) + 's';
           fe.appendChild(d);
         });
         addLog(`📂 Direktori: ${currentPath}`, 'info');
       } catch(err){
-        fe.innerHTML = `<div class="file-item"><i class="fas fa-exclamation-circle"></i> Gagal memuat folder</div>`;
-        addLog(`❌ Gagal memuat folder: ${err.message}`, 'error');
+        fe.innerHTML = `<div class="file-item"><i class="fas fa-exclamation-circle"></i> Gagal memuat folder</div>`; addLog('❌ Gagal memuat folder: ' + (err.message || err), 'error');
       }
     }
 
-    /* ==== Selection handling ==== */
-    function handleSelectToggle(checkbox, filename){
-      const fullPath = (currentPath + '/' + filename).replace(/\/+/g,'/');
-      if(checkbox.checked){
-        if(!selectedFiles.includes(fullPath)) selectedFiles.push(fullPath);
-      } else {
-        selectedFiles = selectedFiles.filter(p => p !== fullPath);
-      }
+    /* ---------- Selection Handling ---------- */
+    function handleToggle(checkbox, filename){
+      const full = (currentPath + '/' + filename).replace(/\/+/g,'/');
+      if(checkbox.checked){ if(!selectedFiles.includes(full)) selectedFiles.push(full); }
+      else selectedFiles = selectedFiles.filter(p=>p!==full);
       updateSelectionUI();
     }
 
     function updateSelectionUI(){
-      const countEl = document.getElementById('selectedCount');
-      const listEl = document.getElementById('selectedList');
-      const btn = document.getElementById('backupBtn');
-      countEl.textContent = `${selectedFiles.length} file dipilih`;
-      if(selectedFiles.length === 0){
-        listEl.innerHTML = '(Nama file terpilih akan muncul di sini)';
-        btn.disabled = true;
-      } else {
-        listEl.innerHTML = selectedFiles.map(p => `<div style="padding:6px 8px;border-radius:6px;margin-bottom:4px;background:rgba(0,0,0,0.03);font-size:13px">${escapeHtml(p)}</div>`).join('');
-        btn.disabled = false;
+      document.getElementById('selectedCount').textContent = `${selectedFiles.length} file dipilih`;
+      const list = document.getElementById('selectedList');
+      if(selectedFiles.length===0){ list.innerHTML = '(Nama file terpilih akan muncul di sini)'; document.getElementById('backupBtn').disabled = true; }
+      else {
+        list.innerHTML = selectedFiles.map(p => `<div class="selected-item"><div style="flex:1;font-size:13px">${escapeHtml(p)}</div><div><button onclick="removeSelected('${escapeForAttr(p)}')"><i class="fas fa-times-circle"></i></button></div></div>`).join('');
+        document.getElementById('backupBtn').disabled = false;
       }
-      // sync UI checkbox .selected class
-      document.querySelectorAll('.file-item').forEach(el=>{
-        const cb = el.querySelector('input[type="checkbox"]');
-        if(!cb) return;
-        const name = cb.getAttribute('data-name');
-        const full = (currentPath + '/' + name).replace(/\/+/g,'/');
-        if(selectedFiles.includes(full)) el.classList.add('selected'); else el.classList.remove('selected');
+      // sync checkbox active states & row selection style
+      document.querySelectorAll('#fileExplorer .file-item').forEach(row=>{
+        const cb = row.querySelector('input[type="checkbox"]'); if(!cb) return;
+        const name = cb.getAttribute('data-name'); const full = (currentPath + '/' + name).replace(/\/+/g,'/');
+        if(selectedFiles.includes(full)) { cb.checked = true; row.classList.add('selected'); } else { cb.checked = false; row.classList.remove('selected'); }
       });
     }
 
-    /* ==== Backup multiple files sequentially ==== */
-    async function backupSelectedFiles(){
-      if(selectedFiles.length === 0){ addLog('❌ Tidak ada file yang dipilih','error'); return; }
-      if(!githubToken){ addLog('❌ GitHub token belum divalidasi','error'); return; }
+    // helper to escape for inline onclick attr
+    function escapeForAttr(s){ return s.replaceAll("'", "\\'").replaceAll('"','&quot;'); }
 
+    function removeSelected(path){
+      selectedFiles = selectedFiles.filter(p=>p!==path);
+      updateSelectionUI();
+    }
+
+    function selectAllVisible(){
+      document.querySelectorAll('#fileExplorer .file-item').forEach(row=>{
+        const cb = row.querySelector('input[type="checkbox"]'); if(!cb || cb.disabled) return;
+        const name = cb.getAttribute('data-name'); const full = (currentPath + '/' + name).replace(/\/+/g,'/');
+        if(!selectedFiles.includes(full)) selectedFiles.push(full);
+      });
+      updateSelectionUI();
+    }
+    function deselectAll(){ selectedFiles = []; updateSelectionUI(); }
+
+    /* ---------- Modal Confirm ---------- */
+    function openConfirmModal(){
+      const modal = document.getElementById('modal'), list = document.getElementById('modalFileList');
+      document.getElementById('modalCount').textContent = selectedFiles.length;
+      list.innerHTML = selectedFiles.map(p=>`<div style="padding:8px;border-bottom:1px solid rgba(0,0,0,0.04)">${escapeHtml(p)}</div>`).join('') || '<div style="padding:8px;color:var(--muted)">Tidak ada file</div>';
+      modal.classList.add('show');
+    }
+    function closeModal(){ document.getElementById('modal').classList.remove('show'); }
+
+    /* ---------- Parallel upload with concurrency ---------- */
+    function disableUIDuringUpload(disable=true){
+      document.querySelectorAll('input, button, select').forEach(el=>{
+        if(el.id === 'githubToken') return; // allow viewing token field still
+        el.disabled = disable;
+      });
+    }
+
+    // concurrency upload: chunked runner
+    async function startParallelUpload(){
+      closeModal();
+      if(selectedFiles.length===0){ addLog('❌ Tidak ada file yang dipilih','error'); return; }
+      if(!githubToken){ addLog('❌ Token GitHub belum divalidasi','error'); return; }
+
+      const concurrency = Number(document.getElementById('concurrency').value) || 3;
+      const batchDelay = 700; // ms delay between batches
+      addLog(`🔀 Mulai upload ${selectedFiles.length} file — concurrency: ${concurrency}`, 'info');
+
+      disableUIDuringUpload(true);
       const progressContainer = document.getElementById('progressContainer');
       const progressFill = document.getElementById('progressFill');
       const progressText = document.getElementById('progressText');
       const progressLabel = document.getElementById('progressLabel');
-
       progressContainer.classList.add('show');
-      progressFill.style.width = '0%';
-      progressText.textContent = '0%';
-      addLog(`🚀 Memulai backup ${selectedFiles.length} file...`, 'info');
+      progressFill.style.width = '0%'; progressText.textContent = '0%';
+      let completed = 0, total = selectedFiles.length;
 
-      const total = selectedFiles.length;
-      let completed = 0;
-
-      for(let i=0;i<total;i++){
-        const filePath = selectedFiles[i];
-        progressLabel.textContent = `Mengunggah ${i+1}/${total}: ${filePath.split('/').pop()}`;
-        addLog(`🔎 Memproses: ${filePath}`, 'info');
-
-        // attempt to get sha (if exists) to update
+      // helper upload single file
+      async function uploadFile(filePath){
+        addLog(`🔎 Mengecek ${filePath} di repo...`, 'info');
         let sha;
         try{
-          const check = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${encodeURIComponent(filePath.replace(/^\//,''))}?ref=${branch}`, {
-            headers: { 'Authorization': `token ${githubToken}` }
-          });
-          if(check.ok){
-            const chkj = await check.json();
-            sha = chkj.sha;
-            addLog(`ℹ️ File ada di repo (akan update) — sha ditemukan`, 'info');
-          } else if(check.status === 404){
-            addLog(`ℹ️ File belum ada di repo — akan dibuat`, 'info');
-          } else {
-            addLog(`⚠️ Response cek file: ${check.status}`, 'warning');
-          }
-        } catch(e){
-          addLog(`⚠️ Gagal cek file di GitHub: ${e.message}`, 'warning');
-        }
+          const check = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${encodeURIComponent(filePath.replace(/^\//,''))}?ref=${branch}`, { headers: {'Authorization': `token ${githubToken}`}});
+          if(check.ok){ const j = await check.json(); sha = j.sha; addLog(`ℹ️ ${filePath} ada di repo (update)`, 'info'); }
+          else if(check.status === 404) addLog(`ℹ️ ${filePath} belum ada di repo (akan dibuat)`, 'info');
+          else addLog(`⚠️ Response cek file: ${check.status}`, 'warning');
+        }catch(e){ addLog(`⚠️ Gagal cek file: ${e.message}`, 'warning'); }
 
-        // read file from device
         addLog(`📥 Membaca file: ${filePath}`, 'info');
         let text;
         try {
@@ -338,54 +364,90 @@
           if(!r.ok) throw new Error('read-file.sh HTTP ' + r.status);
           text = await r.text();
         } catch(err){
-          addLog(`❌ Gagal membaca file ${filePath}: ${err.message}`, 'error');
-          // move on to next file
-          completed++;
-          updateOverallProgress(completed, total);
-          continue;
+          addLog(`❌ Gagal membaca ${filePath}: ${err.message}`, 'error');
+          return { ok:false, path:filePath, err: err.message || 'read error' };
         }
 
-        // encode
         const b64 = btoa(unescape(encodeURIComponent(text)));
+        const body = Object.assign({ message: `Backup ${filePath}`, content: b64, branch }, sha ? { sha } : {});
+        addLog(`📤 Mengunggah: ${filePath}`, 'info');
 
-        // upload to GitHub
-        addLog(`📤 Mengunggah ${filePath} ke GitHub...`, 'info');
         try {
-          const bodyObj = Object.assign({ message: `Backup ${filePath}`, content: b64, branch }, sha ? { sha } : {});
           const put = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${encodeURIComponent(filePath.replace(/^\//,''))}`, {
-            method:'PUT',
-            headers:{ 'Authorization': `token ${githubToken}`, 'Content-Type':'application/json' },
-            body: JSON.stringify(bodyObj)
+            method:'PUT', headers:{ 'Authorization': `token ${githubToken}`, 'Content-Type':'application/json' }, body: JSON.stringify(body)
           });
-          if(put.ok){
-            addLog(`✅ Backup sukses: ${filePath}`, 'success');
-          } else {
-            const errText = await put.text().catch(()=>'');
-            addLog(`❌ Gagal backup ${filePath} (status ${put.status}) — ${errText}`, 'error');
+          if(put.ok){ addLog(`✅ Sukses: ${filePath}`, 'success'); return { ok:true, path:filePath }; }
+          else {
+            const txt = await put.text().catch(()=> '');
+            addLog(`❌ Gagal upload ${filePath} (status ${put.status}) — ${txt}`, 'error');
+            return { ok:false, path:filePath, err: `HTTP ${put.status}` };
           }
-        } catch(err){
-          addLog(`❌ Error upload ${filePath} — ${err.message}`, 'error');
-        }
-
-        completed++;
-        updateOverallProgress(completed, total);
+        } catch(e){ addLog(`❌ Error upload ${filePath}: ${e.message}`,'error'); return { ok:false, path:filePath, err: e.message }; }
       }
 
-      // finish
-      setTimeout(()=>{ progressContainer.classList.remove('show'); progressFill.style.width = '0%'; progressText.textContent = '0%'; document.getElementById('progressLabel').textContent = 'Progress'; }, 1200);
-      addLog(`✅ Backup selesai (${selectedFiles.length} file diproses)`, 'success');
+      // run tasks with concurrency limit
+      async function runWithConcurrency(tasks, limit){
+        const results = [];
+        let i = 0;
+        const workers = new Array(Math.min(limit, tasks.length)).fill(null).map(async () => {
+          while(i < tasks.length){
+            const idx = i++;
+            try {
+              const res = await tasks[idx]();
+              results[idx] = res;
+            } catch(e){ results[idx] = { ok:false, err: e.message || e }; }
+            completed++;
+            updateOverallProgress(completed, total, progressFill, progressText);
+          }
+        });
+        await Promise.all(workers);
+        return results;
+      }
+
+      // prepare tasks
+      const tasks = selectedFiles.map(path => () => uploadFile(path));
+
+      // run in chunks (with small delay between batches to ease rate limits)
+      try {
+        const batchSize = concurrency;
+        for(let start=0; start < tasks.length; start += batchSize){
+          const slice = tasks.slice(start, start + batchSize);
+          addLog(`🔁 Menjalankan batch ${Math.floor(start/batchSize)+1} (${slice.length} file)...`, 'info');
+          await runWithConcurrency(slice, slice.length);
+          // small delay between batches except after last
+          if(start + batchSize < tasks.length) await new Promise(r => setTimeout(r, batchDelay));
+        }
+        addLog(`✅ Semua batch selesai. (${total} file diproses)`, 'success');
+      } catch(e){
+        addLog('❌ Error selama upload paralel: ' + (e.message || e), 'error');
+      } finally {
+        setTimeout(()=>{
+          progressContainer.classList.remove('show');
+          progressFill.style.width = '0%'; progressText.textContent = '0%';
+          progressLabel.textContent = 'Progress';
+          disableUIDuringUpload(false);
+        }, 1000);
+      }
     }
 
-    function updateOverallProgress(completed, total){
+    function updateOverallProgress(completed, total, progressFill=null, progressText=null){
       const pct = Math.round((completed / total) * 100);
       document.getElementById('progressFill').style.width = pct + '%';
       document.getElementById('progressText').textContent = pct + '%';
     }
 
-    /* ==== init ==== */
+    /* ---------- Helpers ---------- */
+    function disableUIDuringUpload(disable=true){
+      document.querySelectorAll('button, select, input').forEach(el=>{
+        // allow showing token input but disable actions
+        if(el.id === 'githubToken') el.disabled = false;
+        else el.disabled = disable;
+      });
+    }
+
+    /* ---------- Init ---------- */
     window.addEventListener('load', ()=>{
-      addLog('Sistem siap. Silakan masukkan token GitHub Anda.', 'info');
-      addLog('Mengambil daftar direktori root...', 'info');
+      addLog('Sistem siap. Masukkan token GitHub Anda.', 'info');
       scanFolder('/');
     });
   </script>
