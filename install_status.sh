@@ -39,7 +39,7 @@ install_update_and_deploy() {
   echo -e "${GREEN}Update paket selesai.${NC}"
   
   # Install dependensi dasar
-  for pkg in coreutils-sleep bc git git-http wget python3-requests python3-pip; do
+  for pkg in coreutils-sleep bc git git-http wget python3-requests python3-pip coreutils-base64; do
     loading_progress "Menginstal $pkg"
     echo -e "${GREEN}$(opkg install $pkg 2>&1)${NC}"
   done
