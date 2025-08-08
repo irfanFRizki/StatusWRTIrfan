@@ -1,191 +1,384 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpenWrt GitHub Backup Manager</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:linear-gradient(135deg,#667eea,#764ba2); color:#333; min-height:100vh; }
-    .container { max-width:1200px; margin:auto; padding:20px; }
-    .header { background:rgba(255,255,255,0.95); backdrop-filter:blur(10px); border-radius:15px; padding:25px; margin-bottom:25px; box-shadow:0 8px 32px rgba(0,0,0,0.1); animation: fadeIn 0.5s ease-in; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .header h1 { text-align:center; font-size:2.2em; color:#4a5568; margin-bottom:20px; }
-    .config-section { display:flex; gap:10px; margin-bottom:20px; align-items:flex-end; }
-    .config-section input { flex:1; padding:12px; border:1px solid #ccc; border-radius:5px; transition: border-color 0.3s; }
-    .config-section input:focus { border-color: #667eea; outline: none; }
-    .config-section .btn { border-radius:5px; padding:12px 20px; background:#667eea; color:white; border:none; cursor:pointer; transition: background 0.3s; }
-    .config-section .btn:hover { background:#764ba2; }
-    .btn { background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:600; transition: background 0.3s; }
-    .btn:hover { background:linear-gradient(45deg,#764ba2,#667eea); }
-    .btn:disabled { opacity:0.6; cursor:not-allowed; }
-    .main-content { display:grid; gap:25px; }
-    .card { background:rgba(255,255,255,0.95); border-radius:15px; padding:25px; box-shadow:0 8px 32px rgba(0,0,0,0.1); }
-    .breadcrumb, .search-box, .file-list, .progress-bar, .log-area { margin-bottom:15px; }
-    .breadcrumb button { background:#444; color:#fff; padding:6px 12px; border:none; border-radius:5px; cursor:pointer; margin-right:5px; transition: background 0.3s; }
-    .breadcrumb button:hover { background:#555; }
-    .search-box input { width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px; }
-    .file-list { border:1px solid #e2e8f0; border-radius:8px; max-height:300px; overflow-y:auto; }
-    .file-item { padding:10px; border-bottom:1px solid #e2e8f0; cursor:pointer; transition: background 0.3s; }
-    .file-item:hover { background:#f0f0f0; }
-    .file-item.selected { background:#48bb78; color:#fff; }
-    .file-item.folder::before { content: '📁 '; }
-    .file-item.file::before { content: '📄 '; }
-    .progress-container { display:none; }
-    .progress-bar { width:100%; height:20px; background:#e2e8f0; border-radius:10px; overflow:hidden; }
-    .progress-fill { height:100%; width:0; background:linear-gradient(45deg,#667eea,#764ba2); transition:width 0.5s ease-in-out; }
-    .log-area { background:#000; color:#0f0; padding:15px; border-radius:8px; font-family:monospace; font-size:12px; max-height:200px; overflow-y:auto; white-space:pre-wrap; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>OpenWrt GitHub Backup Manager</title>
+<style>
+  :root{
+    --bg1:#667eea; --bg2:#764ba2;
+    --glass: rgba(255,255,255,0.12);
+    --card-bg: rgba(255,255,255,0.9);
+    --muted:#94a3b8;
+    --accent:#48bb78;
+    --btn-grad: linear-gradient(45deg,#667eea,#764ba2);
+    --radius:12px;
+    --tt: 0.28s;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family: "Segoe UI", Tahoma, Verdana, sans-serif;
+    background: linear-gradient(135deg,var(--bg1),var(--bg2));
+    background-size:400% 400%;
+    animation: bgMove 16s ease infinite;
+    color:#1f2937;
+    -webkit-font-smoothing:antialiased;
+    padding:28px;
+  }
+  @keyframes bgMove{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+  }
+
+  .container{max-width:1200px;margin:0 auto;display:grid;gap:22px}
+  .header{
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(8px);
+    border-radius:18px;
+    padding:22px;
+    box-shadow: 0 10px 30px rgba(2,6,23,0.18);
+    animation: fadeDown .5s ease;
+  }
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+
+  .header h1{font-size:1.9rem;text-align:center;color:#334155;margin-bottom:8px}
+  .repo-box{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+  .repo-pill{
+    background: linear-gradient(180deg, rgba(0,0,0,0.03), rgba(255,255,255,0.02));
+    padding:8px 12px;border-radius:10px;border:1px solid rgba(15,23,42,0.04);
+    color:#475569;font-weight:600;font-size:0.95rem;
+  }
+
+  .main-grid{display:grid;grid-template-columns: 1fr 380px; gap:20px}
+  @media (max-width:980px){ .main-grid{grid-template-columns:1fr} }
+
+  .card{
+    background: var(--card-bg);
+    border-radius:16px;
+    padding:18px;
+    box-shadow:0 8px 30px rgba(2,6,23,0.12);
+    transition: transform var(--tt), box-shadow var(--tt);
+  }
+  .card:hover{ transform:translateY(-6px); box-shadow:0 16px 40px rgba(2,6,23,0.18) }
+
+  .config-section{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+  .config-section input[type="password"],
+  .config-section input[type="text"]{
+    flex:1;padding:12px;border-radius:10px;border:2px solid #e6eefb;background:transparent;font-weight:600;
+    transition: box-shadow var(--tt), border-color var(--tt);
+  }
+  .config-section input:focus{outline:none;box-shadow:0 6px 18px rgba(102,126,234,0.15);border-color:rgba(102,126,234,0.6)}
+
+  .btn{
+    background:var(--btn-grad); color:#fff; padding:10px 14px;border-radius:10px;border:none;font-weight:700;cursor:pointer;
+    transition: transform .12s ease, box-shadow var(--tt);
+  }
+  .btn:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(118,75,162,0.18)}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:0.6;cursor:not-allowed;transform:none;box-shadow:none}
+
+  .search-box input{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(2,6,23,0.06);background:transparent}
+  .breadcrumb{margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px}
+  .breadcrumb button{
+    background:rgba(2,6,23,0.08);border:0;padding:6px 10px;border-radius:8px;color:#0f172a;cursor:pointer;font-weight:600;
+    transition: background var(--tt);
+  }
+  .breadcrumb button:hover{background:rgba(2,6,23,0.12)}
+
+  .file-list{border-radius:10px;border:1px solid rgba(2,6,23,0.06);max-height:360px;overflow:auto;background:linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.92));}
+  .file-item{padding:10px 12px;border-bottom:1px solid rgba(2,6,23,0.03);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background var(--tt), transform .12s}
+  .file-item:hover{background:rgba(102,126,234,0.05);transform:translateX(4px)}
+  .file-item.selected{background:var(--accent);color:white;font-weight:700}
+  .file-item .meta{font-size:0.85rem;color:var(--muted);margin-left:auto}
+
+  .progress-container{display:none;margin-top:12px}
+  .progress-bar{width:100%;height:18px;background:rgba(2,6,23,0.06);border-radius:10px;overflow:hidden}
+  .progress-fill{height:100%;width:0;background:linear-gradient(90deg,#667eea,#764ba2,#48bb78);transition:width .35s ease}
+
+  .log-area{background: #0f172a;padding:12px;border-radius:10px;color:#cbd5e1;font-family:monospace;font-size:13px;max-height:240px;overflow:auto;white-space:pre-wrap}
+
+  .small{font-size:0.9rem;color:#475569}
+  .muted{color:var(--muted)}
+
+  /* subtle entrance for items */
+  @keyframes itemIn { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none} }
+  .file-item{animation:itemIn .3s ease both}
+
+  /* responsive tweaks */
+  @media (max-width:520px){
+    .config-section{flex-direction:column;align-items:stretch}
+    .repo-pill{font-size:0.88rem}
+  }
+</style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
+    <div class="header card" style="padding-bottom:14px;">
       <h1>🚀 OpenWrt GitHub Backup Manager</h1>
-      <div class="config-section">
-        <input type="password" id="githubToken" placeholder="Masukkan GITHUB_TOKEN">
-        <button class="btn" onclick="validateGitHubToken()">Validasi Token</button>
+      <div class="repo-box">
+        <div class="repo-pill">Owner: <strong style="margin-left:6px">irfanFRizki</strong></div>
+        <div class="repo-pill">Repo: <strong style="margin-left:6px">StatusWRTIrfan</strong></div>
+        <div class="repo-pill">Branch: <strong style="margin-left:6px">main</strong></div>
       </div>
-      <div id="userInfo" style="display:none; font-weight:600;">User: <span id="githubUser"></span></div>
+
+      <div style="margin-top:14px" class="config-section">
+        <input id="githubToken" type="password" placeholder="Masukkan GITHUB_TOKEN (required)">
+        <button class="btn" onclick="validateGitHubToken()">Validasi Token</button>
+        <div id="userInfo" style="display:none;padding:8px 12px;border-radius:10px;background:rgba(0,0,0,0.04);font-weight:700;color:#0f172a">User: <span id="githubUser"></span></div>
+      </div>
     </div>
 
-    <div class="main-content">
+    <div class="main-grid">
+      <!-- LEFT: Explorer & Controls -->
       <div class="card">
-        <h2>📂 Explorer & Pilih File</h2>
-        <div id="breadcrumbNav" class="breadcrumb"></div>
-        <div class="search-box">
-          <input type="text" id="searchInput" placeholder="Cari file/folder..." onkeyup="filterFiles()">
+        <h2 style="margin-bottom:12px">📂 Explorer & Pilih File</h2>
+
+        <div class="breadcrumb" id="breadcrumbNav"></div>
+
+        <div class="search-box" style="margin-bottom:12px">
+          <input id="searchInput" type="text" placeholder="Cari file/folder..." oninput="filterFiles()" />
         </div>
-        <div id="fileExplorer" class="file-list"></div>
-        <button id="backupBtn" class="btn" onclick="backupSelectedFile()" disabled>🚀 Backup File Terpilih</button>
+
+        <div id="fileExplorer" class="file-list" aria-label="File explorer">Loading...</div>
+
+        <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+          <button id="backupBtn" class="btn" onclick="backupSelectedFile()" disabled>🚀 Backup File Terpilih</button>
+          <button class="btn" onclick="scanFolder('/')">🔄 Refresh</button>
+        </div>
+
+        <div id="progressContainer" class="progress-container" style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <div class="small">Progress</div><div id="progressText" class="small muted">0%</div>
+          </div>
+          <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+        </div>
       </div>
 
-      <div id="progressContainer" class="card progress-container">
-        <h3>📊 Progress Backup</h3>
-        <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
-        <div id="progressText">0%</div>
-      </div>
+      <!-- RIGHT: Log & Info -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <h3 style="margin-bottom:10px">📋 Log Aktivitas</h3>
+          <div id="logArea" class="log-area">[INFO] Siap\n</div>
+        </div>
 
-      <div class="card">
-        <h2>📋 Log Aktivitas</h2>
-        <div id="logArea" class="log-area">[INFO] Siap\n</div>
+        <div class="card">
+          <h3 style="margin-bottom:8px">⚙️ Pengaturan Lanjutan</h3>
+          <div class="small muted" style="margin-bottom:8px">Path saat ini: <code id="currentPath">/</code></div>
+          <label class="small" style="margin-bottom:6px">Masukkan path manual</label>
+          <input id="manualPath" type="text" placeholder="/etc/" />
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="scanFolder(document.getElementById('manualPath').value || '/')">Pindai Path</button>
+            <button class="btn" onclick="clearLogs()">Bersihkan Log</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <script>
-    const repoOwner = 'irfanFRizki',
-          repoName  = 'StatusWRTIrfan',
-          branch    = 'main';
-    let githubToken = '', selectedFile = '', currentPath = '/';
+<script>
+/* ----- Konfigurasi repo (sesuaikan bila perlu) ----- */
+const repoOwner = 'irfanFRizki',
+      repoName  = 'StatusWRTIrfan',
+      branch    = 'main';
 
-    function addLog(msg) {
-      const la = document.getElementById('logArea'),
-            t  = new Date().toLocaleTimeString();
-      la.textContent += `[${t}] ${msg}\n`;
-      la.scrollTop = la.scrollHeight;
+/* ----- State ----- */
+let githubToken = '', selectedFile = '', currentPath = '/';
+
+/* ----- Util: addLog ----- */
+function addLog(msg){
+  const la = document.getElementById('logArea');
+  const t = new Date().toLocaleTimeString();
+  la.textContent += `[${t}] ${msg}\n`;
+  la.scrollTop = la.scrollHeight;
+}
+
+/* ----- Validasi Token GitHub ----- */
+async function validateGitHubToken(){
+  const tok = document.getElementById('githubToken').value.trim();
+  if(!tok){ addLog('❌ Token kosong'); return; }
+  githubToken = tok;
+  addLog('🔎 Validating token...');
+  try{
+    const res = await fetch('https://api.github.com/user', {
+      headers: { 'Authorization': `token ${tok}` }
+    });
+    if(res.ok){
+      const data = await res.json();
+      document.getElementById('githubUser').textContent = data.login;
+      document.getElementById('userInfo').style.display = 'block';
+      addLog('✅ Token valid: ' + data.login);
+    } else {
+      githubToken = '';
+      addLog('❌ Token tidak valid (status ' + res.status + ')');
     }
+  } catch(err){
+    githubToken = '';
+    addLog('❌ Gagal validasi token — ' + (err.message || 'network error'));
+  }
+}
 
-    async function validateGitHubToken() {
-      const tok = document.getElementById('githubToken').value;
-      if (!tok) { addLog('❌ Token kosong'); return; }
-      githubToken = tok;
-      try {
-        const res = await fetch('https://api.github.com/user',{
-          headers:{ 'Authorization':`token ${tok}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          document.getElementById('githubUser').textContent = data.login;
-          document.getElementById('userInfo').style.display = 'block';
-          addLog('✅ Token valid');
-        } else addLog('❌ Token tidak valid');
-      } catch {
-        addLog('❌ Gagal validasi token');
+/* ----- Breadcrumb ----- */
+function updateBreadcrumb(path){
+  const bc = document.getElementById('breadcrumbNav');
+  bc.innerHTML = `<button onclick="scanFolder('/')">🏠 Home</button>`;
+  path.split('/').filter(Boolean).reduce((acc, cur) => {
+    const fp = acc + '/' + cur;
+    bc.innerHTML += `<button onclick="scanFolder('${fp.replace(/'/g,"\\'")}')">${cur}</button>`;
+    return fp;
+  }, '');
+}
+
+/* ----- Scan Folder (memanggil backend OpenWrt) ----- */
+async function scanFolder(path='/'){
+  currentPath = path || '/';
+  document.getElementById('currentPath').textContent = currentPath;
+  selectedFile = '';
+  document.getElementById('backupBtn').disabled = true;
+  updateBreadcrumb(currentPath);
+  const fe = document.getElementById('fileExplorer');
+  fe.innerHTML = '<div style="padding:12px;color:#475569">Memuat...</div>';
+  try{
+    const res = await fetch(`/cgi-bin/list-folder.sh?path=${encodeURIComponent(currentPath)}`);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json(); // expect array [{name, isDirectory}]
+    fe.innerHTML = '';
+    if(!Array.isArray(data) || data.length===0){
+      fe.innerHTML = '<div style="padding:12px;color:#475569">(Kosong)</div>';
+    } else {
+      data.forEach((it, idx) => {
+        const d = document.createElement('div');
+        d.className = 'file-item ' + (it.isDirectory ? 'folder' : 'file');
+        d.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
+                        <div style="width:28px;text-align:center">${it.isDirectory ? '📁' : '📄'}</div>
+                        <div style="flex:1">${it.name}</div>
+                        <div class="meta">${it.isDirectory ? 'folder' : 'file'}</div>
+                      </div>`;
+        d.style.animationDelay = (idx * 0.02) + 's';
+        if(it.isDirectory){
+          d.onclick = () => scanFolder((currentPath+'/'+it.name).replace(/\/+/g,'/'));
+        } else {
+          d.onclick = (e) => selectFile(e.currentTarget, (currentPath+'/'+it.name).replace(/\/+/g,'/'));
+        }
+        fe.appendChild(d);
+      });
+    }
+    addLog(`📂 Direktori: ${currentPath}`);
+  } catch(err){
+    fe.innerHTML = `<div style="padding:12px;color:#b91c1c">Gagal load folder: ${err.message || err}</div>`;
+    addLog('❌ Gagal load folder — ' + (err.message || err));
+  }
+}
+
+/* ----- Filter files ----- */
+function filterFiles(){
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('.file-item').forEach(i => {
+    i.style.display = i.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+  });
+}
+
+/* ----- Select file ----- */
+function selectFile(el, path){
+  selectedFile = path;
+  document.querySelectorAll('.file-item').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('backupBtn').disabled = false;
+  addLog(`📄 Dipilih: ${path}`);
+}
+
+/* ----- Clear logs ----- */
+function clearLogs(){ document.getElementById('logArea').textContent = '[INFO] Siap\n'; addLog('🧹 Log dibersihkan'); }
+
+/* ----- Backup to GitHub ----- */
+async function backupSelectedFile(){
+  if(!selectedFile){ addLog('❌ Tidak ada file terpilih'); return; }
+  if(!githubToken){ addLog('❌ Token GitHub belum divalidasi'); return; }
+
+  document.getElementById('progressContainer').style.display = 'block';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressText').textContent = '0%';
+
+  let progress = 0;
+  const progressInterval = setInterval(()=>{
+    if(progress < 88){ progress += Math.floor(Math.random()*6)+2; if(progress>88) progress=88;
+      document.getElementById('progressFill').style.width = progress + '%';
+      document.getElementById('progressText').textContent = progress + '%';
+    }
+  },120);
+
+  try{
+    const apiPath = selectedFile.replace(/^\//,'');
+    addLog('🔎 Cek file di repo: ' + apiPath);
+    let sha;
+    // Ambil SHA jika file sudah ada (untuk update)
+    try{
+      const m = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${encodeURIComponent(apiPath)}?ref=${branch}`, {
+        headers: { 'Authorization': `token ${githubToken}` }
+      });
+      if(m.ok){
+        const j = await m.json();
+        sha = j.sha;
+        addLog('ℹ️ File ada di repo — akan update (sha ditemukan)');
+      } else if(m.status === 404){
+        addLog('ℹ️ File tidak ada di repo — akan dibuat baru');
+      } else {
+        addLog('⚠️ Response cek file: ' + m.status);
       }
+    } catch(e){
+      addLog('⚠️ Gagal cek file di GitHub: ' + (e.message||e));
     }
 
-    function updateBreadcrumb(path) {
-      const bc = document.getElementById('breadcrumbNav');
-      bc.innerHTML = `<button onclick="scanFolder('/')">🏠 Home</button>`;
-      path.split('/').filter(Boolean).reduce((acc, cur)=>{
-        const fp = acc + '/' + cur;
-        bc.innerHTML += `<button onclick="scanFolder('${fp}')">${cur}</button>`;
-        return fp;
-      }, '');
-    }
+    // Baca file dari backend OpenWrt
+    addLog('📥 Membaca file dari sistem: ' + selectedFile);
+    const text = await fetch(`/cgi-bin/read-file.sh?path=${encodeURIComponent(selectedFile)}`).then(r => {
+      if(!r.ok) throw new Error('read-file.sh HTTP ' + r.status);
+      return r.text();
+    });
 
-    async function scanFolder(path='/') {
-      currentPath = path;
-      selectedFile = '';
-      document.getElementById('backupBtn').disabled = true;
-      updateBreadcrumb(path);
-      document.querySelectorAll('.file-item').forEach(el=>el.classList.remove('selected'));
-      try {
-        const res = await fetch(`/cgi-bin/list-folder.sh?path=${encodeURIComponent(path)}`);
-        const data = await res.json();
-        const fe   = document.getElementById('fileExplorer');
-        fe.innerHTML = '';
-        data.forEach(it=>{
-          const d = document.createElement('div');
-          d.className = 'file-item ' + (it.isDirectory?'folder':'file');
-          d.textContent = it.name;
-          if (it.isDirectory) d.onclick = ()=>scanFolder(`${path}/${it.name}`.replace(/\/+/g,'/'));
-          else d.onclick = e=>selectFile(e.currentTarget, `${path}/${it.name}`);
-          fe.appendChild(d);
-        });
-        addLog(`📂 Direktori: ${path}`);
-      } catch {
-        addLog('❌ Gagal load folder');
-      }
-    }
+    // Encode base64 (UTF-8 safe)
+    const b64 = btoa(unescape(encodeURIComponent(text)));
 
-    function filterFiles() {
-      const q = document.getElementById('searchInput').value.toLowerCase();
-      document.querySelectorAll('.file-item')
-        .forEach(i=>i.style.display = i.textContent.toLowerCase().includes(q)? 'block':'none');
-    }
+    // Put ke GitHub
+    addLog('📤 Mengirim ke GitHub...');
+    const bodyObj = Object.assign({
+      message: `Backup ${selectedFile}`,
+      content: b64,
+      branch
+    }, sha ? { sha } : {});
 
-    function selectFile(el,path) {
-      selectedFile = path;
-      document.querySelectorAll('.file-item').forEach(x=>x.classList.remove('selected'));
-      el.classList.add('selected');
-      document.getElementById('backupBtn').disabled = false;
-      addLog(`📄 Dipilih: ${path}`);
-    }
+    const put = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${encodeURIComponent(apiPath)}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${githubToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(bodyObj)
+    });
 
-    async function backupSelectedFile() {
-      if(!selectedFile||!githubToken){ addLog('❌ Pilih file & validasi token'); return; }
-      document.getElementById('progressContainer').style.display='block';
-      try {
-        const apiPath = selectedFile.replace(/^\//,'');
-        let sha;
-        const m = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${apiPath}?ref=${branch}`,{
-          headers:{ 'Authorization':`token ${githubToken}` }
-        });
-        if(m.ok) sha = (await m.json()).sha;
-        const text = await fetch(`/cgi-bin/read-file.sh?path=${encodeURIComponent(selectedFile)}`).then(r=>r.text());
-        const b64  = btoa(unescape(encodeURIComponent(text)));
-        const put = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${apiPath}`,{
-          method:'PUT',
-          headers:{
-            'Authorization':`token ${githubToken}`,
-            'Content-Type':'application/json'
-          },
-          body:JSON.stringify(Object.assign({
-            message:`Backup ${selectedFile}`,
-            content:b64,
-            branch
-          }, sha?{sha}:{}))
-        });
-        if(put.ok) addLog(`✅ Backup: ${selectedFile}`);
-        else addLog('❌ Gagal backup');
-      } catch {
-        addLog('❌ Error backup');
-      }
-      setTimeout(()=>document.getElementById('progressContainer').style.display='none',500);
-    }
+    clearInterval(progressInterval);
+    document.getElementById('progressFill').style.width = '100%';
+    document.getElementById('progressText').textContent = '100%';
 
-    window.onload = ()=>scanFolder('/');
-  </script>
+    if(put.ok){
+      addLog(`✅ Backup sukses: ${selectedFile}`);
+    } else {
+      const errText = await put.text().catch(()=> '');
+      addLog(`❌ Gagal backup (status ${put.status}) — ${errText}`);
+    }
+  } catch(err){
+    addLog('❌ Error backup — ' + (err.message || err));
+  } finally {
+    setTimeout(()=>{ document.getElementById('progressContainer').style.display = 'none'; }, 900);
+  }
+}
+
+/* ----- Init ----- */
+window.addEventListener('load', () => {
+  scanFolder('/');
+});
+</script>
 </body>
 </html>
