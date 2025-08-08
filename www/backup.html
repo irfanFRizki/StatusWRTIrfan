@@ -8,23 +8,33 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:linear-gradient(135deg,#667eea,#764ba2); color:#333; min-height:100vh; }
     .container { max-width:1200px; margin:auto; padding:20px; }
-    .header { background:rgba(255,255,255,0.95); backdrop-filter:blur(10px); border-radius:15px; padding:25px; margin-bottom:25px; box-shadow:0 8px 32px rgba(0,0,0,0.1); }
+    .header { background:rgba(255,255,255,0.95); backdrop-filter:blur(10px); border-radius:15px; padding:25px; margin-bottom:25px; box-shadow:0 8px 32px rgba(0,0,0,0.1); animation: fadeIn 0.5s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .header h1 { text-align:center; font-size:2.2em; color:#4a5568; margin-bottom:20px; }
     .config-section { display:flex; gap:10px; margin-bottom:20px; align-items:flex-end; }
-    .config-section input { flex:1; padding:12px; border:2px solid #e2e8f0; border-radius:8px; }
-    .btn { background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:600; }
+    .config-section input { flex:1; padding:12px; border:1px solid #ccc; border-radius:5px; transition: border-color 0.3s; }
+    .config-section input:focus { border-color: #667eea; outline: none; }
+    .config-section .btn { border-radius:5px; padding:12px 20px; background:#667eea; color:white; border:none; cursor:pointer; transition: background 0.3s; }
+    .config-section .btn:hover { background:#764ba2; }
+    .btn { background:linear-gradient(45deg,#667eea,#764ba2); color:#fff; border:none; padding:12px 20px; border-radius:8px; cursor:pointer; font-weight:600; transition: background 0.3s; }
+    .btn:hover { background:linear-gradient(45deg,#764ba2,#667eea); }
     .btn:disabled { opacity:0.6; cursor:not-allowed; }
     .main-content { display:grid; gap:25px; }
     .card { background:rgba(255,255,255,0.95); border-radius:15px; padding:25px; box-shadow:0 8px 32px rgba(0,0,0,0.1); }
     .breadcrumb, .search-box, .file-list, .progress-bar, .log-area { margin-bottom:15px; }
-    .breadcrumb button { background:#444; color:#fff; padding:4px 10px; border:none; border-radius:5px; cursor:pointer; margin-right:5px; }
+    .breadcrumb button { background:#444; color:#fff; padding:6px 12px; border:none; border-radius:5px; cursor:pointer; margin-right:5px; transition: background 0.3s; }
+    .breadcrumb button:hover { background:#555; }
+    .search-box input { width:100%; padding:10px; border:1px solid #e2e8f0; border-radius:8px; }
     .file-list { border:1px solid #e2e8f0; border-radius:8px; max-height:300px; overflow-y:auto; }
-    .file-item { padding:8px; border-bottom:1px solid #e2e8f0; cursor:pointer; }
+    .file-item { padding:10px; border-bottom:1px solid #e2e8f0; cursor:pointer; transition: background 0.3s; }
+    .file-item:hover { background:#f0f0f0; }
     .file-item.selected { background:#48bb78; color:#fff; }
+    .file-item.folder::before { content: '📁 '; }
+    .file-item.file::before { content: '📄 '; }
     .progress-container { display:none; }
     .progress-bar { width:100%; height:20px; background:#e2e8f0; border-radius:10px; overflow:hidden; }
-    .progress-fill { height:100%; width:0; background:linear-gradient(45deg,#667eea,#764ba2); transition:width 0.3s; }
-    .log-area { background:#2d3748; color:#e2e8f0; padding:15px; border-radius:8px; font-family:monospace; font-size:12px; max-height:200px; overflow-y:auto; white-space:pre-wrap; }
+    .progress-fill { height:100%; width:0; background:linear-gradient(45deg,#667eea,#764ba2); transition:width 0.5s ease-in-out; }
+    .log-area { background:#000; color:#0f0; padding:15px; border-radius:8px; font-family:monospace; font-size:12px; max-height:200px; overflow-y:auto; white-space:pre-wrap; }
   </style>
 </head>
 <body>
@@ -149,15 +159,12 @@
       try {
         const apiPath = selectedFile.replace(/^\//,'');
         let sha;
-        // ambil SHA
         const m = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${apiPath}?ref=${branch}`,{
           headers:{ 'Authorization':`token ${githubToken}` }
         });
         if(m.ok) sha = (await m.json()).sha;
-        // baca file
         const text = await fetch(`/cgi-bin/read-file.sh?path=${encodeURIComponent(selectedFile)}`).then(r=>r.text());
         const b64  = btoa(unescape(encodeURIComponent(text)));
-        // kirim
         const put = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${apiPath}`,{
           method:'PUT',
           headers:{
