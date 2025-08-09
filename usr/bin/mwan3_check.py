@@ -42,7 +42,7 @@ STATE_FILE = "/tmp/mwan3_check_state.json"
 
 # scanning/window settings (cron 1min recommended)
 TAIL_READ_LINES = 2000
-WINDOW_SECONDS = 300   # default 5 minutes; adjust to taste
+WINDOW_SECONDS = 120   # default 5 minutes; adjust to taste
 
 DEVNULL = open(os.devnull, "wb")
 
