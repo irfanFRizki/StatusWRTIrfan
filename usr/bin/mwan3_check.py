@@ -32,7 +32,7 @@ LOG_FILES = [
 
 # patterns
 OFFLINE_PATTERNS = [ r"Status:\s*OFFLINE", r"status:\s*ping failed", r"100\.00% failed" ]
-OFFLINE_EXTRA_PATTERNS = [ r"Trying to refresh IP address", r"IP change received", r"\[IFDOWN wan\]", r"\bIFDOWN wan\b" ]
+OFFLINE_EXTRA_PATTERNS = [ r"Trying to refresh IP address", r"IP change received from", r"\[IFDOWN wan\]", r"\bIFDOWN wan\b" ]
 ONLINE_PATTERNS = [ r"status:\s*ONLINE", r"Status:\s*ONLINE", r"🟢 Berhasil memperbarui IP Address", r"New WAN IP", r"\[GET IP\]\s*New WAN IP" ]
 
 STATE_FILE = "/tmp/mwan3_check_state.json"
@@ -202,31 +202,15 @@ def run_mwan_cmd(cmd, iface):
         pass
 
 def set_mwan_status(wan_up):
-    """
-    NEW LOGIC:
-      - If WAN_UP: only `mwan3 ifup wan` (do NOT ifdown wan2; leave wan2 active)
-      - If WAN_DOWN: `mwan3 ifdown wan` and `mwan3 ifup wan2`
-    """
-    wan_state = ubus_iface_up("wan")
-    wan2_state = ubus_iface_up("wan2")
-
     if wan_up:
-        # desired: ensure wan is up; keep wan2 alone (do NOT bring it down)
-        if wan_state is True:
-            print("[INFO] WAN already UP according to ubus -> skipping ifup")
-            return
-        print("[INFO] Setting: mwan3 ifup wan  (leaving wan2 intact)")
-        run_mwan_cmd("ifup", "wan")
+        # WAN kembali online, jangan matikan WAN2
+        subprocess.call(["mwan3", "ifup", "wan"])
+        print("[INFO] WAN online, WAN2 tetap aktif.")
     else:
-        # desired: wan down, wan2 up
-        if wan_state is False and wan2_state is True:
-            print("[INFO] Desired state already set: wan down, wan2 up -> skipping")
-            return
-        print("[INFO] Setting: mwan3 ifdown wan; mwan3 ifup wan2")
-        run_mwan_cmd("ifdown", "wan")
-        try: import time as _t; _t.sleep(0.8)
-        except: pass
-        run_mwan_cmd("ifup", "wan2")
+        # WAN offline, aktifkan WAN2 dan matikan WAN
+        subprocess.call(["mwan3", "ifdown", "wan"])
+        subprocess.call(["mwan3", "ifup", "wan2"])
+        print("[INFO] WAN offline, WAN2 aktif.")
 
 # ---------------- formatting ----------------
 def human_delta(delta):
