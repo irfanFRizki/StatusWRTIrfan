@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Install Status Manager - OpenWrt</title>
+<style>
+  * {
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+    color: #e6eef8;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+  
+  /* Animated background particles */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+      radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(96, 165, 250, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.2) 0%, transparent 50%);
+    animation: float 20s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33% { transform: translateY(-20px) rotate(1deg); }
+    66% { transform: translateY(10px) rotate(-1deg); }
+  }
+  
+  .wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+  
+  h1 {
+    color: #60a5fa;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+    text-shadow: 0 0 30px rgba(96, 165, 250, 0.5);
+    animation: glow 3s ease-in-out infinite alternate;
+  }
+  
+  @keyframes glow {
+    from { text-shadow: 0 0 30px rgba(96, 165, 250, 0.5); }
+    to { text-shadow: 0 0 40px rgba(96, 165, 250, 0.8), 0 0 60px rgba(96, 165, 250, 0.3); }
+  }
+  
+  .grid {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  
+  .panel {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    flex: 1;
+    min-width: 320px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #60a5fa, transparent);
+    transition: left 0.5s ease;
+  }
+  
+  .panel:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    border-color: rgba(96, 165, 250, 0.4);
+  }
+  
+  .panel:hover::before {
+    left: 100%;
+  }
+  
+  .main-panel {
+    flex: 0 0 700px;
+  }
+  
+  .info-panel {
+    flex: 1;
+    min-width: 350px;
+  }
+  
+  .btn {
+    background: linear-gradient(135deg, #3730a3, #1e40af);
+    color: #fff;
+    border: 0;
+    padding: 14px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+  }
+  
+  .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+  }
+  
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+  }
+  
+  .btn:hover::before {
+    left: 100%;
+  }
+  
+  .btn:active {
+    transform: translateY(0);
+  }
+  
+  .btn.secondary {
+    background: linear-gradient(135deg, #065f46, #059669);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  }
+  
+  .btn.secondary:hover {
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+  }
+  
+  .btn.warn {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+  }
+  
+  .btn.warn:hover {
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+  }
+  
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.7; }
+  }
+  
+  pre#log {
+    background: linear-gradient(145deg, #000 0%, #1a1a1a 100%);
+    height: 450px;
+    overflow: auto;
+    padding: 20px;
+    border-radius: 12px;
+    color: #00ff41;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    border: 1px solid rgba(0, 255, 65, 0.3);
+    box-shadow: 
+      inset 0 0 20px rgba(0, 0, 0, 0.5),
+      0 0 20px rgba(0, 255, 65, 0.1);
+    position: relative;
+  }
+  
+  pre#log::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #00ff41, transparent, #00ff41);
+    border-radius: 12px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  pre#log:hover::before {
+    opacity: 0.3;
+  }
+  
+  .controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  .status-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 8px;
+    border: 1px solid rgba(96, 165, 250, 0.2);
+  }
+  
+  .status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #6b7280;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  
+  .status-indicator.idle {
+    background: #6b7280;
+  }
+  
+  .status-indicator.running {
+    background: #10b981;
+    animation: blink 1s infinite;
+  }
+  
+  .status-indicator.error {
+    background: #ef4444;
+    animation: errorBlink 0.5s infinite;
+  }
+  
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  
+  @keyframes errorBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  .small {
+    font-size: 13px;
+    color: #94a3b8;
+  }
+  
+  .note {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid #3b82f6;
+  }
+  
+  .action-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  
+  .action-title b {
+    color: #93c5fd;
+    font-size: 1.1rem;
+  }
+  
+  .muted {
+    color: #94a3b8;
+    font-size: 13px;
+  }
+  
+  h3 {
+    margin-top: 0;
+    color: #60a5fa;
+    font-size: 1.3rem;
+  }
+  
+  hr {
+    border: none;
+    border-top: 1px solid rgba(148, 163, 184, 0.1);
+    margin: 20px 0;
+  }
+  
+  code {
+    background: rgba(15, 23, 42, 0.8);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    color: #fbbf24;
+  }
+  
+  strong {
+    color: #f1f5f9;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .grid {
+      flex-direction: column;
+    }
+    
+    .main-panel {
+      flex: 1;
+    }
+    
+    h1 {
+      font-size: 2rem;
+    }
+    
+    .controls {
+      justify-content: center;
+    }
+    
+    .btn {
+      flex: 1;
+      min-width: 120px;
+    }
+  }
+  
+  /* Loading animation for buttons */
+  .btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top: 2px solid #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Scroll animations */
+  .panel {
+    animation: slideIn 0.6s ease-out;
+  }
+  
+  .panel:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>⚙️ Install Status Manager (OpenWrt)</h1>
+
+    <div class="grid">
+      <div class="panel main-panel">
+        <div class="action-title">
+          <b>Menu Install</b> 
+          <span class="muted">— jalankan langkah yang diperlukan dari UI</span>
+        </div>
+
+        <div class="controls">
+          <button class="btn" onclick="startAction('install_update')">0) Update paket & instal dependensi</button>
+          <button class="btn" onclick="startAction('clone')">1) Clone repository</button>
+          <button class="btn" onclick="startAction('update')">2) Update vnstat.db & nlbwmon</button>
+          <button class="btn" onclick="startAction('nftables')">3) Buat nftables (FIX TTL 63)</button>
+          <button class="btn secondary" onclick="startAction('install_ipk')">4) Install semua ipk</button>
+          <button class="btn secondary" onclick="startAction('install_all')">5) Install semuanya</button>
+          <button class="btn warn" onclick="stopStreaming()">Cancel</button>
+        </div>
+
+        <div class="status-bar">
+          <div id="statusIndicator" class="status-indicator idle"></div>
+          <div class="muted">Status koneksi:</div> 
+          <div id="status" class="muted">idle</div>
+          <div style="flex:1;text-align:right" class="muted">Terakhir: <span id="lastAction">-</span></div>
+        </div>
+
+        <pre id="log">[LOG] Menunggu perintah...</pre>
+
+        <div class="note">
+          <strong>Catatan:</strong> Tombol <em>Cancel</em> akan menutup stream SSE. Proses yang sudah dijalankan di server mungkin tetap berlangsung — gunakan SSH jika perlu menghentikan proses di server.
+        </div>
+      </div>
+
+      <div class="panel info-panel">
+        <h3>Info & Petunjuk</h3>
+        <p class="small">Halaman ini men-stream output perintah dari server OpenWrt menggunakan <strong>Server-Sent Events (SSE)</strong>. Pastikan file <code>/www/cgi-bin/install_action.sh</code> executable dan menangani action <code>install_update</code> untuk menjalankan fungsi update & install dependensi.</p>
+
+        <p class="small">Jika CGI belum mendukung <code>install_update</code>, tambahkan case handler pada CGI yang memanggil fungsi/skrip <code>install_update_and_deploy</code> (script utama).</p>
+
+        <p class="small">Install Terlebih dahulu <code>1) Clone repository</code>, Setelah itu baru <code>0) Update paket & instal dependensi</code>.</p>
+
+        <hr>
+
+        <div class="small"><strong>Keamanan:</strong> Halaman ini dapat mengeksekusi perintah pada router. Batasi akses ke jaringan lokal atau lindungi halaman via LuCI/HTTP auth.</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+let es = null;
+
+function appendLog(line) {
+  const pre = document.getElementById('log');
+  pre.textContent += '\n' + line;
+  pre.scrollTop = pre.scrollHeight;
+}
+
+function setStatus(s) {
+  const statusEl = document.getElementById('status');
+  const indicatorEl = document.getElementById('statusIndicator');
+  
+  statusEl.textContent = s;
+  
+  // Remove all status classes
+  indicatorEl.className = 'status-indicator';
+  
+  // Add appropriate status class
+  if (s === 'idle') {
+    indicatorEl.classList.add('idle');
+  } else if (s === 'running' || s === 'connecting...') {
+    indicatorEl.classList.add('running');
+  } else if (s === 'error') {
+    indicatorEl.classList.add('error');
+  }
+}
+
+function disableButtons(disable) {
+  document.querySelectorAll('.btn').forEach(b => {
+    b.disabled = disable;
+    if (disable) {
+      b.classList.add('loading');
+    } else {
+      b.classList.remove('loading');
+    }
+  });
+}
+
+// Start action via SSE endpoint
+function startAction(action) {
+  // stop existing streaming if active
+  stopStreaming();
+
+  // mark last action
+  document.getElementById('lastAction').textContent = action;
+
+  const url = `/cgi-bin/install_action.sh?action=${encodeURIComponent(action)}&_=${Date.now()}`;
+  setStatus('connecting...');
+  appendLog(`[INFO] Starting action: ${action}`);
+
+  try {
+    es = new EventSource(url);
+  } catch (err) {
+    appendLog('[ERROR] Failed to create EventSource: ' + err);
+    setStatus('error');
+    return;
+  }
+
+  disableButtons(true);
+
+  es.onopen = function() {
+    setStatus('running');
+    appendLog('[INFO] Connection opened — streaming started.');
+  };
+
+  es.onmessage = function(e) {
+    // standard message (data)
+    appendLog(e.data);
+  };
+
+  es.addEventListener('done', function(e) {
+    appendLog('[DONE] ' + e.data);
+    setStatus('idle');
+    disableButtons(false);
+    try { es.close(); } catch(err){}
+    es = null;
+  });
+
+  es.onerror = function(err) {
+    appendLog('[ERROR] Connection error or server closed connection.');
+    setStatus('error');
+    disableButtons(false);
+    if(es) { try { es.close(); } catch(e){} es = null; }
+  };
+}
+
+// Stop SSE stream (user-initiated)
+function stopStreaming() {
+  if(es) {
+    try { es.close(); } catch(e){}
+    appendLog('[INFO] Streaming cancelled by user.');
+    setStatus('idle');
+    disableButtons(false);
+    es = null;
+  } else {
+    appendLog('[INFO] Tidak ada streaming aktif.');
+  }
+}
+
+// Add some interactive effects
+document.addEventListener('DOMContentLoaded', function() {
+  // Add click ripple effect to buttons
+  document.querySelectorAll('.btn').forEach(button => {
+    button.addEventListener('click', function(e) {
+      const ripple = document.createElement('span');
+      const rect = this.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+      
+      ripple.style.cssText = `
+        position: absolute;
+        width: ${size}px;
+        height: ${size}px;
+        left: ${x}px;
+        top: ${y}px;
+        background: rgba(255,255,255,0.3);
+        border-radius: 50%;
+        transform: scale(0);
+        animation: ripple 0.6s ease-out;
+        pointer-events: none;
+      `;
+      
+      this.style.position = 'relative';
+      this.appendChild(ripple);
+      
+      setTimeout(() => ripple.remove(), 600);
+    });
+  });
+});
+
+// Add ripple animation
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes ripple {
+    to {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+`;
+document.head.appendChild(style);
+</script>
+</body>
+</html>
