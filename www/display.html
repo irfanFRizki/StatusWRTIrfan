@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard OpenWRT</title>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- small embedded favicon to avoid 404 noise -->
+  <link rel="icon" href="data:image/x-icon;,">
   <style>
     :root {
       --primary: #00ff88;
@@ -312,7 +314,7 @@
       <tr>
         <th rowspan="2">Periode</th>
         <th rowspan="2">Tanggal</th>
-        <th colspan="1">DELL DW</th>
+        <th colspan="1">XL</th>
         <th colspan="1">Byu</th>
       </tr>
       <tr>
@@ -321,7 +323,7 @@
       </tr>
     </thead>
     <tbody id="vnstat-body">
-      <tr><td colspan="5">Memuat data...</td></tr>
+      <tr><td colspan="4">Memuat data...</td></tr>
     </tbody>
     </table>
 
@@ -380,33 +382,23 @@
       }
     }
 
-    // Fungsi untuk update data traffic dengan unit dinamis
-    function updateTrafficData() {
-      fetch('/cgi-bin/traffic')  // Pastikan endpoint ini mengembalikan nilai dalam byte/s
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById('rx-speed').textContent = formatTraffic(data.rx);
-          document.getElementById('tx-speed').textContent = formatTraffic(data.tx);
-          
-          // Update progress bar berdasarkan nilai total trafik (nilai asli dalam byte/s)
-          // Misalnya, kita asumsikan 1 MB/s (1024*1024 B/s) sebagai referensi maksimum.
-          const maxSpeed = 1024 * 1024; // 1 MB/s sebagai referensi
-          const totalTraffic = (parseFloat(data.rx) + parseFloat(data.tx)) / maxSpeed * 100;
-          document.getElementById('traffic-progress').style.width = `${Math.min(totalTraffic, 100)}%`;
-        })
-        .catch(err => {
-          console.error('Error fetching traffic data:', err);
-        });
-    }
-
-    // Fungsi untuk memparsing bandwidth (menggunakan fungsi yang telah ada)
+    // parseBandwidth: mengembalikan jumlah dalam bytes (untuk perbandingan/ sorting)
     function parseBandwidth(bwStr) {
       if (!bwStr) return 0;
-      const units = { GB: 1024, MB: 1, KB: 1/1024, B: 1/(1024*1024) };
-      const parts = bwStr.split(" ");
-      const value = parseFloat(parts[0]);
-      const unit = parts[1]?.toUpperCase() || 'MB';
-      return value * (units[unit] || 1);
+      const parts = String(bwStr).trim().split(/\s+/);
+      const rawVal = parts[0] ? parts[0].replace(',', '.') : '0';
+      const value = parseFloat(rawVal) || 0;
+      const unit = (parts[1] || '').toUpperCase().replace(/I$/, ''); // handle MiB
+
+      const multipliers = {
+        B: 1,
+        KB: 1024,
+        MB: 1024 * 1024,
+        GB: 1024 * 1024 * 1024,
+        TB: 1024 * 1024 * 1024 * 1024
+      };
+
+      return value * (multipliers[unit] || 1);
     }
 
     function updateBandwidthPeriod() {
@@ -434,112 +426,153 @@
       document.getElementById("current-time").textContent = `${hours}:${minutes}:${seconds}`;
     }
 
-    function updateProgressBars() {
-      const temp = parseInt(document.getElementById('cpu-temp').textContent) || 0;
-      document.getElementById('temp-progress').style.width = `${Math.min(temp / 100, 1) * 100}%`;
+    async function updateTrafficDataFromStatus(status) {
+      // status may contain rx/tx fields (bytes/sec). Use them if present.
+      const rx = status?.rx ?? status?.rx_speed ?? 0;
+      const tx = status?.tx ?? status?.tx_speed ?? 0;
+      document.getElementById('rx-speed').textContent = formatTraffic(rx);
+      document.getElementById('tx-speed').textContent = formatTraffic(tx);
+
+      const maxSpeed = 1024 * 1024; // 1 MB/s reference
+      const totalTrafficPercent = ((parseFloat(rx) + parseFloat(tx)) / maxSpeed) * 100;
+      document.getElementById('traffic-progress').style.width = `${Math.min(totalTrafficPercent, 100)}%`;
     }
 
-function updateData() {
-  fetch('/cgi-bin/status').then(res => res.json()).then(data => {
-    document.getElementById('uptime').textContent = data.uptime;
-    document.getElementById('cpu-temp').textContent = `${data.cpu_temp} °C`;
-    document.getElementById('rx-speed').textContent = formatTraffic(data.rx);
-    document.getElementById('tx-speed').textContent = formatTraffic(data.tx);
-
-    const vnstatData = data.vnstat;
-    const tbody = document.getElementById('vnstat-body');
-    const periods = ['today', 'yesterday', 'month', 'last_month'];
-    const labels = ['Hari ini', 'Kemarin', 'Bulan ini', 'Bulan lalu'];
-    tbody.innerHTML = periods.map((p, i) => `
-      <tr>
-        <td>${labels[i]}</td>
-        <td>${vnstatData.wwan0[p].date}</td>
-        <td>${vnstatData.wwan0[p].total}</td>
-        <td>${vnstatData.wwan1[p].total}</td>
-      </tr>
-    `).join('');
-  });
-
-      fetch('/cgi-bin/pemakaian/pemakaian.sh')
-        .then(res => res.json())
-        .then(data => {
-          const list = document.getElementById('bandwidth-list');
-          list.innerHTML = data.clients
-            .sort((a, b) => parseBandwidth(b.bandwidth.download) - parseBandwidth(a.bandwidth.download))
-            .slice(0, 5)
-            .map((client, index) => {
-              let rankBadge;
-              switch(index) {
-                case 0:
-                  rankBadge = '<span class="gold">🥇</span>';
-                  break;
-                case 1:
-                  rankBadge = '<span class="silver">🥈</span>';
-                  break;
-                case 2:
-                  rankBadge = '<span class="bronze">🥉</span>';
-                  break;
-                default:
-                  rankBadge = `<span>${index + 1}</span>`;
-              }
-              
-              return `
-                <tr>
-                  <td class="rank-cell">${rankBadge}</td>
-                  <td>${client.name}</td>
-                  <td>${client.ip}</td>
-                  <td>${client.bandwidth.download}</td>
-                  <td>${client.bandwidth.upload}</td>
-                </tr>
-              `;
-            }).join('');
-        });
+    async function updateTrafficData() {
+      // keep as fallback when /cgi-bin/status doesn't include traffic
+      try {
+        const res = await fetch('/cgi-bin/traffic');
+        if (!res.ok) return;
+        const d = await res.json();
+        await updateTrafficDataFromStatus(d);
+      } catch (err) {
+        // ignore; status-based traffic should be used preferentially
+        console.debug('traffic fetch failed:', err);
+      }
     }
 
-    function updateOnlineData() {
-      fetch('/cgi-bin/online')
-        .then(res => res.json())
-        .then(data => {
-          const onlineList = document.getElementById('online-list');
-          const connected = data.filter(d => d.status === "TERHUBUNG");
-          
-          onlineList.innerHTML = data.map(device => `
+    async function updateOnlineData() {
+      try {
+        const res = await fetch('/cgi-bin/online');
+        if (!res.ok) throw new Error('online endpoint ' + res.status);
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : [];
+        const onlineList = document.getElementById('online-list');
+
+        onlineList.innerHTML = arr.map(device => `
+          <tr>
+            <td>${device.hostname ?? device.name ?? '—'}</td>
+            <td>${device.ip ?? '—'}</td>
+            <td>
+              <span class="online-status ${device.status === 'TERHUBUNG' ? 'connected' : ''}"></span>
+              ${device.status === 'TERHUBUNG' ? 'Online' : 'Offline'}
+            </td>
+          </tr>
+        `).join('') || '<tr><td colspan="3">Tidak ada perangkat</td></tr>';
+
+        const connectedCount = arr.filter(d => d.status === 'TERHUBUNG').length;
+        document.getElementById('online-count').textContent = `Ada ${connectedCount} Perangkat terhubung`;
+      } catch (err) {
+        console.debug('updateOnlineData error:', err);
+        document.getElementById('online-list').innerHTML = '<tr><td colspan="3">Error memuat data</td></tr>';
+      }
+    }
+
+    // Main updateData: single robust fetch for /cgi-bin/status
+    async function updateData() {
+      try {
+        const res = await fetch('/cgi-bin/status');
+        if (!res.ok) throw new Error('Status endpoint returned ' + res.status);
+        const data = await res.json();
+
+        // Basic fields (safely)
+        document.getElementById('uptime').textContent = data.uptime ?? '--';
+        document.getElementById('cpu-temp').textContent = (data.cpu_temp !== undefined && data.cpu_temp !== null) ? `${data.cpu_temp} °C` : '-- °C';
+
+        // Traffic: use status payload if present
+        await updateTrafficDataFromStatus(data);
+
+        // vnStat: tolerant access (won't throw if structure missing)
+        const vn = data.vnstat ?? {};
+        const periods = ['today', 'yesterday', 'month', 'last_month'];
+        const labels = ['Hari ini', 'Kemarin', 'Bulan ini', 'Bulan lalu'];
+        const tbody = document.getElementById('vnstat-body');
+
+        tbody.innerHTML = periods.map((p, i) => {
+          const w0date  = vn?.wwan0?.[p]?.date ?? '—';
+          const w0total = vn?.wwan0?.[p]?.total ?? vn?.wwan0?.[p]?.traffic ?? '—';
+          const w1total = vn?.wwan1?.[p]?.total ?? vn?.wwan1?.[p]?.traffic ?? '—';
+          return `
             <tr>
-              <td>${device.hostname}</td>
-              <td>${device.ip}</td>
-              <td>
-                <span class="online-status ${device.status === 'TERHUBUNG' ? 'connected' : ''}"></span>
-                ${device.status === 'TERHUBUNG' ? 'Online' : 'Offline'}
-              </td>
+              <td>${labels[i]}</td>
+              <td>${w0date}</td>
+              <td>${w0total}</td>
+              <td>${w1total}</td>
             </tr>
-          `).join('');
+          `;
+        }).join('');
 
-          document.getElementById('online-count').textContent = 
-            `Ada ${connected.length} Perangkat terhubung`;
-        });
+        // nlBWmon / pemakaian: tolerant fetch & parse
+        try {
+          const pemakaianRes = await fetch('/cgi-bin/pemakaian/pemakaian.sh');
+          if (pemakaianRes.ok) {
+            const pemData = await pemakaianRes.json();
+            const list = document.getElementById('bandwidth-list');
+            list.innerHTML = (pemData.clients || [])
+              .sort((a, b) => parseBandwidth(b.bandwidth?.download) - parseBandwidth(a.bandwidth?.download))
+              .slice(0, 5)
+              .map((client, index) => {
+                let rankBadge = (index === 0 ? '<span class="gold">🥇</span>' :
+                                 index === 1 ? '<span class="silver">🥈</span>' :
+                                 index === 2 ? '<span class="bronze">🥉</span>' :
+                                 `<span>${index + 1}</span>`);
+                return `
+                  <tr>
+                    <td class="rank-cell">${rankBadge}</td>
+                    <td>${client.name ?? client.hostname ?? '—'}</td>
+                    <td>${client.ip ?? '—'}</td>
+                    <td>${client.bandwidth?.download ?? '—'}</td>
+                    <td>${client.bandwidth?.upload ?? '—'}</td>
+                  </tr>
+                `;
+              }).join('');
+          } else {
+            document.getElementById('bandwidth-list').innerHTML = '<tr><td colspan="5">Tidak ada data</td></tr>';
+          }
+        } catch (err) {
+          console.debug('pemakaian fetch failed:', err);
+          document.getElementById('bandwidth-list').innerHTML = '<tr><td colspan="5">Error memuat data</td></tr>';
+        }
+
+        // Update progress bars after we've updated CPU/temp text
+        const tempText = document.getElementById('cpu-temp').textContent;
+        const tempValue = parseFloat(tempText) || 0;
+        document.getElementById('temp-progress').style.width = `${Math.min(tempValue, 100)}%`;
+
+      } catch (err) {
+        console.debug('updateData error (ignored):', err);
+        // gentle fallback UI
+        document.getElementById('vnstat-body').innerHTML = '<tr><td colspan="4">Menunggu data...</td></tr>';
+      }
     }
 
-    // Initial Load
+    // Initial Load and intervals
     updateBandwidthPeriod();
     updateCurrentDateTime();
     updateData();
     updateOnlineData();
     updateTrafficData();
 
-    // Update tanggal dan waktu setiap detik
+    // update time every second
     setInterval(updateCurrentDateTime, 1000);
 
-    // Auto-refresh: update data tiap 2 detik untuk trafik dan setiap 5 detik untuk data lainnya
+    // single interval for periodic updates (adjustable)
     setInterval(() => {
       updateData();
       updateOnlineData();
       updateTrafficData();
     }, 2000);
 
-    setInterval(() => {
-      updateData();
-      updateOnlineData();
-    }, 5000);
   </script>
 </body>
 </html>
