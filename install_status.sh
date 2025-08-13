@@ -37,10 +37,42 @@ install_update() {
   opkg update > /dev/null 2>&1
   loading_progress "Updating paket"
   echo -e "${GREEN}Update paket selesai.${NC}"
+  
+  # Install basic packages
   for pkg in coreutils-sleep bc git git-http wget python3-requests python3-pip coreutils-base64; do
     loading_progress "Menginstal $pkg"
     echo -e "${GREEN}$(opkg install $pkg 2>&1)${NC}"
   done
+  
+  # Check and install luci-app-nlbwmon if not exists
+  if ! opkg list-installed | grep -q "luci-app-nlbwmon"; then
+    loading_progress "Menginstal luci-app-nlbwmon"
+    opkg install luci-app-nlbwmon > /dev/null 2>&1
+    echo -e "${GREEN}luci-app-nlbwmon diinstal.${NC}"
+  else
+    echo -e "${YELLOW}luci-app-nlbwmon sudah terinstal.${NC}"
+  fi
+  
+  # Check and install luci-app-cloudflared if not exists
+  if ! opkg list-installed | grep -q "luci-app-cloudflared"; then
+    loading_progress "Menginstal luci-app-cloudflared"
+    opkg install luci-app-cloudflared > /dev/null 2>&1
+    echo -e "${GREEN}luci-app-cloudflared diinstal.${NC}"
+  else
+    echo -e "${YELLOW}luci-app-cloudflared sudah terinstal.${NC}"
+  fi
+  
+  # Check /etc/vnstat directory and setup if not exists
+  if [ ! -d "/etc/vnstat" ]; then
+    echo -e "${CYAN}Direktori /etc/vnstat tidak ditemukan. Menjalankan setup vnstat...${NC}"
+    wget --no-check-certificate -O /root/mahavpn-vnstatdb.sh "https://raw.githubusercontent.com/GboyGud/mahavpn/main/vnstat/mahavpn-vnstatdb.sh" > /dev/null 2>&1
+    chmod +x /root/mahavpn-vnstatdb.sh
+    loading_progress "Mendownload dan menjalankan vnstat setup"
+    bash /root/mahavpn-vnstatdb.sh > /dev/null 2>&1
+    echo -e "${GREEN}Setup vnstat selesai.${NC}"
+  else
+    echo -e "${YELLOW}Direktori /etc/vnstat sudah ada.${NC}"
+  fi
 }
 
 # ========================
@@ -157,6 +189,25 @@ EOF
   mv "$SRC_DIR/www/cgi-bin/"* /www/cgi-bin/ > /dev/null 2>&1
   chmod +x /www/cgi-bin/*
   echo -e "${GREEN}Semua script CGI berhasil dipindahkan dan diaktifkan${NC}"
+
+  # Setup cron jobs
+  echo -e "${CYAN}Mengatur cron jobs...${NC}"
+  
+  # Create crontab entries
+  CRON_ENTRIES="# checkIP.py setiap 5 menit
+*/5 * * * * /usr/bin/python3 /usr/bin/checkIP.py
+# Backup notified_ips.log setiap hari jam 06:00
+0 6 * * * cp /etc/notified_ips.log /etc/notified_ips_\$(date +\\%Y-\\%m-\\%d).bak && > /etc/notified_ips.log
+# mwan3_check.py setiap menit
+* * * * * /usr/bin/python3 /usr/bin/mwan3_check.py"
+
+  # Add cron entries to crontab
+  echo "$CRON_ENTRIES" | crontab -
+  
+  # Restart cron service
+  /etc/init.d/cron restart > /dev/null 2>&1
+  loading_progress "Mengatur cron jobs"
+  echo -e "${GREEN}Cron jobs berhasil ditambahkan dan diaktifkan${NC}"
 }
 
 # ========================
