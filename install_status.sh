@@ -315,17 +315,37 @@ main_menu() {
     echo -e "${YELLOW}4) Install semua ipk${NC}"
     echo -e "${YELLOW}5) Install semuanya${NC}"
     echo -e "${YELLOW}6) Keluar${NC}"
-    echo -ne "${CYAN}Pilih opsi [1-6]: ${NC}"
+    echo -e "${CYAN}Info: Anda dapat memilih beberapa opsi dengan format: 1,3,4 atau 1,2${NC}"
+    echo -ne "${CYAN}Pilih opsi [1-6] atau kombinasi: ${NC}"
     read choice
-    case $choice in
-      1) clone_repo ;; 
-      2) update_data ;; 
-      3) create_nftables ;;
-      4) install_ipk ;; 
-      5) install_all ;; 
-      6) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
-      *) echo -e "${RED}Pilihan tidak valid. Coba lagi.${NC}" ;;
-    esac
+    
+    # Handle exit first
+    if [[ "$choice" == "6" ]]; then
+      echo -e "${GREEN}Terima kasih. Keluar.${NC}"; 
+      exit 0
+    fi
+    
+    # Handle single or multiple choices
+    if [[ "$choice" =~ ^[1-6](,[1-6])*$ ]]; then
+      # Split choices by comma
+      IFS=',' read -ra CHOICES <<< "$choice"
+      
+      # Execute each choice
+      for selected in "${CHOICES[@]}"; do
+        case $selected in
+          1) echo -e "${BLUE}Menjalankan: Clone repository dan setup lengkap${NC}"; clone_repo ;; 
+          2) echo -e "${BLUE}Menjalankan: Update vnstat & nlbwmon${NC}"; update_data ;; 
+          3) echo -e "${BLUE}Menjalankan: Buat file nftables (FIX TTL 63)${NC}"; create_nftables ;;
+          4) echo -e "${BLUE}Menjalankan: Install semua ipk${NC}"; install_ipk ;; 
+          5) echo -e "${BLUE}Menjalankan: Install semuanya${NC}"; install_all ;; 
+          6) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
+          *) echo -e "${RED}Pilihan $selected tidak valid.${NC}" ;;
+        esac
+      done
+    else
+      echo -e "${RED}Format tidak valid. Gunakan angka 1-6 atau kombinasi seperti 1,3,4${NC}"
+    fi
+    
     echo -e "${CYAN}Tekan Enter untuk kembali ke menu...${NC}"
     read
   done
