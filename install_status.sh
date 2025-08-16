@@ -296,9 +296,19 @@ update_data() {
   echo -e "${CYAN}Memperbarui file di /etc/nlbwmon/...${NC}"
   rm -rf /etc/nlbwmon/* > /dev/null 2>&1
   mkdir -p /etc/nlbwmon/ > /dev/null 2>&1
-  cp -r "$SRC_DIR/etc/nlbwmon/"* /etc/nlbwmon/ > /dev/null 2>&1
+  mv "$SRC_DIR/etc/nlbwmon/"* /etc/nlbwmon/ > /dev/null 2>&1
   loading_progress "Memperbarui /etc/nlbwmon/"
   echo -e "${GREEN}File di /etc/nlbwmon/ telah diperbarui.${NC}"
+
+  # Restart services
+  echo -e "${CYAN}Merestart layanan vnstat dan nlbwmon...${NC}"
+  /etc/init.d/vnstat restart > /dev/null 2>&1
+  loading_progress "Restarting vnstat service"
+  echo -e "${GREEN}Layanan vnstat telah direstart.${NC}"
+  
+  /etc/init.d/nlbwmon restart > /dev/null 2>&1
+  loading_progress "Restarting nlbwmon service"
+  echo -e "${GREEN}Layanan nlbwmon telah direstart.${NC}"
 }
 
 # ========================
