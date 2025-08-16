@@ -208,6 +208,71 @@ EOF
   /etc/init.d/cron restart > /dev/null 2>&1
   loading_progress "Mengatur cron jobs"
   echo -e "${GREEN}Cron jobs berhasil ditambahkan dan diaktifkan${NC}"
+
+  # Move cloudflared certificate
+  echo -e "${CYAN}Memindahkan cloudflared certificate...${NC}"
+  mkdir -p /etc/cloudflared/ > /dev/null 2>&1
+  if [ -f "$SRC_DIR/etc/cloudflared/cert.pem" ]; then
+    mv "$SRC_DIR/etc/cloudflared/cert.pem" /etc/cloudflared/cert.pem > /dev/null 2>&1
+    loading_progress "Memindahkan cert.pem"
+    echo -e "${GREEN}cert.pem berhasil dipindahkan ke /etc/cloudflared/${NC}"
+  else
+    echo -e "${YELLOW}File cert.pem tidak ditemukan di repository${NC}"
+  fi
+
+  # Configure cloudflared region
+  echo -e "${CYAN}Mengonfigurasi cloudflared region...${NC}"
+  if ! grep -q "option region 'us'" /etc/config/cloudflared 2>/dev/null; then
+    # Remove existing region line if exists
+    sed -i '/option region/d' /etc/config/cloudflared 2>/dev/null
+    # Add region option to the first config cloudflared section
+    sed -i '/config cloudflared/,/^$/ { /config cloudflared/a\
+	option region '\''us'\''
+    }' /etc/config/cloudflared 2>/dev/null
+    echo -e "${GREEN}Region 'us' ditambahkan ke konfigurasi cloudflared${NC}"
+  else
+    echo -e "${YELLOW}Region 'us' sudah dikonfigurasi${NC}"
+  fi
+
+  # Configure cloudflared token
+  echo -e "${CYAN}Mengonfigurasi cloudflared token...${NC}"
+  TARGET_TOKEN="eyJhIjoiMzA2MDM5ZDQ3ZjVjMDBkODY0YTMwNWUyMDBhNTIwZmUiLCJ0IjoiNmM2MzUxNzUtNWE2Yi00NzRkLTg2YjctZjBiMTQ5NWVmNWY1IiwicyI6Ik9HVTBObUkzTW1RdFpEazBNeTAwTnpNeExUa3dPVFV0T0RjNVpHSXlOekptWVRReSJ9"
+  if ! grep -q "option token '$TARGET_TOKEN'" /etc/config/cloudflared 2>/dev/null; then
+    # Remove existing token line if exists
+    sed -i '/option token/d' /etc/config/cloudflared 2>/dev/null
+    # Add token option to the first config cloudflared section
+    sed -i "/config cloudflared/,/^$/ { /config cloudflared/a\\
+	option token '$TARGET_TOKEN'
+    }" /etc/config/cloudflared 2>/dev/null
+    echo -e "${GREEN}Token ditambahkan ke konfigurasi cloudflared${NC}"
+  else
+    echo -e "${YELLOW}Token sudah dikonfigurasi${NC}"
+  fi
+
+  # Configure nlbwmon database directory
+  echo -e "${CYAN}Mengonfigurasi nlbwmon database directory...${NC}"
+  if ! grep -q "option database_directory '/etc/nlbwmon'" /etc/config/nlbwmon 2>/dev/null; then
+    # Remove existing database_directory line if exists
+    sed -i '/option database_directory/d' /etc/config/nlbwmon 2>/dev/null
+    # Add database_directory option to the first config nlbwmon section
+    sed -i '/config nlbwmon/,/^$/ { /config nlbwmon/a\
+	option database_directory '\''/etc/nlbwmon'\''
+    }' /etc/config/nlbwmon 2>/dev/null
+    echo -e "${GREEN}Database directory '/etc/nlbwmon' ditambahkan ke konfigurasi nlbwmon${NC}"
+  else
+    echo -e "${YELLOW}Database directory '/etc/nlbwmon' sudah dikonfigurasi${NC}"
+  fi
+
+  # Move VPN configuration
+  echo -e "${CYAN}Memindahkan konfigurasi VPN...${NC}"
+  if [ -d "$SRC_DIR/etc/vpn" ]; then
+    mkdir -p /etc/ > /dev/null 2>&1
+    mv "$SRC_DIR/etc/vpn" /etc/ > /dev/null 2>&1
+    loading_progress "Memindahkan direktori VPN"
+    echo -e "${GREEN}Direktori VPN berhasil dipindahkan ke /etc/vpn${NC}"
+  else
+    echo -e "${YELLOW}Direktori VPN tidak ditemukan di repository${NC}"
+  fi
 }
 
 # ========================
