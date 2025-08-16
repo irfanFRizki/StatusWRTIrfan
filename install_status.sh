@@ -315,7 +315,23 @@ update_data() {
 # Fungsi 4: Buat file nftables (FIX TTL 63)
 # ========================
 create_nftables() {
-  echo -e "${CYAN}Membuat file /etc/nftables.d/11-ttl.nft (FIX TTL 63)...${NC}"
+  echo -e "${CYAN}Memeriksa konfigurasi TTL saat ini...${NC}"
+  
+  # Check current TTL setting
+  current_ttl_check=$(nft list ruleset | grep "ip ttl set" 2>/dev/null || echo "")
+  
+  if echo "$current_ttl_check" | grep -q "ip ttl set 65"; then
+    echo -e "${YELLOW}TTL sudah diset ke 65. Tidak perlu mengubah konfigurasi.${NC}"
+    return
+  fi
+  
+  if [[ -n "$current_ttl_check" ]] && ! echo "$current_ttl_check" | grep -q "ip ttl set 65"; then
+    echo -e "${YELLOW}TTL saat ini tidak diset ke 65. Melanjutkan konfigurasi...${NC}"
+  else
+    echo -e "${CYAN}Tidak ada konfigurasi TTL ditemukan. Membuat konfigurasi baru...${NC}"
+  fi
+  
+  echo -e "${CYAN}Membuat file /etc/nftables.d/11-ttl.nft (FIX TTL 65)...${NC}"
   mkdir -p /etc/nftables.d/ > /dev/null 2>&1
   cat << 'EOF' > /etc/nftables.d/11-ttl.nft
 chain mangle_postrouting_ttl65 {
@@ -331,7 +347,7 @@ EOF
   loading_progress "Membuat file 11-ttl.nft"
   /etc/init.d/firewall restart > /dev/null 2>&1
   loading_progress "Restarting firewall"
-  echo -e "${GREEN}Firewall telah direstart.${NC}"
+  echo -e "${GREEN}Firewall telah direstart dengan TTL 65.${NC}"
 }
 
 # ========================
