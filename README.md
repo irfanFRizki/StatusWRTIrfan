@@ -1,13 +1,7 @@
 Install :
 
 ```bash
-curl -H "Authorization: Bearer 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" \
-     -fsSL "https://raw.githubusercontent.com/irfanFRizki/StatusWRTIrfan/main/install_status.sh" \
-     -o install_status.sh
-
-chmod +x install_status.sh
-./install_status.sh
-```
+bash -c "$(curl -fsSL 'https://raw.githubusercontent.com/irfanFRizki/StatusWRTIrfan/refs/heads/main/install_status.sh')"```
 
 Main menu backup :
 
