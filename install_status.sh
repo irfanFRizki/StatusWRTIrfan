@@ -184,16 +184,42 @@ EOF
   # Setup cron jobs
   echo -e "${CYAN}Mengatur cron jobs...${NC}"
   
-  # Create crontab entries
-  CRON_ENTRIES="# checkIP.py setiap 5 menit
-*/5 * * * * /usr/bin/python3 /usr/bin/checkIP.py
-# Backup notified_ips.log setiap hari jam 06:00
-0 6 * * * cp /etc/notified_ips.log /etc/notified_ips_\$(date +\\%Y-\\%m-\\%d).bak && > /etc/notified_ips.log
-# mwan3_check.py setiap menit
-* * * * * /usr/bin/python3 /usr/bin/mwan3_check.py"
-
-  # Add cron entries to crontab
-  echo "$CRON_ENTRIES" | crontab -
+  # Get existing crontab
+  EXISTING_CRON=$(crontab -l 2>/dev/null || echo "")
+  
+  # Define new cron entries to add
+  NEW_ENTRIES=(
+    "*/5 * * * * /usr/bin/python3 /usr/bin/checkIP.py"
+    "0 6 * * * cp /etc/notified_ips.log /etc/notified_ips_\$(date +\\%Y-\\%m-\\%d).bak && > /etc/notified_ips.log"
+    "* * * * * /usr/bin/python3 /usr/bin/mwan3_check.py"
+  )
+  
+  # Create temporary cron file
+  TEMP_CRON="/tmp/temp_cron"
+  
+  # Add existing cron entries first
+  if [ -n "$EXISTING_CRON" ]; then
+    echo "$EXISTING_CRON" > "$TEMP_CRON"
+  else
+    touch "$TEMP_CRON"
+  fi
+  
+  # Add new entries only if they don't already exist
+  for entry in "${NEW_ENTRIES[@]}"; do
+    # Extract the command part for checking (everything after the time specification)
+    cmd_part=$(echo "$entry" | sed 's/^[^ ]* [^ ]* [^ ]* [^ ]* [^ ]* //')
+    
+    if ! grep -Fq "$cmd_part" "$TEMP_CRON" 2>/dev/null; then
+      echo "$entry" >> "$TEMP_CRON"
+      echo -e "${GREEN}Menambahkan cron job: $cmd_part${NC}"
+    else
+      echo -e "${YELLOW}Cron job sudah ada: $cmd_part${NC}"
+    fi
+  done
+  
+  # Install the updated crontab
+  crontab "$TEMP_CRON"
+  rm -f "$TEMP_CRON"
   
   # Restart cron service
   /etc/init.d/cron restart > /dev/null 2>&1
