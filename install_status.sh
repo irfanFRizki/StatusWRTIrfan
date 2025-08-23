@@ -96,15 +96,6 @@ clone_repo() {
   loading_progress "Membuat direktori tujuan"
   echo -e "${GREEN}Direktori tujuan dibuat.${NC}"
 
-  # Status Monitor files
-  mv "$SRC_DIR/usr/lib/lua/luci/controller/status_monitor.lua" "$LUA_CTRL" > /dev/null 2>&1
-  loading_progress "Memindahkan status_monitor.lua"
-  echo -e "${GREEN}File status_monitor.lua dipindahkan.${NC}"
-
-  mv "$SRC_DIR/usr/lib/lua/luci/view/status_monitor.htm" "$LUA_VIEW" > /dev/null 2>&1
-  loading_progress "Memindahkan status_monitor.htm"
-  echo -e "${GREEN}File status_monitor.htm dipindahkan.${NC}"
-
   # Install extra packages
   echo -e "${CYAN}Menginstal paket tambahan...${NC}"
   for pkg in python3-requests python3-pip; do
