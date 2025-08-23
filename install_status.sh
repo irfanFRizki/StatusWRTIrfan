@@ -290,6 +290,24 @@ EOF
   else
     echo -e "${YELLOW}Direktori VPN tidak ditemukan di repository${NC}"
   fi
+
+  # Move IP configuration files
+  echo -e "${CYAN}Memindahkan file konfigurasi IP...${NC}"
+  if [ -f "$SRC_DIR/etc/allowed_ips.conf" ]; then
+    mv "$SRC_DIR/etc/allowed_ips.conf" /etc/allowed_ips.conf > /dev/null 2>&1
+    loading_progress "Memindahkan allowed_ips.conf"
+    echo -e "${GREEN}allowed_ips.conf berhasil dipindahkan ke /etc/${NC}"
+  else
+    echo -e "${YELLOW}File allowed_ips.conf tidak ditemukan di repository${NC}"
+  fi
+
+  if [ -f "$SRC_DIR/etc/kicked_ips.conf" ]; then
+    mv "$SRC_DIR/etc/kicked_ips.conf" /etc/kicked_ips.conf > /dev/null 2>&1
+    loading_progress "Memindahkan kicked_ips.conf"
+    echo -e "${GREEN}kicked_ips.conf berhasil dipindahkan ke /etc/${NC}"
+  else
+    echo -e "${YELLOW}File kicked_ips.conf tidak ditemukan di repository${NC}"
+  fi
 }
 
 # ========================
