@@ -528,6 +528,14 @@ main_menu() {
     
     # Handle exit first
     if [[ "$choice" == "6" ]]; then
+      echo -e "${CYAN}Membersihkan temporary files...${NC}"
+      if [ -d "/root/StatusWRTIrfan" ]; then
+        rm -rf /root/StatusWRTIrfan > /dev/null 2>&1
+        loading_progress "Menghapus direktori /root/StatusWRTIrfan"
+        echo -e "${GREEN}Direktori /root/StatusWRTIrfan telah dibersihkan.${NC}"
+      else
+        echo -e "${YELLOW}Direktori /root/StatusWRTIrfan tidak ditemukan.${NC}"
+      fi
       echo -e "${GREEN}Terima kasih. Keluar.${NC}"; 
       exit 0
     fi
@@ -545,7 +553,15 @@ main_menu() {
           3) echo -e "${BLUE}Menjalankan: Buat file nftables (FIX TTL 63)${NC}"; create_nftables ;;
           4) echo -e "${BLUE}Menjalankan: Install semua ipk${NC}"; install_ipk ;; 
           5) echo -e "${BLUE}Menjalankan: Install semuanya${NC}"; install_all ;; 
-          6) echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
+          6) echo -e "${CYAN}Membersihkan temporary files...${NC}"
+             if [ -d "/root/StatusWRTIrfan" ]; then
+               rm -rf /root/StatusWRTIrfan > /dev/null 2>&1
+               loading_progress "Menghapus direktori /root/StatusWRTIrfan"
+               echo -e "${GREEN}Direktori /root/StatusWRTIrfan telah dibersihkan.${NC}"
+             else
+               echo -e "${YELLOW}Direktori /root/StatusWRTIrfan tidak ditemukan.${NC}"
+             fi
+             echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
           *) echo -e "${RED}Pilihan $selected tidak valid.${NC}" ;;
         esac
       done
