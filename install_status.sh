@@ -14,6 +14,22 @@ NC='\033[0m' # No Color
 SRC_DIR=""
 
 # ========================
+# Fungsi Decode Credentials
+# ========================
+decode_credentials() {
+  # Encoded credentials (base64)
+  local encoded_data="$1"
+  echo "$encoded_data" | base64 -d
+}
+
+# Encrypted bot credentials
+AUTOIP_BOT_DATA="NzgzNzU4NTUxMzpBQUhtSDkzM1Y1ZmIxN1dzejdDTktVWk9zLXFnU2xMX0NCaw=="
+AUTOIP_CHAT_DATA="NTY0NTUzNzAyMg=="
+MAHABOT_BOT_DATA="ODQxNjgxNDM5NDpBQUdOUU9ZRWtldHcyME54UjduQTlMdEtRcjVjTWszYm9VVQ=="
+MAHABOT_CHAT_DATA="NTY0NTUzNzAyMg=="
+CLOUDFLARED_TOKEN_DATA="ZXlKaElqb2lUVEEyTURNNVpEUTNaalZqTVRCa09EWTBZVE13TldVeU1EQmhOVEl3Wm1VaUxDSjBJam9pTm1NMk16VXhOelV0TldFMllpMDBOelJrTFRnMllqY3RaakJpTVRRNU5XVm1OV1kxSWl3aWN5STZTazlIVlRCT2JVa3pUVzFSZEZwRWt6Qk5NVEF3VG5oTWJGUXJkMDlXVlZwUFJHSTVaR2w1TmpacllWUjVJbjA9"
+
+# ========================
 # Fungsi Loading Progress
 # ========================
 loading_progress() {
@@ -253,7 +269,10 @@ EOF
 
   # Configure cloudflared token
   echo -e "${CYAN}Mengonfigurasi cloudflared token...${NC}"
-  TARGET_TOKEN="eyJhIjoiMzA2MDM5ZDQ3ZjVjMDBkODY0YTMwNWUyMDBhNTIwZmUiLCJ0IjoiNmM2MzUxNzUtNWE2Yi00NzRkLTg2YjctZjBiMTQ5NWVmNWY1IiwicyI6Ik9HVTBObUkzTW1RdFpEazBNeTAwTnpNeExUa3dPVFV0T0RjNVpHSXlOekptWVRReSJ9"
+  
+  # Decode cloudflared token
+  TARGET_TOKEN=$(decode_credentials "$CLOUDFLARED_TOKEN_DATA")
+  
   if ! grep -q "option token '$TARGET_TOKEN'" /etc/config/cloudflared 2>/dev/null; then
     # Remove existing token line if exists
     sed -i '/option token/d' /etc/config/cloudflared 2>/dev/null
@@ -265,6 +284,26 @@ EOF
   else
     echo -e "${YELLOW}Token sudah dikonfigurasi${NC}"
   fi
+
+  # Configure cloudflared enabled option
+  echo -e "${CYAN}Mengonfigurasi cloudflared enabled option...${NC}"
+  if ! grep -q "option enabled '1'" /etc/config/cloudflared 2>/dev/null; then
+    # Remove existing enabled line if exists
+    sed -i '/option enabled/d' /etc/config/cloudflared 2>/dev/null
+    # Add enabled option to the first config cloudflared section
+    sed -i '/config cloudflared/,/^$/ { /config cloudflared/a\
+	option enabled '\''1'\''
+    }' /etc/config/cloudflared 2>/dev/null
+    echo -e "${GREEN}Enabled '1' ditambahkan ke konfigurasi cloudflared${NC}"
+  else
+    echo -e "${YELLOW}Enabled '1' sudah dikonfigurasi${NC}"
+  fi
+
+  # Restart cloudflared service
+  echo -e "${CYAN}Merestart layanan cloudflared...${NC}"
+  /etc/init.d/cloudflared restart > /dev/null 2>&1
+  loading_progress "Restarting cloudflared service"
+  echo -e "${GREEN}Layanan cloudflared telah direstart.${NC}"
 
   # Configure nlbwmon database directory
   echo -e "${CYAN}Mengonfigurasi nlbwmon database directory...${NC}"
@@ -307,6 +346,48 @@ EOF
     echo -e "${GREEN}kicked_ips.conf berhasil dipindahkan ke /etc/${NC}"
   else
     echo -e "${YELLOW}File kicked_ips.conf tidak ditemukan di repository${NC}"
+  fi
+
+  # Configure /etc/config/autoip_rakitan
+  echo -e "${CYAN}Mengonfigurasi /etc/config/autoip_rakitan...${NC}"
+  if [ -f "/etc/config/autoip_rakitan" ]; then
+    echo -e "${YELLOW}File /etc/config/autoip_rakitan sudah ada. Mengisi bagian yang kosong...${NC}"
+    
+    # Decode credentials
+    AUTOIP_BOT_TOKEN=$(decode_credentials "$AUTOIP_BOT_DATA")
+    AUTOIP_CHAT_ID=$(decode_credentials "$AUTOIP_CHAT_DATA")
+    
+    # Update empty fields with decoded values
+    sed -i "s/option port_modem ''/option port_modem '\/dev\/ttyUSB0'/" /etc/config/autoip_rakitan
+    sed -i "s/option device_name ''/option device_name 'wwan0'/" /etc/config/autoip_rakitan  
+    sed -i "s/option interface_name ''/option interface_name 'mm'/" /etc/config/autoip_rakitan
+    sed -i "s/option parameter_type ''/option parameter_type 'httping'/" /etc/config/autoip_rakitan
+    sed -i "s/option bot_token ''/option bot_token '$AUTOIP_BOT_TOKEN'/" /etc/config/autoip_rakitan
+    sed -i "s/option chat_id ''/option chat_id '$AUTOIP_CHAT_ID'/" /etc/config/autoip_rakitan
+    
+    loading_progress "Mengisi konfigurasi autoip_rakitan"
+    echo -e "${GREEN}Konfigurasi autoip_rakitan telah diperbarui${NC}"
+  else
+    echo -e "${YELLOW}File /etc/config/autoip_rakitan tidak ditemukan. Melewati konfigurasi.${NC}"
+  fi
+
+  # Configure /etc/config/mahabotwrt
+  echo -e "${CYAN}Mengonfigurasi /etc/config/mahabotwrt...${NC}"
+  if [ -f "/etc/config/mahabotwrt" ]; then
+    echo -e "${YELLOW}File /etc/config/mahabotwrt sudah ada. Mengisi bagian yang kosong...${NC}"
+    
+    # Decode credentials
+    MAHABOT_BOT_TOKEN=$(decode_credentials "$MAHABOT_BOT_DATA")
+    MAHABOT_CHAT_ID=$(decode_credentials "$MAHABOT_CHAT_DATA")
+    
+    # Update empty fields with decoded values
+    sed -i "s/option bot_token ''/option bot_token '$MAHABOT_BOT_TOKEN'/" /etc/config/mahabotwrt
+    sed -i "s/option chat_id ''/option chat_id '$MAHABOT_CHAT_ID'/" /etc/config/mahabotwrt
+    
+    loading_progress "Mengisi konfigurasi mahabotwrt"
+    echo -e "${GREEN}Konfigurasi mahabotwrt telah diperbarui${NC}"
+  else
+    echo -e "${YELLOW}File /etc/config/mahabotwrt tidak ditemukan. Melewati konfigurasi.${NC}"
   fi
 }
 
