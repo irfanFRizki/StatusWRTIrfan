@@ -130,45 +130,15 @@ clone_repo() {
   echo -e "${GREEN}websocket-client (pip3) diinstal.${NC}"
 
   # Configure DHCP domains
-  echo -e "${CYAN}Menambahkan entri domain di /etc/config/dhcp...${NC}"
-  cat >> /etc/config/dhcp << EOF
-config domain
-    option name 'HP_IRFAN'
-    option ip '192.168.1.245'
-
-config domain
-    option name 'HP_TAB'
-    option ip '192.168.1.106'
-
-config domain
-    option name 'HP_ANITA'
-    option ip '192.168.1.220'
-
-config domain
-    option name 'HP_AQILLA'
-    option ip '192.168.1.177'
-
-config domain
-    option name 'HP_JAMAL'
-    option ip '192.168.1.169'
-
-config domain
-    option name 'LAPTOP'
-    option ip '192.168.1.123'
-
-config domain
-    option name 'HP_AMAT'
-    option ip '192.168.1.166'
-
-config domain
-    option name 'HP_BAPAK'
-    option ip '192.168.1.233'
-
-config domain
-	option name 'CCTV'
-	option ip '192.168.1.138'
-EOF
-  echo -e "${GREEN}Entri domain DHCP ditambahkan.${NC}"
+  echo -e "${CYAN}Menambahkan entri domain dari repository...${NC}"
+  if [ -f "$SRC_DIR/etc/config/dhcp" ]; then
+    # Extract only config domain sections from repository dhcp file
+    grep -A 2 "^config domain" "$SRC_DIR/etc/config/dhcp" | grep -v "^--$" >> /etc/config/dhcp
+    loading_progress "Menambahkan entri domain DHCP"
+    echo -e "${GREEN}Entri domain DHCP dari repository berhasil ditambahkan.${NC}"
+  else
+    echo -e "${YELLOW}File dhcp config tidak ditemukan di repository.${NC}"
+  fi
 
   # Deploy Telegram scripts
   echo -e "${CYAN}Memindahkan dan memberikan izin untuk skrip Telegram...${NC}"
