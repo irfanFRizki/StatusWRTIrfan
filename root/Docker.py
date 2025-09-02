@@ -2,197 +2,170 @@
 import os
 import subprocess
 
-# =========================
-# Helper Functions
-# =========================
+# ===== Service Config =====
+SERVICES = {
+    "Dockge": {
+        "container": "dockge",
+        "image": "louislam/dockge",
+        "ports": [5001],
+        "firewall": "Allow-Dockge",
+        "run": "docker run -d --name dockge --network host -v /var/run/docker.sock:/var/run/docker.sock -v /root/Dockge/data:/app/data louislam/dockge"
+    },
+    "MySpeed": {
+        "container": "myspeed",
+        "image": "germannewsmaker/myspeed",
+        "ports": [5216],
+        "firewall": "Allow-MySpeed",
+        "run": "docker run -d --name myspeed --network host -v myspeed_data:/myspeed/data germannewsmaker/myspeed"
+    },
+    "n8n": {
+        "container": "n8n",
+        "image": "n8nio/n8n",
+        "ports": [5678],
+        "firewall": "Allow-n8n",
+        "run": "docker run -d --name n8n --network host -v n8n_data:/home/node/.n8n n8nio/n8n"
+    }
+}
 
+# ===== Helper Functions =====
 def run_cmd(cmd):
     try:
-        return subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode().strip()
-    except subprocess.CalledProcessError as e:
-        return e.output.decode().strip()
+        return subprocess.check_output(cmd, shell=True, text=True).strip()
+    except subprocess.CalledProcessError:
+        return ""
 
 def docker_installed():
-    return run_cmd("command -v docker") != ""
-
-def docker_running():
-    return run_cmd("pgrep dockerd") != ""
-
-def container_exists(name):
-    return run_cmd(f"docker ps -a --format '{{{{.Names}}}}' | grep -w {name}") != ""
-
-def container_running(name):
-    return run_cmd(f"docker ps --format '{{{{.Names}}}}' | grep -w {name}") != ""
-
-def container_exited(name):
-    return run_cmd(f"docker ps -a --filter 'status=exited' --format '{{{{.Names}}}}' | grep -w {name}") != ""
-
-def add_firewall_rule(name, port):
-    rules = run_cmd("uci show firewall | grep dest_port")
-    if port not in rules:
-        os.system(f"uci add firewall rule")
-        os.system(f"uci set firewall.@rule[-1].name='Allow-{name}'")
-        os.system("uci set firewall.@rule[-1].src='lan'")
-        os.system(f"uci set firewall.@rule[-1].proto='tcp'")
-        os.system(f"uci set firewall.@rule[-1].dest_port='{port}'")
-        os.system("uci set firewall.@rule[-1].target='ACCEPT'")
-        os.system("uci commit firewall && /etc/init.d/firewall restart")
-
-def remove_firewall_rule(name):
-    os.system(f"uci -q delete firewall.@rule[?(@.name=='Allow-{name}')] && uci commit firewall && /etc/init.d/firewall restart")
-
-# =========================
-# Install Functions
-# =========================
+    return bool(run_cmd("command -v docker"))
 
 def install_docker():
     if docker_installed():
-        if docker_running():
-            print("[✔] Docker sudah terinstall & berjalan")
-        else:
-            print("[!] Docker ada tapi belum berjalan, coba start manual (service dockerd start)")
+        print("[✔] Docker sudah terinstall.")
     else:
-        print("[*] Menginstall Docker ...")
+        print("[...] Menginstall Docker...")
         os.system("opkg update && opkg install docker dockerd docker-compose")
 
-def install_dockge():
-    if container_exists("dockge"):
-        if container_running("dockge"):
-            print("[✔] Dockge sudah berjalan")
-        elif container_exited("dockge"):
-            print("[!] Dockge ada tapi exited, restart ...")
-            os.system("docker start dockge")
+def container_exists(name):
+    return bool(run_cmd(f"docker ps -a --format '{{{{.Names}}}}' | grep -w {name}"))
+
+def container_running(name):
+    return bool(run_cmd(f"docker ps --format '{{{{.Names}}}}' | grep -w {name}"))
+
+def install_service(svc):
+    if not container_exists(svc["container"]):
+        print(f"[+] Install {svc['container']} ...")
+        os.system(svc["run"])
+        add_firewall(svc)
+    else:
+        if not container_running(svc["container"]):
+            print(f"[~] Restarting exited {svc['container']}...")
+            os.system(f"docker start {svc['container']}")
+        ensure_firewall(svc)
+
+def uninstall_service(svc):
+    if container_exists(svc["container"]):
+        print(f"[-] Removing {svc['container']}...")
+        os.system(f"docker rm -f {svc['container']}")
+        remove_firewall(svc)
+    else:
+        print(f"[i] {svc['container']} belum terinstall.")
+
+def start_service(svc):
+    if container_exists(svc["container"]):
+        os.system(f"docker start {svc['container']}")
+    else:
+        print(f"[i] {svc['container']} belum ada, silakan install.")
+
+def stop_service(svc):
+    if container_running(svc["container"]):
+        os.system(f"docker stop {svc['container']}")
+    else:
+        print(f"[i] {svc['container']} tidak sedang berjalan.")
+
+def add_firewall(svc):
+    for port in svc["ports"]:
+        if not firewall_exists(svc["firewall"]):
+            os.system(f"uci add firewall rule")
+            os.system(f"uci set firewall.@rule[-1].name='{svc['firewall']}'")
+            os.system(f"uci set firewall.@rule[-1].src='lan'")
+            os.system(f"uci set firewall.@rule[-1].proto='tcp'")
+            os.system(f"uci set firewall.@rule[-1].dest_port='{port}'")
+            os.system(f"uci set firewall.@rule[-1].target='ACCEPT'")
+            os.system("uci commit firewall && /etc/init.d/firewall restart")
+            print(f"[✔] Firewall rule {svc['firewall']} ditambahkan.")
+
+def remove_firewall(svc):
+    os.system(f"uci show firewall | grep '{svc['firewall']}' | cut -d'.' -f2 | cut -d'=' -f1 | while read id; do uci delete firewall.$id; done")
+    os.system("uci commit firewall && /etc/init.d/firewall restart")
+    print(f"[✘] Firewall rule {svc['firewall']} dihapus.")
+
+def firewall_exists(rule_name):
+    return bool(run_cmd(f"uci show firewall | grep name | grep -w '{rule_name}'"))
+
+def ensure_firewall(svc):
+    if not firewall_exists(svc["firewall"]):
+        add_firewall(svc)
+
+def auto_heal():
+    for svc in SERVICES.values():
+        if container_exists(svc["container"]) and not container_running(svc["container"]):
+            print(f"[Auto-Heal] Restart {svc['container']} karena exited...")
+            os.system(f"docker restart {svc['container']}")
+
+def status_firewall():
+    print("\n[Firewall Rules Aktif]")
+    for svc in SERVICES.values():
+        if firewall_exists(svc["firewall"]):
+            print(f"[✔] {svc['firewall']}")
         else:
-            print("[!] Dockge container ada tapi tidak berjalan, starting ...")
-            os.system("docker start dockge")
-    else:
-        print("[*] Menginstall Dockge ...")
-        os.system("docker run -d --name dockge --network host "
-                  "-v /var/run/docker.sock:/var/run/docker.sock "
-                  "-v /root/Dockge/data:/app/data louislam/dockge")
-    add_firewall_rule("Dockge", "5001")
+            print(f"[ ] {svc['firewall']}")
 
-def install_myspeed():
-    if container_exists("myspeed"):
-        if container_running("myspeed"):
-            print("[✔] MySpeed sudah berjalan")
-        elif container_exited("myspeed"):
-            print("[!] MySpeed exited, restart ...")
-            os.system("docker start myspeed")
+def status_services():
+    print("\n[Service Status]")
+    for name, svc in SERVICES.items():
+        if container_running(svc["container"]):
+            print(f"[✔] {name} (Running)")
+        elif container_exists(svc["container"]):
+            print(f"[~] {name} (Exited)")
         else:
-            os.system("docker start myspeed")
-    else:
-        print("[*] Menginstall MySpeed ...")
-        os.system("docker run -d --name myspeed --network host "
-                  "-v myspeed_data:/myspeed/data germannewsmaker/myspeed")
-    add_firewall_rule("MySpeed", "5216")
+            print(f"[ ] {name} (Not Installed)")
 
-def install_n8n():
-    if container_exists("n8n"):
-        if container_running("n8n"):
-            print("[✔] n8n sudah berjalan")
-        elif container_exited("n8n"):
-            print("[!] n8n exited, restart ...")
-            os.system("docker start n8n")
-        else:
-            os.system("docker start n8n")
-    else:
-        print("[*] Menginstall n8n ...")
-        os.system("docker run -d --name n8n --network host -v n8n_data:/home/node/.n8n n8nio/n8n")
-    add_firewall_rule("n8n", "5678")
-
-# =========================
-# Uninstall / Start / Stop
-# =========================
-
-def uninstall_service(name, port=None):
-    if container_exists(name):
-        os.system(f"docker stop {name} && docker rm {name}")
-        if port:
-            remove_firewall_rule(name)
-        print(f"[✔] {name} dihapus")
-    else:
-        print(f"[!] {name} belum terinstall")
-
-def start_service(name):
-    if container_exists(name):
-        os.system(f"docker start {name}")
-        print(f"[✔] {name} dijalankan")
-    else:
-        print(f"[!] {name} tidak ada")
-
-def stop_service(name):
-    if container_exists(name):
-        os.system(f"docker stop {name}")
-        print(f"[✔] {name} dihentikan")
-    else:
-        print(f"[!] {name} tidak ada")
-
-def status_service(name):
-    if container_running(name):
-        print(f"[✔] {name} berjalan")
-    elif container_exited(name):
-        print(f"[!] {name} exited")
-    elif container_exists(name):
-        print(f"[!] {name} ada tapi tidak jalan")
-    else:
-        print(f"[✘] {name} belum terinstall")
-
-# =========================
-# Menu
-# =========================
-
-def main_menu():
+# ===== Menu =====
+def menu():
     while True:
-        print("""
-=== MENU ===
-1) Install Docker
-2) Dockge
-3) MySpeed
-4) n8n
-0) Exit
-""")
-        choice = input("Pilih opsi: ")
+        print("\n==== Docker Service Manager ====")
+        print("1) Install Docker")
+        print("2) Dockge")
+        print("3) MySpeed")
+        print("4) n8n")
+        print("5) Status")
+        print("6) Auto-Heal Containers")
+        print("0) Exit")
+        choice = input("Pilih: ")
 
         if choice == "1":
             install_docker()
-        elif choice == "2":
-            service_menu("Dockge", install_dockge, "5001")
-        elif choice == "3":
-            service_menu("MySpeed", install_myspeed, "5216")
-        elif choice == "4":
-            service_menu("n8n", install_n8n, "5678")
+
+        elif choice in ["2", "3", "4"]:
+            svc = list(SERVICES.values())[int(choice) - 2]
+            sub = input(f"\n-- {svc['container']} Menu --\n1) Install\n2) Uninstall\n3) Start\n4) Stop\nPilih: ")
+            if sub == "1": install_service(svc)
+            elif sub == "2": uninstall_service(svc)
+            elif sub == "3": start_service(svc)
+            elif sub == "4": stop_service(svc)
+
+        elif choice == "5":
+            sub = input("\n-- Status Menu --\n1) Firewall\n2) Services\nPilih: ")
+            if sub == "1": status_firewall()
+            elif sub == "2": status_services()
+
+        elif choice == "6":
+            auto_heal()
+
         elif choice == "0":
             break
-        else:
-            print("[!] Pilihan tidak valid")
 
-def service_menu(name, install_func, port):
-    while True:
-        print(f"""
---- {name} ---
-1) Install
-2) Uninstall
-3) Start
-4) Stop
-5) Status
-0) Back
-""")
-        c = input("Pilih opsi: ")
-        if c == "1":
-            install_func()
-        elif c == "2":
-            uninstall_service(name.lower(), port)
-        elif c == "3":
-            start_service(name.lower())
-        elif c == "4":
-            stop_service(name.lower())
-        elif c == "5":
-            status_service(name.lower())
-        elif c == "0":
-            break
         else:
-            print("[!] Pilihan salah")
+            print("Pilihan tidak valid!")
 
 if __name__ == "__main__":
-    main_menu()
+    menu()
