@@ -27,7 +27,7 @@ AUTOIP_BOT_DATA="NzgzNzU4NTUxMzpBQUhtSDkzM1Y1ZmIxN1dzejdDTktVWk9zLXFnU2xMX0NCaw=
 AUTOIP_CHAT_DATA="NTY0NTUzNzAyMg=="
 MAHABOT_BOT_DATA="ODQxNjgxNDM5NDpBQUdOUU9ZRWtldHcyME54UjduQTlMdEtRcjVjTWszYm9VVQ=="
 MAHABOT_CHAT_DATA="NTY0NTUzNzAyMg=="
-CLOUDFLARED_TOKEN_DATA="ZXlKaElqb2lUVEEyTURNNVpEUTNaalZqTVRCa09EWTBZVE13TldVeU1EQmhOVEl3Wm1VaUxDSjBJam9pTm1NMk16VXhOelV0TldFMllpMDBOelJrTFRnMllqY3RaakJpTVRRNU5XVm1OV1kxSWl3aWN5STZTazlIVlRCT2JVa3pUVzFSZEZwRWt6Qk5NVEF3VG5oTWJGUXJkMDlXVlZwUFJHSTVaR2w1TmpacllWUjVJbjA9"
+CLOUDFLARED_TOKEN_DATA="ZXlKaElqb2lNekEyTURNNVpEUTNaalZqTURCa09EWTBZVE13TldVeU1EQmhOVEl3Wm1VaUxDSjBJam9pTm1NMk16VXhOelV0TldFMllpMDBOelJrTFRnMllqY3RaakJpTVRRNU5XVm1OV1kxSWl3aWN5STZJazlIVlRCT2JVa3pUVzFSZEZwRWF6Qk5lVEF3VG5wTmVFeFVhM2RQVkZWMFQwUmpOVnBIU1hsT2VrcHRXVlJSZVNKOQ=="
 
 # ========================
 # Fungsi Loading Progress
@@ -147,7 +147,8 @@ clone_repo() {
   mv "$SRC_TELEGRAM/send_telegram.py" /usr/bin/ > /dev/null 2>&1
   mv "$SRC_TELEGRAM/checkIP.py" /usr/bin/ > /dev/null 2>&1
   mv "$SRC_TELEGRAM/vpn.py" /usr/bin/ > /dev/null 2>&1
-  chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py /usr/bin/checkIP.py /usr/bin/vpn.py
+  mv "$SRC_TELEGRAM/vnstat-backup.sh" /usr/bin/ > /dev/null 2>&1
+  chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py /usr/bin/checkIP.py /usr/bin/vpn.py /usr/bin/vnstat-backup.sh
   echo -e "${GREEN}Skrip Telegram berhasil dipindahkan dan diaktifkan.${NC}"
 
   # Deploy LuCI Informasi
@@ -178,6 +179,7 @@ clone_repo() {
     "*/5 * * * * /usr/bin/python3 /usr/bin/checkIP.py"
     "0 6 * * * cp /etc/notified_ips.log /etc/notified_ips_\$(date +\\%Y-\\%m-\\%d).bak && > /etc/notified_ips.log"
     "* * * * * /usr/bin/python3 /usr/bin/mwan3_check.py"
+	"0 * * * * /usr/bin/vnstat-backup.sh"
   )
   
   # Create temporary cron file
@@ -374,7 +376,7 @@ update_data() {
   echo -e "${CYAN}Mengganti file vnstat.db dengan yang ada di repository...${NC}"
   mkdir -p /etc/vnstat > /dev/null 2>&1
   [ -f /etc/vnstat/vnstat.db ] && rm -f /etc/vnstat/vnstat.db
-  mv "$SRC_DIR/vnstat.db" /etc/vnstat/ > /dev/null 2>&1
+  mv "$SRC_DIR/etc/vnstat/vnstat.db" /etc/vnstat/ > /dev/null 2>&1
   loading_progress "Memindahkan vnstat.db"
   echo -e "${GREEN}File vnstat.db telah diganti.${NC}"
 
