@@ -468,7 +468,7 @@ generate_report() {
 🌐 Operator: *${OPERATOR_NAME}*
 📍 Lokasi: *${LOCATION_INFO}*
 📡 Modem: \`${MODEM_INFO}\`
-▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️
+▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️
 🔧 Service: *${SERVICE_INFO}*
 🔌 Interface: \`${NETWORK_INTERFACE}\`
 📅 Period: *${START_DATE}* ➜ *${current_date}* _(${current_days} hari)_
@@ -477,7 +477,7 @@ generate_report() {
 🏢 eNB ID(PCI): \`${ENB_PCI}\`
 📈 RS-SNR: \`${SINR_INFO}dB\`
 🌡️ TEMP: \`${TEMP_INFO}\`
-▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️"
+▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️"
     
     # Previous periods with Note support and modern formatting
     if [ -n "$PREV_PERIOD1_START" ] && [ -n "$PREV_PERIOD1_END" ] && [ "$prev1_days" != "0" ]; then
@@ -506,16 +506,16 @@ generate_report() {
         fi
         
         message="${message}
-▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️"
+▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️"
     fi
     
     # Current period usage with modern formatting
     message="${message}
 📊 *CURRENT PERIOD USAGE*
 📈 Daily Breakdown:
-${daily_breakdown}▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️
+${daily_breakdown}▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️
 💯 *TOTAL: ${current_total} GB*
-▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️
+▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️
 ⏰ Report: \`${report_time}\`"
     
     # Display or send
