@@ -456,67 +456,67 @@ generate_report() {
         prev2_total=$(calculate_period_total "$PREV_PERIOD2_START" "$PREV_PERIOD2_END" "$NETWORK_INTERFACE")
     fi
     
-    # Build message
-    local message="**Data Usage Report**"
+    # Build message with modern formatting
+    local message="📊 *DATA USAGE REPORT*"
     
     if [ -n "$PHONE_NUMBER" ]; then
         message="${message}
-📱 Phone: ${PHONE_NUMBER}"
+📱 Phone: \`${PHONE_NUMBER}\`"
     fi
     
     message="${message}
-Operator: ${OPERATOR_NAME}
-Lokasi: ${LOCATION_INFO}
-Modem: ${MODEM_INFO}
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-Service: ${SERVICE_INFO}
-Interface: \`${NETWORK_INTERFACE}\`
-Period: ${START_DATE} → ${current_date} (${current_days} hari)
-BAND: ${MODEM_BAND}
-EARFCN(DL/UL): ${EARFCN_INFO}
-eNB ID(PCI): ${ENB_PCI}
-RS-SNR: ${SINR_INFO}
-TEMP: ${TEMP_INFO}
-━━━━━━━━━━━━━━━━━━━━━━━━━━"
+🌐 Operator: *${OPERATOR_NAME}*
+📍 Lokasi: *${LOCATION_INFO}*
+📡 Modem: \`${MODEM_INFO}\`
+▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️
+🔧 Service: *${SERVICE_INFO}*
+🔌 Interface: \`${NETWORK_INTERFACE}\`
+📅 Period: *${START_DATE}* ➜ *${current_date}* _(${current_days} hari)_
+📶 BAND: \`${MODEM_BAND}\`
+📊 EARFCN(DL/UL): \`${EARFCN_INFO}\`
+🏢 eNB ID(PCI): \`${ENB_PCI}\`
+📈 RS-SNR: \`${SINR_INFO}dB\`
+🌡️ TEMP: \`${TEMP_INFO}\`
+▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️"
     
-    # Previous periods with Note support
+    # Previous periods with Note support and modern formatting
     if [ -n "$PREV_PERIOD1_START" ] && [ -n "$PREV_PERIOD1_END" ] && [ "$prev1_days" != "0" ]; then
         message="${message}
-**Previous Period:**
-Period 1: ${PREV_PERIOD1_START} → ${PREV_PERIOD1_END} (${prev1_days} hari)
-Total Usage: ${prev1_total} GB"
+🔙 *PREVIOUS PERIODS*
+📆 Period 1: *${PREV_PERIOD1_START}* ➜ *${PREV_PERIOD1_END}* _(${prev1_days} hari)_
+💾 Total Usage: *${prev1_total} GB*"
         
         # Add note if available
         if [ -n "$PREV_PERIOD1_NOTE" ] && [ "$PREV_PERIOD1_NOTE" != "" ]; then
             message="${message}
-Note: ${PREV_PERIOD1_NOTE}"
+💬 Note: _${PREV_PERIOD1_NOTE}_"
         fi
         
         if [ -n "$PREV_PERIOD2_START" ] && [ -n "$PREV_PERIOD2_END" ] && [ "$prev2_days" != "0" ]; then
             message="${message}
 
-Period 2: ${PREV_PERIOD2_START} → ${PREV_PERIOD2_END} (${prev2_days} hari)
-Total Usage: ${prev2_total} GB"
+📆 Period 2: *${PREV_PERIOD2_START}* ➜ *${PREV_PERIOD2_END}* _(${prev2_days} hari)_
+💾 Total Usage: *${prev2_total} GB*"
             
             # Add note if available
             if [ -n "$PREV_PERIOD2_NOTE" ] && [ "$PREV_PERIOD2_NOTE" != "" ]; then
                 message="${message}
-Note: ${PREV_PERIOD2_NOTE}"
+💬 Note: _${PREV_PERIOD2_NOTE}_"
             fi
         fi
         
         message="${message}
-━━━━━━━━━━━━━━━━━━━━━━━━━━"
+▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️"
     fi
     
-    # Current period usage
+    # Current period usage with modern formatting
     message="${message}
-**Current Period Usage:**
-Daily Breakdown:
-${daily_breakdown}═══════════════════
-Total: **${current_total} GB**
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-Report: ${report_time}"
+📊 *CURRENT PERIOD USAGE*
+📈 Daily Breakdown:
+${daily_breakdown}▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️▪️
+💯 *TOTAL: ${current_total} GB*
+▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️▫️
+⏰ Report: \`${report_time}\`"
     
     # Display or send
     if [ "$1" != "--send" ]; then
