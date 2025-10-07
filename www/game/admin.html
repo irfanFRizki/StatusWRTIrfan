@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Kelola Soal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #1e3c72;
+        }
+
+        h1 {
+            color: #1e3c72;
+            font-size: 2em;
+        }
+
+        .btn-game {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-game:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px 20px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: #d0d0d0;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        label {
+            display: block;
+            font-size: 1.1em;
+            color: #1e3c72;
+            margin: 15px 0 10px 0;
+            font-weight: bold;
+        }
+
+        input[type="file"], input[type="text"], input[type="number"], select, textarea {
+            padding: 12px;
+            border: 2px solid #1e3c72;
+            border-radius: 10px;
+            width: 100%;
+            margin: 10px 0;
+            font-size: 1em;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 15px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 2px dashed #1e3c72;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-small {
+            padding: 8px 20px;
+            font-size: 0.9em;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #FFD93D 0%, #F57C00 100%);
+        }
+
+        .question-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 2px solid #1e3c72;
+        }
+
+        .option-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .option-input-group input[type="text"] {
+            flex: 1;
+        }
+
+        .option-input-group input[type="radio"] {
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+        }
+
+        /* Folder Structure Styles */
+        .folder-container {
+            margin: 20px 0;
+        }
+
+        .folder {
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .folder:hover {
+            border-color: #1e3c72;
+        }
+
+        .folder-header {
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+            font-size: 1.2em;
+            transition: all 0.3s;
+        }
+
+        .folder-header:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .folder-icon {
+            display: inline-block;
+            margin-right: 10px;
+            font-size: 1.5em;
+            transition: transform 0.3s;
+        }
+
+        .folder.open .folder-icon {
+            transform: rotate(90deg);
+        }
+
+        .folder-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+            background: white;
+        }
+
+        .folder.open .folder-content {
+            max-height: 5000px;
+            transition: max-height 0.8s ease-in;
+        }
+
+        .subfolder {
+            margin: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .subfolder-header {
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f0f4ff;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .subfolder-header:hover {
+            background: #e0e8ff;
+        }
+
+        .subfolder-icon {
+            display: inline-block;
+            margin-right: 10px;
+            transition: transform 0.3s;
+        }
+
+        .subfolder.open .subfolder-icon {
+            transform: rotate(90deg);
+        }
+
+        .subfolder-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+            background: white;
+            padding: 0 15px;
+        }
+
+        .subfolder.open .subfolder-content {
+            max-height: 3000px;
+            padding: 15px;
+            transition: max-height 0.6s ease-in;
+        }
+
+        .question-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            transition: all 0.3s;
+        }
+
+        .question-item:hover {
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+
+        .question-preview {
+            flex: 1;
+            margin-right: 15px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .image-preview {
+            max-width: 150px;
+            max-height: 150px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 3px solid #1e3c72;
+            margin: 10px 0;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 40px;
+            border-radius: 20px;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .close-modal-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1em;
+        }
+
+        .close-modal-btn:hover {
+            background: #d32f2f;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .badge-count {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .badge-image {
+            background: #2196F3;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Admin Panel - Kelola Soal</h1>
+            <a href="index.html" class="btn-game">Kembali ke Game</a>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="stats" id="statsContainer"></div>
+
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab('upload')">Upload JSON</button>
+            <button class="tab-btn" onclick="switchTab('manual')">Input Manual</button>
+            <button class="tab-btn" onclick="switchTab('manage')">Kelola Soal</button>
+        </div>
+
+        <div id="uploadTab" class="tab-content active">
+            <h2 style="color: #1e3c72; margin-bottom: 20px;">Upload File JSON</h2>
+            
+            <label>Pilih Mata Pelajaran:</label>
+            <select id="uploadSubject">
+                <option value="">-- Pilih Mata Pelajaran --</option>
+                <option value="Pendidikan Pancasila">Pendidikan Pancasila</option>
+                <option value="PLBJ">PLBJ</option>
+                <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                <option value="Seni Rupa">Seni Rupa</option>
+                <option value="PJOK">PJOK</option>
+                <option value="Matematika">Matematika</option>
+                <option value="Agama">Agama</option>
+            </select>
+
+            <label>BAB ke-</label>
+            <input type="number" id="uploadChapter" min="1" max="20" value="1">
+
+            <div class="upload-section">
+                <label>1. Upload dari Folder Internal Server (/root/game/)</label>
+                <p class="info-text">Pilih file JSON yang sudah ada di server</p>
+                <select id="internalFileSelect">
+                    <option value="">-- Loading... --</option>
+                </select>
+                <button class="btn btn-success btn-small" onclick="loadInternalFile()">Muat File Internal</button>
+            </div>
+
+            <div class="upload-section">
+                <label>2. Upload dari Komputer (File .json)</label>
+                <p class="info-text">Pilih file JSON dari komputer Anda</p>
+                <input type="file" id="jsonFileInput" accept=".json">
+                <div id="jsonPreview"></div>
+            </div>
+
+            <div class="center" style="margin-top: 30px;">
+                <button class="btn btn-success" onclick="saveUploadedQuestions()">Simpan Soal</button>
+            </div>
+        </div>
+
+        <div id="manualTab" class="tab-content">
+            <h2 style="color: #1e3c72; margin-bottom: 20px;">Input Soal Manual</h2>
+            
+            <label>Pilih Mata Pelajaran:</label>
+            <select id="manualSubject">
+                <option value="">-- Pilih Mata Pelajaran --</option>
+                <option value="Pendidikan Pancasila">Pendidikan Pancasila</option>
+                <option value="PLBJ">PLBJ</option>
+                <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                <option value="Seni Rupa">Seni Rupa</option>
+                <option value="PJOK">PJOK</option>
+                <option value="Matematika">Matematika</option>
+                <option value="Agama">Agama</option>
+            </select>
+
+            <label>BAB ke-</label>
+            <input type="number" id="manualChapter" min="1" max="20" value="1">
+
+            <div class="question-form">
+                <label>Pertanyaan:</label>
+                <textarea id="questionText" rows="3" placeholder="Masukkan pertanyaan..."></textarea>
+
+                <label>Gambar Soal (Opsional):</label>
+                <input type="file" id="questionImageInput" accept="image/*">
+                <div id="questionImagePreview"></div>
+
+                <label>Pilihan Jawaban:</label>
+                <p class="info-text">Centang radio button untuk menandai jawaban yang benar</p>
+                
+                <div class="option-input-group">
+                    <input type="radio" name="correctAnswer" value="0">
+                    <span style="font-weight: bold; min-width: 30px;">A.</span>
+                    <input type="text" id="optionA" placeholder="Jawaban A">
+                </div>
+                <div class="option-input-group">
+                    <input type="radio" name="correctAnswer" value="1">
+                    <span style="font-weight: bold; min-width: 30px;">B.</span>
+                    <input type="text" id="optionB" placeholder="Jawaban B">
+                </div>
+                <div class="option-input-group">
+                    <input type="radio" name="correctAnswer" value="2">
+                    <span style="font-weight: bold; min-width: 30px;">C.</span>
+                    <input type="text" id="optionC" placeholder="Jawaban C">
+                </div>
+                <div class="option-input-group">
+                    <input type="radio" name="correctAnswer" value="3">
+                    <span style="font-weight: bold; min-width: 30px;">D.</span>
+                    <input type="text" id="optionD" placeholder="Jawaban D">
+                </div>
+            </div>
+
+            <div class="center" style="margin-top: 30px;">
+                <button class="btn btn-success" onclick="addManualQuestion()">Tambah Soal</button>
+                <button class="btn btn-warning" onclick="clearManualForm()">Reset Form</button>
+            </div>
+        </div>
+
+        <div id="manageTab" class="tab-content">
+            <h2 style="color: #1e3c72; margin-bottom: 20px;">Kelola Soal</h2>
+            <div id="questionListContainer"></div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal-btn" onclick="closeEditModal()">Tutup</button>
+            
+            <h3 style="color: #1e3c72; margin-bottom: 20px;">Edit Soal</h3>
+            
+            <div class="question-form">
+                <label>Pertanyaan:</label>
+                <textarea id="editQuestionText" rows="3"></textarea>
+
+                <label>Gambar Soal (Opsional):</label>
+                <input type="file" id="editQuestionImageInput" accept="image/*">
+                <div id="editQuestionImagePreview"></div>
+
+                <label>Pilihan Jawaban:</label>
+                <div class="option-input-group">
+                    <input type="radio" name="editCorrectAnswer" value="0">
+                    <span style="font-weight: bold; min-width: 30px;">A.</span>
+                    <input type="text" id="editOptionA">
+                </div>
+                <div class="option-input-group">
+                    <input type="radio" name="editCorrectAnswer" value="1">
+                    <span style="font-weight: bold; min-width: 30px;">B.</span>
+                    <input type="text" id="editOptionB">
+                </div>
+                <div class="option-input-group">
+                    <input type="radio" name="editCorrectAnswer" value="2">
+                    <span style="font-weight: bold; min-width: 30px;">C.</span>
+                    <input type="text" id="editOptionC">
+                </div>
+                <div class="option-input-group">
+                    <input type="radio" name="editCorrectAnswer" value="3">
+                    <span style="font-weight: bold; min-width: 30px;">D.</span>
+                    <input type="text" id="editOptionD">
+                </div>
+            </div>
+
+            <div class="center" style="margin-top: 20px;">
+                <button class="btn btn-success" onclick="saveEditedQuestion()">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let questionBank = {};
+        let uploadedQuestions = [];
+        let questionImageBase64 = '';
+        let editQuestionImageBase64 = '';
+        let editingSubject = '';
+        let editingChapter = '';
+        let editingIndex = -1;
+        const INTERNAL_FILE_API = 'load_internal_files.php';
+
+        const subjectToFilename = {
+            'Matematika': 'matematika',
+            'Bahasa Indonesia': 'bahasa_indonesia',
+            'Pendidikan Pancasila': 'pendidikan_pancasila',
+            'PLBJ': 'plbj',
+            'Seni Rupa': 'seni_rupa',
+            'PJOK': 'pjok',
+            'Agama': 'agama'
+        };
+
+        function loadStoredQuestions() {
+            const stored = window.localStorage.getItem('questionBank');
+            if (stored) {
+                try {
+                    questionBank = JSON.parse(stored);
+                    console.log('Bank soal dimuat:', Object.keys(questionBank).length, 'mata pelajaran');
+                } catch (e) {
+                    console.error('Error loading questions:', e);
+                    questionBank = {};
+                }
+            }
+        }
+
+        function saveQuestionBank() {
+            window.localStorage.setItem('questionBank', JSON.stringify(questionBank));
+            updateStats();
+            console.log('Bank soal tersimpan');
+        }
+
+        async function saveToServer(subject, chapter) {
+            if (!questionBank[subject] || !questionBank[subject][chapter]) {
+                console.log('Data tidak ditemukan, skip save to server');
+                return false;
+            }
+
+            const questions = questionBank[subject][chapter];
+            const filenameKey = subjectToFilename[subject];
+            
+            if (!filenameKey) {
+                console.error('Subject tidak dikenali:', subject);
+                return false;
+            }
+
+            const filename = `${filenameKey}_bab${chapter}.json`;
+
+            try {
+                const response = await fetch(INTERNAL_FILE_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        content: questions
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log(`File ${filename} berhasil disimpan ke server`);
+                    return true;
+                } else {
+                    console.error('Gagal menyimpan ke server:', result.message);
+                    return false;
+                }
+            } catch (error) {
+                console.log('Server tidak tersedia, hanya disimpan di localStorage');
+                return false;
+            }
+        }
+
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        function updateStats() {
+            const container = document.getElementById('statsContainer');
+            const subjects = Object.keys(questionBank);
+            let totalChapters = 0;
+            let totalQuestions = 0;
+
+            subjects.forEach(subject => {
+                const chapters = Object.keys(questionBank[subject]);
+                totalChapters += chapters.length;
+                chapters.forEach(chapter => {
+                    const questions = questionBank[subject][chapter];
+                    totalQuestions += Array.isArray(questions) ? questions.length : 0;
+                });
+            });
+
+            container.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${subjects.length}</div>
+                    <div class="stat-label">Mata Pelajaran</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <div class="stat-number">${totalChapters}</div>
+                    <div class="stat-label">Total BAB</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <div class="stat-number">${totalQuestions}</div>
+                    <div class="stat-label">Total Soal</div>
+                </div>
+            `;
+        }
+
+        document.getElementById('questionImageInput')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    questionImageBase64 = event.target.result;
+                    document.getElementById('questionImagePreview').innerHTML = 
+                        `<img src="${event.target.result}" class="image-preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('editQuestionImageInput')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    editQuestionImageBase64 = event.target.result;
+                    document.getElementById('editQuestionImagePreview').innerHTML = 
+                        `<img src="${event.target.result}" class="image-preview"><p class="info-text">Gambar baru dipilih</p>`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('jsonFileInput')?.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        uploadedQuestions = JSON.parse(event.target.result);
+                        document.getElementById('jsonPreview').innerHTML = 
+                            `<div class="alert alert-success">File JSON berhasil dibaca! Ditemukan ${uploadedQuestions.length} soal</div>`;
+                    } catch (err) {
+                        document.getElementById('jsonPreview').innerHTML = 
+                            '<div class="alert alert-error">Error: File JSON tidak valid!</div>';
+                        uploadedQuestions = [];
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        async function loadInternalFileList() {
+            const select = document.getElementById('internalFileSelect');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">-- Loading... --</option>';
+            
+            try {
+                const response = await fetch(INTERNAL_FILE_API);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                select.innerHTML = '<option value="">-- Pilih File --</option>';
+                
+                if (result.success && result.files && result.files.length > 0) {
+                    result.files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file.name;
+                        option.textContent = `${file.name} (${file.question_count} soal, ${file.size_formatted})`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">-- Tidak ada file --</option>';
+                }
+            } catch (error) {
+                select.innerHTML = '<option value="">-- Backend tidak tersedia --</option>';
+                console.warn('Backend belum tersedia:', error.message);
+            }
+        }
+
+        async function loadInternalFile() {
+            const fileName = document.getElementById('internalFileSelect').value;
+            
+            if (!fileName) {
+                showAlert('Pilih file terlebih dahulu!', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${INTERNAL_FILE_API}?file=${encodeURIComponent(fileName)}`);
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Backend tidak tersedia');
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    uploadedQuestions = result.data;
+                    showAlert(`File "${result.filename}" berhasil dimuat! Ditemukan ${result.count} soal.`, 'success');
+                } else {
+                    showAlert('Error: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showAlert('Backend PHP tidak tersedia. Gunakan upload dari komputer.', 'warning');
+            }
+        }
+
+        async function saveUploadedQuestions() {
+            const subject = document.getElementById('uploadSubject').value;
+            const chapter = document.getElementById('uploadChapter').value;
+
+            if (!subject) {
+                showAlert('Pilih mata pelajaran!', 'warning');
+                return;
+            }
+
+            if (uploadedQuestions.length === 0) {
+                showAlert('Upload file JSON terlebih dahulu!', 'warning');
+                return;
+            }
+
+            if (!questionBank[subject]) {
+                questionBank[subject] = {};
+            }
+
+            questionBank[subject][chapter] = uploadedQuestions;
+            saveQuestionBank();
+
+            const serverSaved = await saveToServer(subject, chapter);
+            
+            if (serverSaved) {
+                showAlert(`${uploadedQuestions.length} soal berhasil disimpan untuk ${subject} BAB ${chapter} (tersimpan di server dan localStorage)!`, 'success');
+            } else {
+                showAlert(`${uploadedQuestions.length} soal berhasil disimpan untuk ${subject} BAB ${chapter} (hanya di localStorage)!`, 'warning');
+            }
+
+            uploadedQuestions = [];
+            document.getElementById('jsonFileInput').value = '';
+            document.getElementById('jsonPreview').innerHTML = '';
+            displayQuestionList();
+        }
+
+        async function addManualQuestion() {
+            const subject = document.getElementById('manualSubject').value;
+            const chapter = document.getElementById('manualChapter').value;
+            const questionText = document.getElementById('questionText').value.trim();
+            const optionA = document.getElementById('optionA').value.trim();
+            const optionB = document.getElementById('optionB').value.trim();
+            const optionC = document.getElementById('optionC').value.trim();
+            const optionD = document.getElementById('optionD').value.trim();
+            const correctAnswer = document.querySelector('input[name="correctAnswer"]:checked');
+
+            if (!subject || !questionText || !optionA || !optionB || !optionC || !optionD) {
+                showAlert('Lengkapi semua field!', 'warning');
+                return;
+            }
+
+            if (!correctAnswer) {
+                showAlert('Pilih jawaban yang benar!', 'warning');
+                return;
+            }
+
+            const newQuestion = {
+                question: questionText,
+                options: [
+                    { text: optionA, letter: 'A' },
+                    { text: optionB, letter: 'B' },
+                    { text: optionC, letter: 'C' },
+                    { text: optionD, letter: 'D' }
+                ],
+                correct: parseInt(correctAnswer.value),
+                image: questionImageBase64 || null
+            };
+
+            if (!questionBank[subject]) {
+                questionBank[subject] = {};
+            }
+            if (!questionBank[subject][chapter]) {
+                questionBank[subject][chapter] = [];
+            }
+
+            questionBank[subject][chapter].push(newQuestion);
+            saveQuestionBank();
+
+            const serverSaved = await saveToServer(subject, chapter);
+
+            if (serverSaved) {
+                showAlert(`Soal berhasil ditambahkan ke ${subject} BAB ${chapter} (tersimpan di server dan localStorage)!`, 'success');
+            } else {
+                showAlert(`Soal berhasil ditambahkan ke ${subject} BAB ${chapter} (hanya di localStorage)!`, 'warning');
+            }
+
+            clearManualForm();
+            displayQuestionList();
+        }
+
+        function clearManualForm() {
+            document.getElementById('questionText').value = '';
+            document.getElementById('optionA').value = '';
+            document.getElementById('optionB').value = '';
+            document.getElementById('optionC').value = '';
+            document.getElementById('optionD').value = '';
+            document.getElementById('questionImageInput').value = '';
+            document.getElementById('questionImagePreview').innerHTML = '';
+            document.querySelectorAll('input[name="correctAnswer"]').forEach(r => r.checked = false);
+            questionImageBase64 = '';
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tab === 'upload') {
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+                document.getElementById('uploadTab').classList.add('active');
+            } else if (tab === 'manual') {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.getElementById('manualTab').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:nth-child(3)').classList.add('active');
+                document.getElementById('manageTab').classList.add('active');
+                displayQuestionList();
+            }
+        }
+
+        function displayQuestionList() {
+            const container = document.getElementById('questionListContainer');
+            container.innerHTML = '';
+
+            const subjects = Object.keys(questionBank);
+            
+            if (subjects.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📂</div>
+                        <h3>Belum Ada Soal</h3>
+                        <p>Silakan tambah soal melalui tab Upload JSON atau Input Manual</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const folderContainer = document.createElement('div');
+            folderContainer.className = 'folder-container';
+
+            subjects.forEach((subject, subjectIndex) => {
+                const chapters = Object.keys(questionBank[subject]).sort((a, b) => a - b);
+                let totalSubjectQuestions = 0;
+                
+                chapters.forEach(chapter => {
+                    const questions = questionBank[subject][chapter];
+                    totalSubjectQuestions += Array.isArray(questions) ? questions.length : 0;
+                });
+
+                const folder = document.createElement('div');
+                folder.className = 'folder';
+                folder.id = `folder-${subjectIndex}`;
+                
+                const folderHeader = document.createElement('div');
+                folderHeader.className = 'folder-header';
+                folderHeader.onclick = () => toggleFolder(subjectIndex);
+                folderHeader.innerHTML = `
+                    <div>
+                        <span class="folder-icon">▶</span>
+                        <span>📚 ${subject}</span>
+                        <span class="badge badge-count">${totalSubjectQuestions} soal</span>
+                    </div>
+                    <div>
+                        <span class="badge" style="background: white; color: #1e3c72;">${chapters.length} BAB</span>
+                    </div>
+                `;
+                
+                const folderContent = document.createElement('div');
+                folderContent.className = 'folder-content';
+                
+                chapters.forEach((chapter, chapterIndex) => {
+                    const questions = questionBank[subject][chapter];
+                    const questionsArray = Array.isArray(questions) ? questions : [];
+                    const questionsCount = questionsArray.length;
+                    const imageCount = questionsArray.filter(q => q.image).length;
+                    
+                    const subfolder = document.createElement('div');
+                    subfolder.className = 'subfolder';
+                    subfolder.id = `subfolder-${subjectIndex}-${chapterIndex}`;
+                    
+                    const subfolderHeader = document.createElement('div');
+                    subfolderHeader.className = 'subfolder-header';
+                    subfolderHeader.onclick = () => toggleSubfolder(subjectIndex, chapterIndex);
+                    subfolderHeader.innerHTML = `
+                        <div>
+                            <span class="subfolder-icon">▶</span>
+                            <span>📖 BAB ${chapter}</span>
+                            <span class="badge badge-count">${questionsCount} soal</span>
+                            ${imageCount > 0 ? `<span class="badge badge-image">${imageCount} gambar</span>` : ''}
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-success btn-small" onclick="event.stopPropagation(); downloadChapterJSON('${subject}', '${chapter}')">Download</button>
+                            <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); deleteChapter('${subject}', '${chapter}')">Hapus BAB</button>
+                        </div>
+                    `;
+                    
+                    const subfolderContent = document.createElement('div');
+                    subfolderContent.className = 'subfolder-content';
+                    
+                    questionsArray.forEach((q, index) => {
+                        const questionPreview = q.question.substring(0, 80) + (q.question.length > 80 ? '...' : '');
+                        const questionItem = document.createElement('div');
+                        questionItem.className = 'question-item';
+                        questionItem.innerHTML = `
+                            <div class="question-preview">
+                                <strong>${index + 1}.</strong> ${questionPreview}
+                                ${q.image ? '<span style="color: #2196F3; margin-left: 10px; font-weight: bold;">📷</span>' : ''}
+                            </div>
+                            <div style="display: flex; gap: 5px;">
+                                <button class="btn btn-warning btn-small" onclick="editQuestion('${subject}', '${chapter}', ${index})">Edit</button>
+                                <button class="btn btn-danger btn-small" onclick="deleteSingleQuestion('${subject}', '${chapter}', ${index})">Hapus</button>
+                            </div>
+                        `;
+                        subfolderContent.appendChild(questionItem);
+                    });
+                    
+                    subfolder.appendChild(subfolderHeader);
+                    subfolder.appendChild(subfolderContent);
+                    folderContent.appendChild(subfolder);
+                });
+                
+                folder.appendChild(folderHeader);
+                folder.appendChild(folderContent);
+                folderContainer.appendChild(folder);
+            });
+
+            container.appendChild(folderContainer);
+        }
+
+        function toggleFolder(index) {
+            const folder = document.getElementById(`folder-${index}`);
+            folder.classList.toggle('open');
+        }
+
+        function toggleSubfolder(subjectIndex, chapterIndex) {
+            const subfolder = document.getElementById(`subfolder-${subjectIndex}-${chapterIndex}`);
+            subfolder.classList.toggle('open');
+        }
+
+        async function deleteChapter(subject, chapter) {
+            if (confirm(`Hapus semua soal ${subject} BAB ${chapter}?`)) {
+                delete questionBank[subject][chapter];
+                
+                if (Object.keys(questionBank[subject]).length === 0) {
+                    delete questionBank[subject];
+                }
+                
+                saveQuestionBank();
+                
+                const filenameKey = subjectToFilename[subject];
+                if (filenameKey) {
+                    const filename = `${filenameKey}_bab${chapter}.json`;
+                    
+                    try {
+                        const response = await fetch(INTERNAL_FILE_API, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: `file=${encodeURIComponent(filename)}`
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            if (result.success) {
+                                showAlert('BAB berhasil dihapus dari server dan localStorage!', 'success');
+                            } else {
+                                showAlert('BAB dihapus dari localStorage, tapi gagal dihapus dari server.', 'warning');
+                            }
+                        } else {
+                            showAlert('BAB dihapus dari localStorage (server tidak tersedia).', 'warning');
+                        }
+                    } catch (error) {
+                        showAlert('BAB dihapus dari localStorage (server tidak tersedia).', 'warning');
+                    }
+                } else {
+                    showAlert('BAB berhasil dihapus dari localStorage!', 'success');
+                }
+                
+                displayQuestionList();
+            }
+        }
+
+        async function deleteSingleQuestion(subject, chapter, index) {
+            const questions = questionBank[subject][chapter];
+            const questionPreview = questions[index].question.substring(0, 50);
+            
+            if (confirm(`Hapus soal ini?\n\n"${questionPreview}..."`)) {
+                questions.splice(index, 1);
+                
+                if (questions.length === 0) {
+                    delete questionBank[subject][chapter];
+                    
+                    if (Object.keys(questionBank[subject]).length === 0) {
+                        delete questionBank[subject];
+                    }
+                    
+                    const filenameKey = subjectToFilename[subject];
+                    if (filenameKey) {
+                        const filename = `${filenameKey}_bab${chapter}.json`;
+                        
+                        try {
+                            const response = await fetch(INTERNAL_FILE_API, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded'
+                                },
+                                body: `file=${encodeURIComponent(filename)}`
+                            });
+                            
+                            if (response.ok) {
+                                const result = await response.json();
+                                if (result.success) {
+                                    showAlert('Soal terakhir dihapus. BAB dihapus dari server dan localStorage!', 'success');
+                                } else {
+                                    showAlert('Soal dihapus. BAB dihapus dari localStorage, tapi gagal dihapus dari server.', 'warning');
+                                }
+                            } else {
+                                showAlert('Soal dihapus. BAB dihapus dari localStorage (server tidak tersedia).', 'warning');
+                            }
+                        } catch (error) {
+                            showAlert('Soal dihapus. BAB dihapus dari localStorage (server tidak tersedia).', 'warning');
+                        }
+                    } else {
+                        showAlert('Soal terakhir dihapus. BAB dihapus dari localStorage!', 'success');
+                    }
+                } else {
+                    await saveToServer(subject, chapter);
+                    showAlert('Soal berhasil dihapus!', 'success');
+                }
+                
+                saveQuestionBank();
+                displayQuestionList();
+            }
+        }
+
+        function downloadChapterJSON(subject, chapter) {
+            const questions = questionBank[subject][chapter];
+            
+            if (!questions || questions.length === 0) {
+                showAlert('Tidak ada soal untuk didownload!', 'warning');
+                return;
+            }
+
+            const jsonString = JSON.stringify(questions, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            const safeSubject = subject.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            a.download = `${safeSubject}_bab${chapter}.json`;
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showAlert(`File "${safeSubject}_bab${chapter}.json" berhasil didownload!`, 'success');
+        }
+
+        function editQuestion(subject, chapter, index) {
+            editingSubject = subject;
+            editingChapter = chapter;
+            editingIndex = index;
+            
+            const question = questionBank[subject][chapter][index];
+            
+            document.getElementById('editQuestionText').value = question.question;
+            document.getElementById('editOptionA').value = question.options[0].text;
+            document.getElementById('editOptionB').value = question.options[1].text;
+            document.getElementById('editOptionC').value = question.options[2].text;
+            document.getElementById('editOptionD').value = question.options[3].text;
+            
+            document.querySelectorAll('input[name="editCorrectAnswer"]').forEach((radio, idx) => {
+                radio.checked = (idx === question.correct);
+            });
+            
+            editQuestionImageBase64 = question.image || '';
+            const previewDiv = document.getElementById('editQuestionImagePreview');
+            if (question.image) {
+                previewDiv.innerHTML = `
+                    <img src="${question.image}" class="image-preview">
+                    <p class="info-text">Gambar saat ini (upload baru untuk mengganti)</p>
+                `;
+            } else {
+                previewDiv.innerHTML = '<p class="info-text">Tidak ada gambar</p>';
+            }
+            
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('editQuestionImageInput').value = '';
+            document.getElementById('editQuestionImagePreview').innerHTML = '';
+            editQuestionImageBase64 = '';
+            editingSubject = '';
+            editingChapter = '';
+            editingIndex = -1;
+        }
+
+        async function saveEditedQuestion() {
+            const questionText = document.getElementById('editQuestionText').value.trim();
+            const optionA = document.getElementById('editOptionA').value.trim();
+            const optionB = document.getElementById('editOptionB').value.trim();
+            const optionC = document.getElementById('editOptionC').value.trim();
+            const optionD = document.getElementById('editOptionD').value.trim();
+            const correctAnswer = document.querySelector('input[name="editCorrectAnswer"]:checked');
+
+            if (!questionText || !optionA || !optionB || !optionC || !optionD) {
+                showAlert('Lengkapi semua field!', 'warning');
+                return;
+            }
+
+            if (!correctAnswer) {
+                showAlert('Pilih jawaban yang benar!', 'warning');
+                return;
+            }
+
+            const updatedQuestion = {
+                question: questionText,
+                options: [
+                    { text: optionA, letter: 'A' },
+                    { text: optionB, letter: 'B' },
+                    { text: optionC, letter: 'C' },
+                    { text: optionD, letter: 'D' }
+                ],
+                correct: parseInt(correctAnswer.value),
+                image: editQuestionImageBase64 || null
+            };
+
+            questionBank[editingSubject][editingChapter][editingIndex] = updatedQuestion;
+            saveQuestionBank();
+
+            const serverSaved = await saveToServer(editingSubject, editingChapter);
+
+            displayQuestionList();
+            closeEditModal();
+
+            if (serverSaved) {
+                showAlert('Soal berhasil diperbarui (tersimpan di server dan localStorage)!', 'success');
+            } else {
+                showAlert('Soal berhasil diperbarui (hanya di localStorage)!', 'warning');
+            }
+        }
+
+        loadStoredQuestions();
+        loadInternalFileList();
+        updateStats();
+    </script>
+</body>
+</html>
