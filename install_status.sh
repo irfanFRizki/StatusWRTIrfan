@@ -14,6 +14,30 @@ NC='\033[0m' # No Color
 SRC_DIR=""
 
 # ========================
+# Fungsi untuk cek apakah package sudah terinstall
+# ========================
+check_package_installed() {
+  local pkg_name="$1"
+  if opkg list-installed | grep -q "^${pkg_name} "; then
+    return 0  # terinstall
+  else
+    return 1  # belum terinstall
+  fi
+}
+
+# ========================
+# Fungsi untuk cek apakah python package sudah terinstall
+# ========================
+check_python_package_installed() {
+  local pkg_name="$1"
+  if pip3 list | grep -i "^${pkg_name} " >/dev/null 2>&1; then
+    return 0  # terinstall
+  else
+    return 1  # belum terinstall
+  fi
+}
+
+# ========================
 # Fungsi Decode Credentials
 # ========================
 decode_credentials() {
@@ -46,36 +70,98 @@ loading_progress() {
 }
 
 # ========================
+# Fungsi Konfirmasi
+# ========================
+ask_confirmation() {
+  local message="$1"
+  while true; do
+    echo -ne "${YELLOW}$message [y/n]: ${NC}"
+    read -r answer
+    case $answer in
+      [Yy]|[Yy][Ee][Ss]) return 0 ;;
+      [Nn]|[Nn][Oo]) return 1 ;;
+      *) echo -e "${RED}Masukkan y (yes) atau n (no)${NC}" ;;
+    esac
+  done
+}
+
+# ========================
 # Fungsi 1: Update paket & Instal dependensi
 # ========================
 install_update() {
-  echo -e "${CYAN}Memulai update paket dan instalasi dependensi...${NC}"
+  echo -e "${CYAN}=== STEP 1: Update paket dan instalasi dependensi ===${NC}"
   opkg update > /dev/null 2>&1
   loading_progress "Updating paket"
   echo -e "${GREEN}Update paket selesai.${NC}"
   
-  # Install basic packages
-  for pkg in coreutils-sleep bc git git-http wget python3-requests python3-pip coreutils-base64; do
-    loading_progress "Menginstal $pkg"
-    echo -e "${GREEN}$(opkg install $pkg 2>&1)${NC}"
+  # Install basic packages with check
+  packages=("coreutils-sleep" "bc" "git" "git-http" "wget" "python3-requests" "python3-pip" "coreutils-base64")
+  for pkg in "${packages[@]}"; do
+    if check_package_installed "$pkg"; then
+      echo -e "${YELLOW}$pkg sudah terinstall, melewati instalasi.${NC}"
+    else
+      loading_progress "Menginstal $pkg"
+      if opkg install "$pkg" > /dev/null 2>&1; then
+        echo -e "${GREEN}$pkg berhasil diinstal.${NC}"
+      else
+        echo -e "${RED}Gagal menginstal $pkg.${NC}"
+      fi
+    fi
+  done
+  
+  # Install PHP8 packages
+  echo -e "${CYAN}Menginstal paket PHP8...${NC}"
+  php8_packages=(
+    "php8"
+    "php8-cgi"
+    "php8-cli"
+    "php8-mod-curl"
+    "php8-mod-mbstring"
+    "php8-mod-session"
+    "php8-mod-json"
+    "php8-mod-openssl"
+    "php8-mod-pdo"
+    "php8-mod-pdo-sqlite"
+    "php8-mod-sqlite3"
+    "php8-mod-xml"
+    "php8-mod-zip"
+  )
+  
+  for pkg in "${php8_packages[@]}"; do
+    if check_package_installed "$pkg"; then
+      echo -e "${YELLOW}$pkg sudah terinstall, melewati instalasi.${NC}"
+    else
+      loading_progress "Menginstal $pkg"
+      if opkg install "$pkg" > /dev/null 2>&1; then
+        echo -e "${GREEN}$pkg berhasil diinstal.${NC}"
+      else
+        echo -e "${YELLOW}$pkg tidak tersedia atau gagal diinstal.${NC}"
+      fi
+    fi
   done
   
   # Check and install luci-app-nlbwmon if not exists
-  if ! opkg list-installed | grep -q "luci-app-nlbwmon"; then
-    loading_progress "Menginstal luci-app-nlbwmon"
-    opkg install luci-app-nlbwmon > /dev/null 2>&1
-    echo -e "${GREEN}luci-app-nlbwmon diinstal.${NC}"
+  if check_package_installed "luci-app-nlbwmon"; then
+    echo -e "${YELLOW}luci-app-nlbwmon sudah terinstall.${NC}"
   else
-    echo -e "${YELLOW}luci-app-nlbwmon sudah terinstal.${NC}"
+    loading_progress "Menginstal luci-app-nlbwmon"
+    if opkg install luci-app-nlbwmon > /dev/null 2>&1; then
+      echo -e "${GREEN}luci-app-nlbwmon berhasil diinstal.${NC}"
+    else
+      echo -e "${RED}Gagal menginstal luci-app-nlbwmon.${NC}"
+    fi
   fi
   
   # Check and install luci-app-cloudflared if not exists
-  if ! opkg list-installed | grep -q "luci-app-cloudflared"; then
-    loading_progress "Menginstal luci-app-cloudflared"
-    opkg install luci-app-cloudflared > /dev/null 2>&1
-    echo -e "${GREEN}luci-app-cloudflared diinstal.${NC}"
+  if check_package_installed "luci-app-cloudflared"; then
+    echo -e "${YELLOW}luci-app-cloudflared sudah terinstall.${NC}"
   else
-    echo -e "${YELLOW}luci-app-cloudflared sudah terinstal.${NC}"
+    loading_progress "Menginstal luci-app-cloudflared"
+    if opkg install luci-app-cloudflared > /dev/null 2>&1; then
+      echo -e "${GREEN}luci-app-cloudflared berhasil diinstal.${NC}"
+    else
+      echo -e "${RED}Gagal menginstal luci-app-cloudflared.${NC}"
+    fi
   fi
   
   # Check /etc/vnstat directory and setup if not exists
@@ -89,13 +175,14 @@ install_update() {
   else
     echo -e "${YELLOW}Direktori /etc/vnstat sudah ada.${NC}"
   fi
+  echo -e "${GREEN}✓ STEP 1 SELESAI${NC}\n"
 }
 
 # ========================
 # Fungsi 2: Clone repository dan setup lengkap
 # ========================
 clone_repo() {
-  echo -e "${CYAN}Meng-clone repository StatusWRTIrfan...${NC}"
+  echo -e "${CYAN}=== STEP 2: Clone repository dan setup lengkap ===${NC}"
   cd /root || return
   git clone https://github.com/irfanFRizki/StatusWRTIrfan.git > /dev/null 2>&1
   loading_progress "Meng-clone repository"
@@ -112,22 +199,36 @@ clone_repo() {
   loading_progress "Membuat direktori tujuan"
   echo -e "${GREEN}Direktori tujuan dibuat.${NC}"
 
-  # Install extra packages
+  # Install extra packages with check
   echo -e "${CYAN}Menginstal paket tambahan...${NC}"
-  for pkg in python3-requests python3-pip; do
-    loading_progress "Menginstal $pkg"
-    opkg install "$pkg" > /dev/null 2>&1
-    echo -e "${GREEN}$pkg diinstal.${NC}"
+  extra_packages=("python3-requests" "python3-pip")
+  for pkg in "${extra_packages[@]}"; do
+    if check_package_installed "$pkg"; then
+      echo -e "${YELLOW}$pkg sudah terinstall, melewati instalasi.${NC}"
+    else
+      loading_progress "Menginstal $pkg"
+      if opkg install "$pkg" > /dev/null 2>&1; then
+        echo -e "${GREEN}$pkg berhasil diinstal.${NC}"
+      else
+        echo -e "${RED}Gagal menginstal $pkg.${NC}"
+      fi
+    fi
   done
 
-  # Instalasi paket Python via pip3
-  loading_progress "pip3 install requests"
-  pip3 install requests > /dev/null 2>&1
-  echo -e "${GREEN}requests (pip3) diinstal.${NC}"
-
-  loading_progress "pip3 install websocket-client"
-  pip3 install websocket-client > /dev/null 2>&1
-  echo -e "${GREEN}websocket-client (pip3) diinstal.${NC}"
+  # Instalasi paket Python via pip3 with check
+  python_packages=("requests" "websocket-client")
+  for pkg in "${python_packages[@]}"; do
+    if check_python_package_installed "$pkg"; then
+      echo -e "${YELLOW}$pkg (pip3) sudah terinstall, melewati instalasi.${NC}"
+    else
+      loading_progress "pip3 install $pkg"
+      if pip3 install "$pkg" > /dev/null 2>&1; then
+        echo -e "${GREEN}$pkg (pip3) berhasil diinstal.${NC}"
+      else
+        echo -e "${RED}Gagal menginstal $pkg (pip3).${NC}"
+      fi
+    fi
+  done
 
   # Configure DHCP domains
   echo -e "${CYAN}Menambahkan entri domain dari repository...${NC}"
@@ -151,12 +252,6 @@ clone_repo() {
   chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py /usr/bin/checkIP.py /usr/bin/vpn.py /usr/bin/vnstat-backup.sh
   echo -e "${GREEN}Skrip Telegram berhasil dipindahkan dan diaktifkan.${NC}"
 
-  # Deploy LuCI Informasi
-  echo -e "${CYAN}Memindahkan view/controller LuCI Informasi...${NC}"
-  mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/"* /usr/lib/lua/luci/view/informasi/ > /dev/null 2>&1
-  mv "$SRC_DIR/usr/lib/lua/luci/controller/informasi.lua" /usr/lib/lua/luci/controller/ > /dev/null 2>&1
-  echo -e "${GREEN}File LuCI Informasi berhasil dipindahkan ke sistem${NC}"
-
   # Deploy WWW pages
   echo -e "${CYAN}Memindahkan halaman WWW...${NC}"
   mv "$SRC_DIR/www/"*.html /www/ > /dev/null 2>&1
@@ -167,6 +262,28 @@ clone_repo() {
   mv "$SRC_DIR/www/cgi-bin/"* /www/cgi-bin/ > /dev/null 2>&1
   chmod +x /www/cgi-bin/*
   echo -e "${GREEN}Semua script CGI berhasil dipindahkan dan diaktifkan${NC}"
+
+  # Move /www/game directory
+  echo -e "${CYAN}Memindahkan direktori /www/game...${NC}"
+  if [ -d "$SRC_DIR/www/game" ]; then
+    mkdir -p /www/game > /dev/null 2>&1
+    mv "$SRC_DIR/www/game/"* /www/game/ > /dev/null 2>&1
+    loading_progress "Memindahkan direktori game ke /www/game"
+    echo -e "${GREEN}Direktori game berhasil dipindahkan ke /www/game${NC}"
+  else
+    echo -e "${YELLOW}Direktori www/game tidak ditemukan di repository${NC}"
+  fi
+
+  # Move /root/game directory
+  echo -e "${CYAN}Memindahkan direktori /root/game...${NC}"
+  if [ -d "$SRC_DIR/root/game" ]; then
+    mkdir -p /root/game > /dev/null 2>&1
+    mv "$SRC_DIR/root/game/"* /root/game/ > /dev/null 2>&1
+    loading_progress "Memindahkan direktori game ke /root/game"
+    echo -e "${GREEN}Direktori game berhasil dipindahkan ke /root/game${NC}"
+  else
+    echo -e "${YELLOW}Direktori root/game tidak ditemukan di repository${NC}"
+  fi
 
   # Setup cron jobs
   echo -e "${CYAN}Mengatur cron jobs...${NC}"
@@ -361,16 +478,15 @@ clone_repo() {
   else
     echo -e "${YELLOW}File /etc/config/mahabotwrt tidak ditemukan. Melewati konfigurasi.${NC}"
   fi
+  
+  echo -e "${GREEN}✓ STEP 2 SELESAI${NC}\n"
 }
 
 # ========================
 # Fungsi 3: Update vnstat & nlbwmon
 # ========================
 update_data() {
-  if [ -z "$SRC_DIR" ]; then
-    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
-    return
-  fi
+  echo -e "${CYAN}=== STEP 3: Update vnstat & nlbwmon ===${NC}"
   
   # Update vnstat.db
   echo -e "${CYAN}Mengganti file vnstat.db dengan yang ada di repository...${NC}"
@@ -397,31 +513,31 @@ update_data() {
   /etc/init.d/nlbwmon restart > /dev/null 2>&1
   loading_progress "Restarting nlbwmon service"
   echo -e "${GREEN}Layanan nlbwmon telah direstart.${NC}"
+  
+  echo -e "${GREEN}✓ STEP 3 SELESAI${NC}\n"
 }
 
 # ========================
 # Fungsi 4: Buat file nftables (FIX TTL 63)
 # ========================
 create_nftables() {
-  echo -e "${CYAN}Memeriksa konfigurasi TTL saat ini...${NC}"
+  echo -e "${CYAN}=== STEP 4: Buat file nftables (FIX TTL 65) ===${NC}"
   
   # Check current TTL setting
   current_ttl_check=$(nft list ruleset | grep "ip ttl set" 2>/dev/null || echo "")
   
   if echo "$current_ttl_check" | grep -q "ip ttl set 65"; then
     echo -e "${YELLOW}TTL sudah diset ke 65. Tidak perlu mengubah konfigurasi.${NC}"
-    return
-  fi
-  
-  if [[ -n "$current_ttl_check" ]] && ! echo "$current_ttl_check" | grep -q "ip ttl set 65"; then
-    echo -e "${YELLOW}TTL saat ini tidak diset ke 65. Melanjutkan konfigurasi...${NC}"
   else
-    echo -e "${CYAN}Tidak ada konfigurasi TTL ditemukan. Membuat konfigurasi baru...${NC}"
-  fi
-  
-  echo -e "${CYAN}Membuat file /etc/nftables.d/11-ttl.nft (FIX TTL 65)...${NC}"
-  mkdir -p /etc/nftables.d/ > /dev/null 2>&1
-  cat << 'EOF' > /etc/nftables.d/11-ttl.nft
+    if [[ -n "$current_ttl_check" ]] && ! echo "$current_ttl_check" | grep -q "ip ttl set 65"; then
+      echo -e "${YELLOW}TTL saat ini tidak diset ke 65. Melanjutkan konfigurasi...${NC}"
+    else
+      echo -e "${CYAN}Tidak ada konfigurasi TTL ditemukan. Membuat konfigurasi baru...${NC}"
+    fi
+    
+    echo -e "${CYAN}Membuat file /etc/nftables.d/11-ttl.nft (FIX TTL 65)...${NC}"
+    mkdir -p /etc/nftables.d/ > /dev/null 2>&1
+    cat << 'EOF' > /etc/nftables.d/11-ttl.nft
 chain mangle_postrouting_ttl65 {
     type filter hook postrouting priority 300; policy accept;
     counter ip ttl set 65
@@ -432,118 +548,266 @@ chain mangle_prerouting_ttl65 {
     counter ip ttl set 65
 }
 EOF
-  loading_progress "Membuat file 11-ttl.nft"
-  /etc/init.d/firewall restart > /dev/null 2>&1
-  loading_progress "Restarting firewall"
-  echo -e "${GREEN}Firewall telah direstart dengan TTL 65.${NC}"
+    loading_progress "Membuat file 11-ttl.nft"
+    /etc/init.d/firewall restart > /dev/null 2>&1
+    loading_progress "Restarting firewall"
+    echo -e "${GREEN}Firewall telah direstart dengan TTL 65.${NC}"
+  fi
+  
+  echo -e "${GREEN}✓ STEP 4 SELESAI${NC}\n"
 }
 
 # ========================
 # Fungsi 5: Install semua .ipk
 # ========================
 install_ipk() {
-  if [ -z "$SRC_DIR" ]; then
-    echo -e "${RED}Repository belum di-clone. Jalankan opsi clone_repo terlebih dahulu.${NC}"
-    return
-  fi
-
-  echo -e "${CYAN}Menginstal semua file .ipk di folder ipk...${NC}"
+  echo -e "${CYAN}=== STEP 5: Install semua .ipk ===${NC}"
   
   IPK_DIR="$SRC_DIR/ipk"
 
   if [ ! -d "$IPK_DIR" ]; then
-    echo -e "${RED}Direktori $IPK_DIR tidak ditemukan.${NC}"
-    return
+    echo -e "${YELLOW}Direktori $IPK_DIR tidak ditemukan. Melewati instalasi IPK.${NC}"
+  else
+    for ipk_file in "$IPK_DIR"/*.ipk; do
+      if [ -f "$ipk_file" ]; then
+        # Get package name from ipk filename
+        pkg_basename=$(basename "$ipk_file")
+        pkg_name=$(echo "$pkg_basename" | sed 's/_.*\.ipk$//')
+        
+        if check_package_installed "$pkg_name"; then
+          echo -e "${YELLOW}$pkg_basename sudah terinstall, melewati instalasi.${NC}"
+        else
+          loading_progress "Menginstal $pkg_basename"
+          if opkg install "$ipk_file" > /dev/null 2>&1; then
+            echo -e "${GREEN}$pkg_basename berhasil diinstal${NC}"
+          else
+            echo -e "${RED}Gagal menginstal $pkg_basename${NC}"
+          fi
+        fi
+      fi
+    done
   fi
+  
+  echo -e "${GREEN}✓ STEP 5 SELESAI${NC}\n"
+}
 
-  for ipk_file in "$IPK_DIR"/*.ipk; do
-    if [ -f "$ipk_file" ]; then
-      loading_progress "Menginstal $(basename "$ipk_file")"
-      opkg install "$ipk_file" > /dev/null 2>&1
-      echo -e "${GREEN}$(basename "$ipk_file") berhasil diinstal${NC}"
+# ========================
+# Fungsi 6: Install semua .ipk di folder /mm
+# ========================
+install_ipk_mm() {
+  echo -e "${CYAN}=== STEP 6: Install semua .ipk di folder /mm ===${NC}"
+  
+  IPK_MM_DIR="$SRC_DIR/mm"
+
+  if [ ! -d "$IPK_MM_DIR" ]; then
+    echo -e "${YELLOW}Direktori $IPK_MM_DIR tidak ditemukan. Melewati instalasi IPK MM.${NC}"
+  else
+    for ipk_file in "$IPK_MM_DIR"/*.ipk; do
+      if [ -f "$ipk_file" ]; then
+        # Get package name from ipk filename
+        pkg_basename=$(basename "$ipk_file")
+        pkg_name=$(echo "$pkg_basename" | sed 's/_.*\.ipk$//')
+        
+        if check_package_installed "$pkg_name"; then
+          echo -e "${YELLOW}$pkg_basename sudah terinstall, melewati instalasi.${NC}"
+        else
+          loading_progress "Menginstal $pkg_basename"
+          if opkg install "$ipk_file" > /dev/null 2>&1; then
+            echo -e "${GREEN}$pkg_basename berhasil diinstal${NC}"
+          else
+            echo -e "${RED}Gagal menginstal $pkg_basename${NC}"
+          fi
+        fi
+      fi
+    done
+  fi
+  
+  echo -e "${GREEN}✓ STEP 6 SELESAI${NC}\n"
+}
+
+# ========================
+# Fungsi 7: Install dan jalankan speedtest-telebot
+# ========================
+install_speedtest_telebot() {
+  echo -e "${CYAN}=== STEP 7: Install dan jalankan speedtest-telebot ===${NC}"
+  
+  SPEEDTEST_SCRIPT="$SRC_DIR/root/install-speedtest-telebot.sh"
+
+  if [ ! -f "$SPEEDTEST_SCRIPT" ]; then
+    echo -e "${YELLOW}File install-speedtest-telebot.sh tidak ditemukan. Melewati instalasi speedtest-telebot.${NC}"
+  else
+    # Memberikan permission execute pada script
+    chmod +x "$SPEEDTEST_SCRIPT"
+    loading_progress "Memberikan permission pada script"
+    echo -e "${GREEN}Permission execute berhasil diberikan pada script${NC}"
+
+    # Menjalankan script instalasi speedtest-telebot
+    echo -e "${CYAN}Menjalankan script install-speedtest-telebot.sh...${NC}"
+    loading_progress "Memulai instalasi speedtest-telebot"
+    
+    # Jalankan script dan tampilkan output
+    if bash "$SPEEDTEST_SCRIPT"; then
+      echo -e "${GREEN}Script install-speedtest-telebot.sh berhasil dijalankan${NC}"
+    else
+      echo -e "${RED}Terjadi error saat menjalankan script install-speedtest-telebot.sh${NC}"
+      echo -e "${YELLOW}Periksa output di atas untuk detail error${NC}"
     fi
-  done
+  fi
+  
+  echo -e "${GREEN}✓ STEP 7 SELESAI${NC}\n"
+}
+
+# ========================
+# Fungsi 8: Install LuCI Informasi Jaringan
+# ========================
+install_luci_informasi() {
+  echo -e "${CYAN}=== STEP 8: Install LuCI Informasi Jaringan ===${NC}"
+  
+  if [ -z "$SRC_DIR" ] || [ ! -d "$SRC_DIR" ]; then
+    echo -e "${RED}Repository belum di-clone. Melewati instalasi LuCI Informasi.${NC}"
+  else
+    # Deploy LuCI Informasi
+    echo -e "${CYAN}Memindahkan view/controller LuCI Informasi...${NC}"
+    
+    if [ -d "$SRC_DIR/usr/lib/lua/luci/view/informasi" ]; then
+      mkdir -p /usr/lib/lua/luci/view/informasi/ > /dev/null 2>&1
+      mv "$SRC_DIR/usr/lib/lua/luci/view/informasi/"* /usr/lib/lua/luci/view/informasi/ > /dev/null 2>&1
+      loading_progress "Memindahkan view informasi"
+      echo -e "${GREEN}View LuCI Informasi berhasil dipindahkan${NC}"
+    else
+      echo -e "${YELLOW}Direktori view/informasi tidak ditemukan di repository${NC}"
+    fi
+    
+    if [ -f "$SRC_DIR/usr/lib/lua/luci/controller/informasi.lua" ]; then
+      mkdir -p /usr/lib/lua/luci/controller/ > /dev/null 2>&1
+      mv "$SRC_DIR/usr/lib/lua/luci/controller/informasi.lua" /usr/lib/lua/luci/controller/ > /dev/null 2>&1
+      loading_progress "Memindahkan controller informasi"
+      echo -e "${GREEN}Controller LuCI Informasi berhasil dipindahkan${NC}"
+    else
+      echo -e "${YELLOW}File controller/informasi.lua tidak ditemukan di repository${NC}"
+    fi
+    
+    # Restart uhttpd
+    echo -e "${CYAN}Merestart layanan uhttpd...${NC}"
+    /etc/init.d/uhttpd restart > /dev/null 2>&1
+    loading_progress "Restarting uhttpd service"
+    echo -e "${GREEN}Layanan uhttpd telah direstart${NC}"
+  fi
+  
+  echo -e "${GREEN}✓ STEP 8 SELESAI${NC}\n"
+}
+
+# ========================
+# Fungsi 9: Install opt/data-monitor
+# ========================
+install_data_monitor() {
+  echo -e "${CYAN}=== STEP 9: Install opt/data-monitor ===${NC}"
+  
+  if [ -z "$SRC_DIR" ] || [ ! -d "$SRC_DIR" ]; then
+    echo -e "${RED}Repository belum di-clone. Melewati instalasi data-monitor.${NC}"
+  else
+    # Move /opt/data-monitor directory
+    echo -e "${CYAN}Memindahkan direktori /opt/data-monitor...${NC}"
+    if [ -d "$SRC_DIR/opt/data-monitor" ]; then
+      mkdir -p /opt/ > /dev/null 2>&1
+      # Remove existing directory if exists
+      [ -d "/opt/data-monitor" ] && rm -rf /opt/data-monitor
+      mv "$SRC_DIR/opt/data-monitor" /opt/ > /dev/null 2>&1
+      loading_progress "Memindahkan direktori data-monitor"
+      
+      # Set permissions for data-monitor scripts
+      if [ -d "/opt/data-monitor" ]; then
+        find /opt/data-monitor -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null
+        find /opt/data-monitor -type f -name "*.py" -exec chmod +x {} \; 2>/dev/null
+        echo -e "${GREEN}Direktori data-monitor berhasil dipindahkan ke /opt/data-monitor${NC}"
+        echo -e "${GREEN}Permission execute berhasil diberikan pada script${NC}"
+      fi
+    else
+      echo -e "${YELLOW}Direktori data-monitor tidak ditemukan di repository${NC}"
+    fi
+  fi
+  
+  echo -e "${GREEN}✓ STEP 9 SELESAI${NC}\n"
 }
 
 # ========================
 # Fungsi: Install semua langkah
 # ========================
 install_all() {
+  echo -e "${PURPLE}╔════════════════════════════════════════════════════════════╗${NC}"
+  echo -e "${PURPLE}║                 MEMULAI INSTALASI LENGKAP                  ║${NC}"  
+  echo -e "${PURPLE}╚════════════════════════════════════════════════════════════╝${NC}\n"
+  
   install_update
   clone_repo
   update_data
   create_nftables
   install_ipk
-}
-
-remove_repo() {
-  rm -rf "$SRC_DIR"
-  echo -e "${GREEN}Direktori repo dibersihkan.${NC}"
+  install_ipk_mm
+  install_speedtest_telebot
+  install_luci_informasi
+  install_data_monitor
+  
+  echo -e "${PURPLE}╔════════════════════════════════════════════════════════════╗${NC}"
+  echo -e "${PURPLE}║                 INSTALASI BERHASIL DISELESAIKAN            ║${NC}"
+  echo -e "${PURPLE}╚════════════════════════════════════════════════════════════╝${NC}"
 }
 
 # ========================
-# Menu Utama
+# Fungsi: Cleanup repository
+# ========================
+cleanup_repo() {
+  if [ -d "$SRC_DIR" ]; then
+    echo -e "${CYAN}Membersihkan direktori repository...${NC}"
+    rm -rf "$SRC_DIR"
+    loading_progress "Menghapus direktori repository"
+    echo -e "${GREEN}Direktori repository telah dibersihkan.${NC}"
+    SRC_DIR=""
+  fi
+}
+
+# ========================
+# Menu Utama - One Click Install
 # ========================
 main_menu() {
-  install_update
-  while true; do
-    echo -e "${YELLOW}========== Menu Install ==========${NC}"
-    echo -e "${YELLOW}1) Clone repository dan setup lengkap${NC}"
-    echo -e "${YELLOW}2) Update vnstat & nlbwmon${NC}"
-    echo -e "${YELLOW}3) Buat file nftables (FIX TTL 63)${NC}"
-    echo -e "${YELLOW}4) Install semua ipk${NC}"
-    echo -e "${YELLOW}5) Install semuanya${NC}"
-    echo -e "${YELLOW}6) Keluar${NC}"
-    echo -e "${CYAN}Info: Anda dapat memilih beberapa opsi dengan format: 1,3,4 atau 1,2${NC}"
-    echo -ne "${CYAN}Pilih opsi [1-6] atau kombinasi: ${NC}"
-    read choice
+  echo -e "${PURPLE}╔════════════════════════════════════════════════════════════╗${NC}"
+  echo -e "${PURPLE}║                     ONE CLICK INSTALLER                    ║${NC}"
+  echo -e "${PURPLE}║                   StatusWRT OpenWrt Setup                  ║${NC}"
+  echo -e "${PURPLE}╚════════════════════════════════════════════════════════════╝${NC}\n"
+  
+  echo -e "${CYAN}Script ini akan menginstal dan mengkonfigurasi:${NC}"
+  echo -e "${YELLOW}• Update paket sistem dan dependensi (termasuk PHP8)${NC}"
+  echo -e "${YELLOW}• Clone repository dan setup lengkap${NC}"
+  echo -e "${YELLOW}• Update vnstat & nlbwmon database${NC}"
+  echo -e "${YELLOW}• Konfigurasi nftables (TTL 65)${NC}"
+  echo -e "${YELLOW}• Install semua paket IPK${NC}"
+  echo -e "${YELLOW}• Install paket IPK dari folder /mm${NC}"
+  echo -e "${YELLOW}• Install dan jalankan speedtest-telebot${NC}"
+  echo -e "${YELLOW}• Install LuCI Informasi Jaringan${NC}"
+  echo -e "${YELLOW}• Install opt/data-monitor${NC}"
+  echo -e "${YELLOW}• Pindahkan folder game (/www/game dan /root/game)${NC}"
+  echo -e "${YELLOW}• Konfigurasi cloudflared, telegram bot, dan lainnya${NC}\n"
+  
+  echo -e "${RED}PERINGATAN: ${NC}${YELLOW}Pastikan router terhubung ke internet!${NC}\n"
+  
+  if ask_confirmation "Apakah Anda ingin memulai instalasi lengkap?"; then
+    echo -e "\n${GREEN}Memulai instalasi...${NC}\n"
+    install_all
     
-    # Handle exit first
-    if [[ "$choice" == "6" ]]; then
-      echo -e "${CYAN}Membersihkan temporary files...${NC}"
-      if [ -d "/root/StatusWRTIrfan" ]; then
-        rm -rf /root/StatusWRTIrfan > /dev/null 2>&1
-        loading_progress "Menghapus direktori /root/StatusWRTIrfan"
-        echo -e "${GREEN}Direktori /root/StatusWRTIrfan telah dibersihkan.${NC}"
-      else
-        echo -e "${YELLOW}Direktori /root/StatusWRTIrfan tidak ditemukan.${NC}"
-      fi
-      echo -e "${GREEN}Terima kasih. Keluar.${NC}"; 
-      exit 0
-    fi
+    echo -e "\n${CYAN}Instalasi selesai!${NC}"
     
-    # Handle single or multiple choices
-    if [[ "$choice" =~ ^[1-6](,[1-6])*$ ]]; then
-      # Split choices by comma
-      IFS=',' read -ra CHOICES <<< "$choice"
-      
-      # Execute each choice
-      for selected in "${CHOICES[@]}"; do
-        case $selected in
-          1) echo -e "${BLUE}Menjalankan: Clone repository dan setup lengkap${NC}"; clone_repo ;; 
-          2) echo -e "${BLUE}Menjalankan: Update vnstat & nlbwmon${NC}"; update_data ;; 
-          3) echo -e "${BLUE}Menjalankan: Buat file nftables (FIX TTL 63)${NC}"; create_nftables ;;
-          4) echo -e "${BLUE}Menjalankan: Install semua ipk${NC}"; install_ipk ;; 
-          5) echo -e "${BLUE}Menjalankan: Install semuanya${NC}"; install_all ;; 
-          6) echo -e "${CYAN}Membersihkan temporary files...${NC}"
-             if [ -d "/root/StatusWRTIrfan" ]; then
-               rm -rf /root/StatusWRTIrfan > /dev/null 2>&1
-               loading_progress "Menghapus direktori /root/StatusWRTIrfan"
-               echo -e "${GREEN}Direktori /root/StatusWRTIrfan telah dibersihkan.${NC}"
-             else
-               echo -e "${YELLOW}Direktori /root/StatusWRTIrfan tidak ditemukan.${NC}"
-             fi
-             echo -e "${GREEN}Terima kasih. Keluar.${NC}"; exit 0 ;;
-          *) echo -e "${RED}Pilihan $selected tidak valid.${NC}" ;;
-        esac
-      done
+    if ask_confirmation "Apakah Anda ingin membersihkan file temporary?"; then
+      cleanup_repo
     else
-      echo -e "${RED}Format tidak valid. Gunakan angka 1-6 atau kombinasi seperti 1,3,4${NC}"
+      echo -e "${YELLOW}File temporary tetap tersimpan di $SRC_DIR${NC}"
     fi
     
-    echo -e "${CYAN}Tekan Enter untuk kembali ke menu...${NC}"
-    read
-  done
+    echo -e "\n${GREEN}Terima kasih telah menggunakan installer ini!${NC}"
+    echo -e "${CYAN}Router Anda siap digunakan dengan konfigurasi StatusWRT.${NC}\n"
+  else
+    echo -e "\n${YELLOW}Instalasi dibatalkan oleh pengguna.${NC}"
+    echo -e "${CYAN}Terima kasih!${NC}\n"
+  fi
 }
 
 # Mulai Program
