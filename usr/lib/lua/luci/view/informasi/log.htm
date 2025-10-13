@@ -1,30 +1,428 @@
-
 <%+header%>
 <style>
-  .log-container {
-    max-width: 1000px;
-    margin: auto;
-    padding: 1rem;
-    background: #fff;
-    color: #000;
-    border-radius: 10px;
+  :root {
+    --primary: #3b82f6;
+    --success: #10b981;
+    --danger: #ef4444;
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-terminal: #1e293b;
+    --text-dark: #1e293b;
+    --text-light: #64748b;
+    --text-terminal: #10b981;
+    --border: #e2e8f0;
   }
-  .log-container h2 {
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background: var(--bg-page);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+  }
+
+  .page-subtitle {
+    color: var(--text-light);
+    font-size: 1rem;
+  }
+
+  .log-container {
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+
+  .log-header {
+    padding: 1.5rem;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .log-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .log-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+
+  .log-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .btn {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-refresh {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn-refresh:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  }
+
+  .btn-clear {
+    background: var(--danger);
+    color: white;
+  }
+
+  .btn-clear:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  }
+
+  .terminal-wrapper {
+    padding: 1.5rem;
+    background: var(--bg-terminal);
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  .terminal-content {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--text-terminal);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .terminal-line {
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .terminal-line:last-child {
+    border-bottom: none;
+  }
+
+  .terminal-timestamp {
+    color: #64748b;
+    margin-right: 1rem;
+  }
+
+  .terminal-message {
+    color: var(--text-terminal);
+  }
+
+  .empty-log {
+    padding: 3rem;
     text-align: center;
+    color: var(--text-light);
+  }
+
+  .empty-icon {
+    font-size: 4rem;
+    opacity: 0.5;
     margin-bottom: 1rem;
   }
-  pre {
-    background: #111;
-    color: #0f0;
-    padding: 1rem;
-    border-radius: 10px;
-    overflow-x: auto;
-    max-height: 500px;
+
+  .empty-text {
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Custom scrollbar for terminal */
+  .terminal-wrapper::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .terminal-wrapper::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+  }
+
+  .terminal-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+  }
+
+  .terminal-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.3);
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--text-dark);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: slideIn 0.3s ease-out;
+    z-index: 1000;
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @media (max-width: 768px) {
+    .container {
+      padding: 1rem;
+    }
+
+    .log-header {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .log-actions {
+      width: 100%;
+      flex-direction: column;
+    }
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .terminal-content {
+      font-size: 0.75rem;
+    }
   }
 </style>
 
-<div class="log-container">
-  <h2>Log Pengiriman Telegram</h2>
-  <pre><%= luci.sys.exec("cat /tmp/telegram_log.txt 2>/dev/null") %></pre>
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">Log Telegram</h1>
+    <p class="page-subtitle">Riwayat pengiriman notifikasi ke Telegram</p>
+  </div>
+  
+  <div class="log-container">
+    <div class="log-header">
+      <div class="log-title">
+        <div class="log-icon">📋</div>
+        <span>Terminal Log</span>
+      </div>
+      <div class="log-actions">
+        <button class="btn btn-refresh" onclick="loadLog()">
+          🔄 Refresh
+        </button>
+        <button class="btn btn-clear" onclick="clearLog()">
+          🗑️ Clear Log
+        </button>
+      </div>
+    </div>
+    
+    <div class="terminal-wrapper">
+      <div class="terminal-content" id="log-content">
+        <div class="empty-log">
+          <div class="empty-icon">📝</div>
+          <div class="empty-text">Memuat log...</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<script>
+function loadLog() {
+  fetch('/cgi-bin/luci/admin/services/informasi/log_data')
+    .then(response => response.text())
+    .then(text => {
+      const logContent = document.getElementById('log-content');
+      
+      if (!text || text.trim() === '') {
+        logContent.innerHTML = `
+          <div class="empty-log">
+            <div class="empty-icon">📝</div>
+            <div class="empty-text">Log Kosong</div>
+            <p style="font-size: 0.875rem; margin-top: 0.5rem;">Belum ada notifikasi yang dikirim</p>
+          </div>
+        `;
+        return;
+      }
+      
+      // Parse log lines and format them
+      const lines = text.trim().split('\n');
+      let formattedLog = '';
+      
+      lines.forEach((line, index) => {
+        if (line.trim() !== '') {
+          // Try to extract timestamp if present
+          const timestampMatch = line.match(/^\[(.*?)\]/);
+          if (timestampMatch) {
+            const timestamp = timestampMatch[1];
+            const message = line.substring(timestampMatch[0].length).trim();
+            formattedLog += `<div class="terminal-line"><span class="terminal-timestamp">[${timestamp}]</span><span class="terminal-message">${escapeHtml(message)}</span></div>`;
+          } else {
+            formattedLog += `<div class="terminal-line"><span class="terminal-message">${escapeHtml(line)}</span></div>`;
+          }
+        }
+      });
+      
+      logContent.innerHTML = formattedLog || `
+        <div class="empty-log">
+          <div class="empty-icon">📝</div>
+          <div class="empty-text">Log Kosong</div>
+          <p style="font-size: 0.875rem; margin-top: 0.5rem;">Belum ada notifikasi yang dikirim</p>
+        </div>
+      `;
+      
+      // Auto-scroll to bottom
+      const wrapper = document.querySelector('.terminal-wrapper');
+      wrapper.scrollTop = wrapper.scrollHeight;
+    })
+    .catch(err => {
+      console.error('Error loading log:', err);
+      document.getElementById('log-content').innerHTML = `
+        <div class="empty-log">
+          <div class="empty-icon">⚠️</div>
+          <div class="empty-text">Gagal Memuat Log</div>
+          <p style="font-size: 0.875rem; margin-top: 0.5rem;">Silakan coba lagi</p>
+        </div>
+      `;
+    });
+}
+
+function clearLog() {
+  if (!confirm('Yakin ingin menghapus semua log?\n\nTindakan ini tidak dapat dibatalkan.')) {
+    return;
+  }
+  
+  fetch('/cgi-bin/luci/admin/services/informasi/log_clear', {
+    method: 'POST'
+  })
+    .then(() => {
+      showToast('Log berhasil dihapus');
+      loadLog();
+    })
+    .catch(err => {
+      console.error('Error clearing log:', err);
+      showToast('Gagal menghapus log');
+    });
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+
+// Auto refresh every 10 seconds
+setInterval(loadLog, 10000);
+
+// Initial load - use direct file read since endpoint might not exist
+fetch('/tmp/telegram_log.txt')
+  .then(response => response.text())
+  .then(text => {
+    const logContent = document.getElementById('log-content');
+    
+    if (!text || text.trim() === '') {
+      logContent.innerHTML = `
+        <div class="empty-log">
+          <div class="empty-icon">📝</div>
+          <div class="empty-text">Log Kosong</div>
+          <p style="font-size: 0.875rem; margin-top: 0.5rem;">Belum ada notifikasi yang dikirim</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const lines = text.trim().split('\n');
+    let formattedLog = '';
+    
+    lines.forEach(line => {
+      if (line.trim() !== '') {
+        const timestampMatch = line.match(/^\[(.*?)\]/);
+        if (timestampMatch) {
+          const timestamp = timestampMatch[1];
+          const message = line.substring(timestampMatch[0].length).trim();
+          formattedLog += `<div class="terminal-line"><span class="terminal-timestamp">[${timestamp}]</span><span class="terminal-message">${escapeHtml(message)}</span></div>`;
+        } else {
+          formattedLog += `<div class="terminal-line"><span class="terminal-message">${escapeHtml(line)}</span></div>`;
+        }
+      }
+    });
+    
+    logContent.innerHTML = formattedLog || `
+      <div class="empty-log">
+        <div class="empty-icon">📝</div>
+        <div class="empty-text">Log Kosong</div>
+        <p style="font-size: 0.875rem; margin-top: 0.5rem;">Belum ada notifikasi yang dikirim</p>
+      </div>
+    `;
+    
+    const wrapper = document.querySelector('.terminal-wrapper');
+    wrapper.scrollTop = wrapper.scrollHeight;
+  })
+  .catch(() => {
+    document.getElementById('log-content').innerHTML = `
+      <div class="empty-log">
+        <div class="empty-icon">📝</div>
+        <div class="empty-text">Log Kosong</div>
+        <p style="font-size: 0.875rem; margin-top: 0.5rem;">File log belum tersedia</p>
+      </div>
+    `;
+  });
+</script>
+
 <%+footer%>
