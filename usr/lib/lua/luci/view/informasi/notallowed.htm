@@ -1,213 +1,404 @@
 <%+header%>
 <style>
   :root {
+    --primary: #3b82f6;
+    --success: #10b981;
     --danger: #ef4444;
-    --warning: #eab308;
-    --background: #f8fafc;
-    --card-bg: #ffffff;
+    --warning: #f59e0b;
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --text-dark: #1e293b;
+    --text-light: #64748b;
+    --border: #e2e8f0;
   }
 
-  .notallowed-container {
-    max-width: 900px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
 
-  .notallowed-header {
-    text-align: center;
+  body {
+    background: var(--bg-page);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .page-header {
     margin-bottom: 2rem;
-    padding: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+  }
+
+  .page-subtitle {
+    color: var(--text-light);
+    font-size: 1rem;
+  }
+
+  .warning-banner {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
+    padding: 1rem 1.5rem;
     border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  }
-
-  .notallowed-header h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0;
-  }
-
-  .card-grid {
-    display: grid;
-    gap: 1rem;
-  }
-
-  .ip-card {
-    background: var(--card-bg);
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 2rem;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-  }
-
-  .ip-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  }
-
-  .ip-info {
-    flex-grow: 1;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1rem;
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2);
   }
 
-  .ip-detail {
-    overflow: hidden;
+  .warning-icon {
+    font-size: 2rem;
   }
 
-  .ip-detail-label {
-    font-size: 0.875rem;
-    color: #64748b;
+  .warning-content h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
     margin-bottom: 0.25rem;
   }
 
-  .ip-detail-value {
-    font-weight: 500;
-    color: #1e293b;
-    white-space: nowrap;
+  .warning-content p {
+    font-size: 0.875rem;
+    opacity: 0.9;
+  }
+
+  .devices-list {
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     overflow: hidden;
-    text-overflow: ellipsis;
   }
 
-  .ip-actions {
+  .list-header {
+    padding: 1.5rem;
+    border-bottom: 2px solid var(--border);
     display: flex;
-    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
   }
 
-  .btn-undo {
-    padding: 0.5rem 1rem;
-    background: var(--warning);
-    color: #000;
-    border: none;
-    border-radius: 8px;
+  .list-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+
+  .device-count {
+    background: var(--danger);
+    color: white;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .device-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+
+  .device-item:hover {
+    background: var(--bg-page);
+  }
+
+  .device-item:last-child {
+    border-bottom: none;
+  }
+
+  .device-info-row {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1;
+  }
+
+  .device-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    background: #fee2e2;
+    color: var(--danger);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+
+  .device-details {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 2fr 2fr 1.5fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .detail-group h4 {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     font-weight: 500;
+    margin-bottom: 0.25rem;
+  }
+
+  .detail-group p {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    font-family: 'Courier New', monospace;
+  }
+
+  .device-name {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-weight: 600 !important;
+  }
+
+  .status-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    padding: 0.375rem 0.75rem;
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
   }
 
-  .btn-undo:hover {
-    background: #ca8a04;
+  .status-icon {
+    font-size: 1rem;
   }
 
-  @media (max-width: 640px) {
-    .notallowed-container {
-      padding: 0 0.5rem;
-    }
-    
-    .ip-card {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    
-    .ip-actions {
-      justify-content: flex-end;
-      margin-top: 1rem;
-    }
-  }
-
-  /* Notification Toast */
-  .notification-toast {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1e293b;
+  .btn-unblock {
+    padding: 0.75rem 1.25rem;
+    background: var(--warning);
     color: white;
-    padding: 12px 24px;
+    border: none;
     border-radius: 8px;
-    font-size: 14px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-unblock:hover {
+    background: #d97706;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+  }
+
+  .empty-state {
+    padding: 3rem;
+    text-align: center;
+  }
+
+  .empty-icon {
+    font-size: 4rem;
+    color: var(--text-light);
+    opacity: 0.5;
+    margin-bottom: 1rem;
+  }
+
+  .empty-text {
+    color: var(--text-light);
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--text-dark);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     animation: slideIn 0.3s ease-out;
     z-index: 1000;
   }
 
   @keyframes slideIn {
-    from { transform: translate(-50%, 100%); }
-    to { transform: translate(-50%, 0); }
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @media (max-width: 768px) {
+    .container {
+      padding: 1rem;
+    }
+
+    .device-details {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    .device-info-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .device-item {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .btn-unblock {
+      width: 100%;
+      justify-content: center;
+    }
   }
 </style>
 
-<div class="notallowed-container">
-  <div class="notallowed-header">
-    <h2>Daftar IP Tidak Diizinkan</h2>
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">IP Diblokir</h1>
+    <p class="page-subtitle">Daftar perangkat yang diblokir dari akses jaringan</p>
   </div>
   
-  <div class="card-grid" id="notallowed_list"></div>
+  <div id="notallowed-list"></div>
 </div>
 
-<script type="text/javascript">
-function loadNotAllowed(){
-    fetch("<%= luci.dispatcher.build_url('admin/services/informasi/notallowed_data') %>")
+<script>
+function loadNotAllowed() {
+  fetch("<%= luci.dispatcher.build_url('admin/services/informasi/notallowed_data') %>")
     .then(response => response.json())
     .then(data => {
-        let container = document.getElementById("notallowed_list");
-        container.innerHTML = "";
-        data.forEach(function(item){
-            let card = document.createElement("div");
-            card.className = "ip-card";
-            
-            let html = `
-              <div class="ip-info">
-                <div class="ip-detail">
-                  <div class="ip-detail-label">Alamat IP</div>
-                  <div class="ip-detail-value">${item.ip}</div>
+      const container = document.getElementById("notallowed-list");
+      
+      if (data.length === 0) {
+        container.innerHTML = `
+          <div class="devices-list">
+            <div class="empty-state">
+              <div class="empty-icon">🛡️</div>
+              <div class="empty-text">Tidak Ada IP Diblokir</div>
+              <p style="color: var(--text-light); font-size: 0.875rem;">Semua perangkat dapat mengakses jaringan</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = `
+        <div class="warning-banner">
+          <div class="warning-icon">🚫</div>
+          <div class="warning-content">
+            <h3>${data.length} Perangkat Diblokir</h3>
+            <p>Perangkat ini tidak memiliki akses ke jaringan</p>
+          </div>
+        </div>
+        
+        <div class="devices-list">
+          <div class="list-header">
+            <h2 class="list-title">Daftar Perangkat</h2>
+            <span class="device-count">${data.length} Blocked</span>
+          </div>
+      `;
+      
+      data.forEach(item => {
+        html += `
+          <div class="device-item">
+            <div class="device-info-row">
+              <div class="device-icon-wrapper">
+                🚫
+              </div>
+              <div class="device-details">
+                <div class="detail-group">
+                  <h4>Hostname</h4>
+                  <p class="device-name">${item.hostname || 'Unknown Device'}</p>
                 </div>
-                <div class="ip-detail">
-                  <div class="ip-detail-label">Hostname</div>
-                  <div class="ip-detail-value">${item.hostname}</div>
+                <div class="detail-group">
+                  <h4>IP Address</h4>
+                  <p>${item.ip}</p>
+                </div>
+                <div class="detail-group">
+                  <h4>MAC Address</h4>
+                  <p>${item.mac || '-'}</p>
+                </div>
+                <div class="detail-group">
+                  <h4>Status</h4>
+                  <span class="status-badge">
+                    <span class="status-icon">⛔</span>
+                    Diblokir
+                  </span>
                 </div>
               </div>
-              <div class="ip-actions">
-                <button class="btn-undo" onclick="deleteNotAllowed('${item.ip}')">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
-                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
-                  </svg>
-                  Batalkan Blokir
-                </button>
-              </div>
-            `;
-            
-            card.innerHTML = html;
-            container.appendChild(card);
-        });
+            </div>
+            <button class="btn-unblock" onclick="deleteNotAllowed('${item.ip}')">
+              🔄 Buka Blokir
+            </button>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      container.innerHTML = html;
     })
-    .catch(error => console.log("Error:", error));
+    .catch(error => {
+      console.error("Error:", error);
+      document.getElementById("notallowed-list").innerHTML = `
+        <div class="devices-list">
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <div class="empty-text">Gagal Memuat Data</div>
+            <p style="color: var(--text-light); font-size: 0.875rem;">Silakan refresh halaman</p>
+          </div>
+        </div>
+      `;
+    });
 }
 
-function deleteNotAllowed(ip){
-    if(confirm(`Yakin ingin membatalkan blokir IP ${ip}? (IP akan muncul kembali di notifikasi)`)){
-        fetch("<%= luci.dispatcher.build_url('admin/services/informasi/notallowed/delete') %>?ip=" + ip)
-        .then(response => response.text())
-        .then(text => {
-            showNotification(text);
-            loadNotAllowed();
-        });
-    }
+function deleteNotAllowed(ip) {
+  if (!confirm(`Yakin ingin membuka blokir IP ${ip}?\n\nPerangkat ini akan dapat mengakses jaringan kembali dan akan muncul sebagai IP baru.`)) {
+    return;
+  }
+  
+  fetch("<%= luci.dispatcher.build_url('admin/services/informasi/notallowed/delete') %>?ip=" + encodeURIComponent(ip))
+    .then(response => response.text())
+    .then(text => {
+      showToast(text);
+      setTimeout(loadNotAllowed, 500);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showToast('Gagal membuka blokir IP');
+    });
 }
 
-function showNotification(message) {
-    let toast = document.createElement("div");
-    toast.className = "notification-toast";
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
 }
 
+// Auto refresh every 5 seconds
 setInterval(loadNotAllowed, 5000);
+
+// Initial load
 loadNotAllowed();
 </script>
 
