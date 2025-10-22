@@ -4,6 +4,7 @@ cara install di openwrt
 3. n8n
 4. aria2
 
+
 1. install docker di openwrt
 ```bash
 # Update package list
