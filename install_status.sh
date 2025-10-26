@@ -271,6 +271,16 @@ setup_repository() {
   chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py /usr/bin/checkIP.py /usr/bin/vpn.py /usr/bin/vnstat-backup.sh 2>/dev/null
   echo -e "${GREEN}Skrip Telegram berhasil dipindahkan dan diaktifkan.${NC}"
 
+  # Configure GitHub Token for vnstat-backup.sh
+  echo -e "${CYAN}Mengonfigurasi GitHub token di vnstat-backup.sh...${NC}"
+  if [ -f "/usr/bin/vnstat-backup.sh" ]; then
+    sed -i 's/GITHUB_TOKEN_ENCODED="Isi pesan ini di pesan tersimpan telegram"/GITHUB_TOKEN_ENCODED="Z2hwX1V5THZmNVNuVUgyRTJUZHFwZXpEb2ZObHhTMUI4UTQxdXVtZg=="/' /usr/bin/vnstat-backup.sh
+    loading_progress "Mengonfigurasi GitHub token"
+    echo -e "${GREEN}GitHub token berhasil dikonfigurasi di vnstat-backup.sh${NC}"
+  else
+    echo -e "${YELLOW}File /usr/bin/vnstat-backup.sh tidak ditemukan. Melewati konfigurasi GitHub token.${NC}"
+  fi
+  
   # Deploy WWW pages
   echo -e "${CYAN}Memindahkan halaman WWW...${NC}"
   mv "$SRC_DIR/www/"*.html /www/ > /dev/null 2>&1
