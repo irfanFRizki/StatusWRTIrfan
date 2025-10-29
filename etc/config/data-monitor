@@ -1,0 +1,32 @@
+# Enhanced Data Monitor Configuration File v3.1
+
+# Telegram Bot Configuration
+export TELEGRAM_BOT_TOKEN="7837585513:AAHmH933V5fb17Wsz7CNKUZOs-qgSlL_CBk"
+export TELEGRAM_CHAT_ID="5645537022"
+
+# Phone Number (optional, for identification in reports)
+export PHONE_NUMBER="087862584342"
+
+# Network interface to monitor (usually wwan0 for mobile data)
+export NETWORK_INTERFACE="wwan0"
+
+# Current monitoring period start date (DD-MM-YYYY)
+export START_DATE="17-10-2025"
+
+# Previous Period 1 tracking (for comparison reports)
+export PREV_PERIOD1_START="19-09-2025"
+export PREV_PERIOD1_END="16-10-2025"
+export PREV_PERIOD1_TOTAL="0.0"
+export PREV_PERIOD1_NOTE="Double Youtube"
+
+# Previous Period 2 tracking (for additional comparison)
+export PREV_PERIOD2_START="12-08-2025"
+export PREV_PERIOD2_END="11-09-2025"
+export PREV_PERIOD2_TOTAL="0.0"
+export PREV_PERIOD2_NOTE=""
+
+# Schedule Configuration
+export SCHEDULE_TYPE="daily"
+export SCHEDULE_HOUR="7"
+export SCHEDULE_DAYS="everyday"
+export SCHEDULE_CRON="0 7 * * *"
