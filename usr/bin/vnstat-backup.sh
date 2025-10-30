@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Konfigurasi
-GITHUB_TOKEN_ENCODED="Isi pesan ini di pesan tersimpan telegram"  # Base64 encoded token
+GITHUB_TOKEN_ENCODED="Z2hwX21XNGxxxxxxxxxxxxxxxxxxxNHhCUw=="  # Base64 encoded token
 GITHUB_USER="irfanFRizki"
 GITHUB_REPO="StatusWRTIrfan"
 GITHUB_BRANCH="main"
@@ -66,6 +66,10 @@ if [ $? -ne 0 ]; then
     log "ERROR: Failed to commit changes"
     exit 1
 fi
+
+# ⬇️ Tambahkan ini untuk mencegah prompt password
+export GIT_ASKPASS=/bin/true
+export GIT_TERMINAL_PROMPT=0
 
 # Push dengan retry logic
 RETRY_COUNT=0
