@@ -267,8 +267,8 @@ setup_repository() {
   mv "$SRC_TELEGRAM/send_telegram.py" /usr/bin/ > /dev/null 2>&1
   mv "$SRC_TELEGRAM/checkIP.py" /usr/bin/ > /dev/null 2>&1
   mv "$SRC_TELEGRAM/vpn.py" /usr/bin/ > /dev/null 2>&1
-  mv "$SRC_TELEGRAM/vnstat-backup.sh" /usr/bin/ > /dev/null 2>&1
-  chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py /usr/bin/checkIP.py /usr/bin/vpn.py /usr/bin/vnstat-backup.sh 2>/dev/null
+  mv "$SRC_TELEGRAM/vnstat-backup.py" /usr/bin/ > /dev/null 2>&1
+  chmod +x /usr/bin/online.sh /usr/bin/send_telegram.py /usr/bin/checkIP.py /usr/bin/vpn.py /usr/bin/vnstat-backup.py 2>/dev/null
   echo -e "${GREEN}Skrip Telegram berhasil dipindahkan dan diaktifkan.${NC}"
 
   # Deploy WWW pages
@@ -313,7 +313,7 @@ setup_repository() {
     "*/5 * * * * /usr/bin/python3 /usr/bin/checkIP.py"
     "0 6 * * * cp /etc/notified_ips.log /etc/notified_ips_\$(date +\\%Y-\\%m-\\%d).bak && > /etc/notified_ips.log"
     "* * * * * /usr/bin/python3 /usr/bin/mwan3_check.py"
-	"0 * * * * /usr/bin/vnstat-backup.sh"
+	"0 * * * * /usr/bin/python3 /usr/bin/vnstat-backup.py"
 	"0 0 * * * /opt/data-monitor/run.sh --collect # data-monitor daily collection"
 	"0 7 * * * /opt/data-monitor/run.sh --send # data-monitor scheduled report"
   )
