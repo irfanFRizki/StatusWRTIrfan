@@ -9,7 +9,7 @@ OWNER = "irfanFRizki"
 REPO = "StatusWRTIrfan"
 BRANCH = "main"
 SOURCE = "/etc/vnstat/vnstat.db"
-DEST = "backup/vnstat/vnstat.db"
+DEST = "etc/vnstat/vnstat.db"
 
 print("🚀 Starting backup...")
 
@@ -34,7 +34,7 @@ except:
     print("ℹ️  Creating new file")
 
 # Upload
-payload = {"message": "Auto backup vnstat.db", "content": b64, "branch": BRANCH}
+payload = {"message": "Auto backup vnstat.db by Script Python", "content": b64, "branch": BRANCH}
 if sha: payload["sha"] = sha
 
 try:
