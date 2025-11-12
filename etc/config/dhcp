@@ -53,7 +53,7 @@ config domain
 
 config domain
 	option name 'HP_AQILLA'
-	option ip '192.168.7.122'
+	option ip '192.168.7.177'
 
 config domain
 	option name 'HP_JAMAL'
