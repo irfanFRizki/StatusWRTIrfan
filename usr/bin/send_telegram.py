@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 
 # Konfigurasi Bot Telegram (ganti sesuai milik Anda)
-BOT_TOKEN = "6901960737:AAEUEW0ZLHqRC1dwgol019_oo14zVF82xc8"
+BOT_TOKEN = "8416814394:AAGNQOYEketw20NxR7nA9LtKQr5cMk3boUU"
 CHAT_ID   = "5645537022"
 LOG_FILE  = "/tmp/telegram_log.txt"
 
