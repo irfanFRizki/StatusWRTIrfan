@@ -104,39 +104,39 @@ do_install_update() {
   run_cmd_stream "cat >> /etc/config/dhcp << 'EOF'
 config domain
     option name 'HP_IRFAN'
-    option ip '192.168.1.245'
+    option ip '192.168.7.245'
 
 config domain
     option name 'HP_TAB'
-    option ip '192.168.1.106'
+    option ip '192.168.7.106'
 
 config domain
     option name 'HP_ANITA'
-    option ip '192.168.1.220'
+    option ip '192.168.7.220'
 
 config domain
     option name 'HP_AQILLA'
-    option ip '192.168.1.177'
+    option ip '192.168.7.177'
 
 config domain
     option name 'HP_JAMAL'
-    option ip '192.168.1.169'
+    option ip '192.168.7.169'
 
 config domain
     option name 'LAPTOP'
-    option ip '192.168.1.123'
+    option ip '192.168.7.123'
 
 config domain
     option name 'HP_AMAT'
-    option ip '192.168.1.166'
+    option ip '192.168.7.166'
 
 config domain
     option name 'HP_BAPAK'
-    option ip '192.168.1.233'
+    option ip '192.168.7.233'
 
 config domain
     option name 'CCTV'
-    option ip '192.168.1.138'
+    option ip '192.168.7.138'
 EOF
 echo \"[INFO] DHCP entries appended.\""
 
