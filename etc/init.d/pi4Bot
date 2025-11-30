@@ -1,0 +1,10 @@
+#!/bin/sh /etc/rc.common
+START=99
+
+start() {
+    python3 /root/pi4Bot.py &
+}
+
+stop() {
+    killall python3
+}
