@@ -1,0 +1,72 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+STOP=10
+
+start() {
+    echo "Starting Telegram Bot..."
+    
+    # Kill jika ada yang lama
+    killall -9 python3 2>/dev/null
+    sleep 1
+    
+    # Start bot
+    cd /root
+    nohup /usr/bin/python3 /root/telegram_download_bot.py > /tmp/telegram_bot.log 2>&1 &
+    
+    sleep 2
+    
+    if pgrep -f "telegram_download_bot.py" > /dev/null; then
+        echo "Telegram Bot started successfully"
+        return 0
+    else
+        echo "Failed to start Telegram Bot"
+        return 1
+    fi
+}
+
+stop() {
+    echo "Stopping Telegram Bot..."
+    
+    local pid=$(pgrep -f "telegram_download_bot.py")
+    if [ -n "$pid" ]; then
+        kill -15 $pid 2>/dev/null
+        sleep 2
+        kill -9 $pid 2>/dev/null
+        echo "Telegram Bot stopped"
+    else
+        echo "Telegram Bot is not running"
+    fi
+}
+
+restart() {
+    stop
+    sleep 2
+    start
+}
+
+status() {
+    local pid=$(pgrep -f "telegram_download_bot.py")
+    if [ -n "$pid" ]; then
+        echo "✅ Telegram Bot is running (PID: $pid)"
+        echo "📁 Log file: /tmp/telegram_bot.log"
+        echo ""
+        echo "📊 Recent activity:"
+        tail -5 /tmp/telegram_bot.log 2>/dev/null || echo "No log available"
+        return 0
+    else
+        echo "❌ Telegram Bot is not running"
+        if [ -f /tmp/telegram_bot.log ]; then
+            echo ""
+            echo "Last error (if any):"
+            tail -10 /tmp/telegram_bot.log | grep -i "error\|exception" || echo "No error found"
+        fi
+        return 1
+    fi
+}
+
+boot() {
+    # Wait for system to be ready
+    sleep 15
+    start
+}
