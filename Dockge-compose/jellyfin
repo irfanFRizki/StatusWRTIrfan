@@ -1,0 +1,34 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    user: root
+    network_mode: host
+    environment:
+      - TZ=Asia/Jakarta
+      - JELLYFIN_PublishedServerUrl=https://jellyfin-pi4.irfanfajarrizki.my.id
+    volumes:
+      # Config dan cache
+      - /mnt/sda1/jellyfin/config:/config
+      - /mnt/sda1/jellyfin/cache:/cache
+      # Mount folder media Anda - sesuaikan path ini
+      - /mnt/sda1/media/movies:/media/movies:ro
+      - /mnt/sda1/media/tvshows:/media/tvshows:ro
+      - /mnt/sda1/media/drakor:/media/drakor:ro
+      - /mnt/sda1/media/photos:/media/photos:ro
+    # Uncomment jika /dev/dri tersedia (cek dengan: ls -l /dev/dri)
+    # devices:
+    #   - /dev/dri:/dev/dri
+    # group_add:
+    #   - "44"  # video group
+    #   - "109" # render group (sesuaikan dengan: getent group render)
+    privileged: false
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  jellyfin_config:
+    driver: local
+  jellyfin_cache:
+    driver: local
+networks: {}
