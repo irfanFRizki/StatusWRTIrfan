@@ -56,47 +56,56 @@ def get_cpu_ram_info() -> str:
         sysinfo_check = run_command("which sysinfo.sh")
         
         if sysinfo_check:
-            # Gunakan sysinfo.sh
-            result = run_command("sysinfo.sh")
+            # Gunakan sysinfo.sh dengan parameter --plain untuk menghilangkan ANSI colors
+            result = run_command("sysinfo.sh --plain")
             
-            # Parse output sysinfo.sh
+            # Extract hanya section yang diinginkan
             lines = result.split('\n')
-            cpu_temp = ""
-            cpu_usage = ""
-            load_avg = ""
-            ram_used = ""
-            ram_free = ""
+            output_lines = []
+            capture = False
             
             for line in lines:
-                if "CPU Temp" in line:
-                    cpu_temp = line.split(':')[1].strip()
-                elif "CPU Usage" in line:
-                    cpu_usage = line.split(':')[1].strip()
-                elif "Load Avg" in line:
-                    load_avg = line.split(':')[1].strip()
-                elif "RAM Used" in line:
-                    ram_used = line.split(':')[1].strip()
-                elif "RAM Free" in line:
-                    ram_free = line.split(':')[1].strip()
+                # Start capturing dari System Info
+                if '=== System Info ===' in line:
+                    capture = True
+                
+                # Stop capturing setelah RAM Available
+                if capture and 'RAM Available:' in line:
+                    output_lines.append(line)
+                    break
+                
+                # Skip sections yang tidak diinginkan
+                if '=== Disk Usage ===' in line or '=== Network Interfaces ===' in line or '=== System Time ===' in line:
+                    break
+                
+                if capture:
+                    output_lines.append(line)
             
-            return (
-                f"🖥 <b>CPU & RAM Status</b>\n\n"
-                f"🌡 Temperature: <code>{cpu_temp}</code>\n"
-                f"📊 CPU Usage: <code>{cpu_usage}</code>\n"
-                f"⚡ Load Average: <code>{load_avg}</code>\n"
-                f"💾 RAM Used: <code>{ram_used}</code>\n"
-                f"💾 RAM Free: <code>{ram_free}</code>"
-            )
+            # Join dan format untuk Telegram
+            result = '\n'.join(output_lines)
+            
+            # Tambahkan emoji dan format HTML
+            result = "🖥 <b>CPU & RAM Status</b>\n\n" + result
+            
+            # Format section headers dengan bold
+            result = result.replace("=== System Info ===", "<b>=== System Info ===</b>")
+            result = result.replace("=== CPU Temperature ===", "<b>=== CPU Temperature ===</b>")
+            result = result.replace("=== CPU Usage ===", "<b>=== CPU Usage ===</b>")
+            result = result.replace("=== Load Average ===", "<b>=== Load Average ===</b>")
+            result = result.replace("=== CPU Info ===", "<b>=== CPU Info ===</b>")
+            result = result.replace("=== Memory (RAM) ===", "<b>=== Memory (RAM) ===</b>")
+            result = result.replace("=== Swap ===", "<b>=== Swap ===</b>")
+            
+            return result
         else:
             # Fallback ke method manual
-            # Temperature
             temp_raw = run_command("cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null")
             temp = float(temp_raw) / 1000 if temp_raw.replace('.','').isdigit() else 0
             
             # CPU Load
             load = run_command("cat /proc/loadavg").split()[:3]
             
-            # CPU Usage dengan method yang benar
+            # CPU Usage
             cpu_usage = run_command("top -bn1 | grep 'CPU:' | sed 's/CPU://g' | awk '{print $1}'")
             if not cpu_usage or cpu_usage == "":
                 cpu_usage = "N/A"
