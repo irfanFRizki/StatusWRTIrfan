@@ -578,7 +578,7 @@ def cek_container():
             if '(' in packing_list and ')' in packing_list:
                 container_name = extract_container_name(packing_list)
                 
-                if container_name.startswith('C-') or ('C....') in container_name:
+                if container_name.startswith('C-') or ('C....') or ('C...') or ('C..') in container_name:
                     if container_name not in container_groups:
                         container_groups[container_name] = {
                             'total_ctns': 0,
@@ -698,7 +698,7 @@ def cek_metro():
             
             container_name = extract_container_name(packing_list)
             
-            if not container_name.startswith('C-') and ('C....') not in container_name:
+            if not container_name.startswith('C-') and ('C....') and ('C...') and ('C..') not in container_name:
                 metro_items.append({
                     'packing_list': packing_list,
                     'ctns': ctns,
