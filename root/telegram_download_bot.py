@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Bot Telegram untuk download file dengan aria2
-Versi Enhanced dengan Queue System & Auto-retry
+Versi Enhanced dengan Queue System, Auto-retry & Auto HDD Detection
 """
 
 import os
@@ -26,7 +26,6 @@ from telegram.ext import (
 
 # Konfigurasi
 TELEGRAM_BOT_TOKEN = "8213688071:AAEogqCAr52QLG6g8PYal9hI12D2Xo9as4s"
-BASE_DOWNLOAD_PATH = "/mnt/sdb1"
 ARIA2_RPC_URL = "http://localhost:6800/jsonrpc"
 ARIA2_RPC_SECRET = ""
 
@@ -37,16 +36,150 @@ MAX_RETRY_ATTEMPTS = 3
 # States untuk conversation
 WAITING_FOLDER, WAITING_FILENAME, WAITING_CONFIRMATION = range(3)
 
-# Dictionary untuk menyimpan data sementara user
+# Global variables
+BASE_DOWNLOAD_PATH = None
+HDD_INFO = {}
 user_data = {}
-
-# Dictionary untuk menyimpan status download yang sedang berjalan
 active_downloads = {}
-
-# Queue system
 download_queue = deque()
 active_download_count = 0
 queue_lock = asyncio.Lock()
+
+
+def detect_hdd_path():
+    """
+    Auto-detect HDD path berdasarkan mount point yang memiliki data terbanyak
+    Mencari di /mnt/sda1, /mnt/sdb1, dst
+    """
+    global BASE_DOWNLOAD_PATH, HDD_INFO
+    
+    detected_hdds = []
+    
+    # Scan semua possible mount points
+    for device in ['sda', 'sdb', 'sdc', 'sdd', 'sde', 'sdf']:
+        for partition in range(1, 10):  # Check sda1-sda9, sdb1-sdb9, dst
+            mount_path = f"/mnt/{device}{partition}"
+            
+            if not os.path.exists(mount_path):
+                continue
+            
+            # Cek apakah mount point accessible
+            if not os.path.ismount(mount_path):
+                # Jika bukan mount point tapi folder exists, tetap cek
+                if not os.path.isdir(mount_path):
+                    continue
+            
+            try:
+                # Cek folder media di mount point
+                media_path = os.path.join(mount_path, 'media')
+                
+                # Hitung total size di mount point
+                total_size = 0
+                media_size = 0
+                
+                # Gunakan du command untuk cek size (lebih cepat untuk OpenWrt)
+                try:
+                    result = subprocess.run(
+                        ['du', '-s', mount_path],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    if result.returncode == 0:
+                        total_size = int(result.stdout.split()[0]) * 1024  # Convert KB to bytes
+                except:
+                    # Fallback ke Python method
+                    for root, dirs, files in os.walk(mount_path):
+                        for file in files:
+                            try:
+                                file_path = os.path.join(root, file)
+                                total_size += os.path.getsize(file_path)
+                            except:
+                                pass
+                
+                # Cek size folder media jika ada
+                if os.path.exists(media_path):
+                    try:
+                        result = subprocess.run(
+                            ['du', '-s', media_path],
+                            capture_output=True,
+                            text=True,
+                            timeout=5
+                        )
+                        if result.returncode == 0:
+                            media_size = int(result.stdout.split()[0]) * 1024
+                    except:
+                        pass
+                
+                detected_hdds.append({
+                    'path': mount_path,
+                    'device': f"{device}{partition}",
+                    'total_size': total_size,
+                    'media_size': media_size,
+                    'has_media': os.path.exists(media_path)
+                })
+                
+            except Exception as e:
+                print(f"Error checking {mount_path}: {e}")
+                continue
+    
+    if not detected_hdds:
+        # Default fallback
+        print("⚠️ No HDD detected, using default /mnt/sda1")
+        BASE_DOWNLOAD_PATH = "/mnt/sda1"
+        HDD_INFO = {
+            'path': BASE_DOWNLOAD_PATH,
+            'device': 'sda1',
+            'total_size': 0,
+            'media_size': 0,
+            'has_media': False,
+            'status': 'default_fallback'
+        }
+        return BASE_DOWNLOAD_PATH
+    
+    # Prioritas 1: Pilih yang memiliki folder media dengan size terbesar
+    hdds_with_media = [h for h in detected_hdds if h['has_media'] and h['media_size'] > 0]
+    
+    if hdds_with_media:
+        selected = max(hdds_with_media, key=lambda x: x['media_size'])
+        HDD_INFO = {**selected, 'status': 'media_priority'}
+    else:
+        # Prioritas 2: Pilih yang memiliki total size terbesar
+        selected = max(detected_hdds, key=lambda x: x['total_size'])
+        HDD_INFO = {**selected, 'status': 'total_size_priority'}
+    
+    BASE_DOWNLOAD_PATH = selected['path']
+    
+    print(f"✅ HDD Auto-detected: {BASE_DOWNLOAD_PATH}")
+    print(f"   Device: {HDD_INFO['device']}")
+    print(f"   Total Size: {format_bytes(HDD_INFO['total_size'])}")
+    print(f"   Media Size: {format_bytes(HDD_INFO['media_size'])}")
+    print(f"   Selection: {HDD_INFO['status']}")
+    
+    return BASE_DOWNLOAD_PATH
+
+
+def get_hdd_info_text():
+    """Generate informasi HDD yang sedang digunakan"""
+    if not HDD_INFO:
+        return "📦 Base Path: `Not detected`"
+    
+    status_emoji = {
+        'media_priority': '✅',
+        'total_size_priority': '🟡',
+        'default_fallback': '⚠️'
+    }
+    
+    info_text = (
+        f"📦 *HDD Information:*\n"
+        f"├ Path: `{HDD_INFO['path']}`\n"
+        f"├ Device: `{HDD_INFO['device']}`\n"
+        f"├ Total: `{format_bytes(HDD_INFO['total_size'])}`\n"
+        f"├ Media: `{format_bytes(HDD_INFO['media_size'])}`\n"
+        f"└ {status_emoji.get(HDD_INFO['status'], '❓')} Status: {HDD_INFO['status'].replace('_', ' ').title()}"
+    )
+    
+    return info_text
 
 
 def get_main_keyboard():
@@ -54,7 +187,7 @@ def get_main_keyboard():
     keyboard = [
         [KeyboardButton("📊 Status Download"), KeyboardButton("📁 Lihat Folder")],
         [KeyboardButton("📋 Lihat Antrian"), KeyboardButton("🔄 Refresh Status")],
-        [KeyboardButton("ℹ️ Help")]
+        [KeyboardButton("💾 Info HDD"), KeyboardButton("ℹ️ Help")]
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -121,12 +254,9 @@ def calculate_eta(remaining_bytes: int, speed_bps: float) -> str:
 
 def sanitize_filename(filename: str) -> str:
     """Bersihkan nama file dari karakter yang tidak valid"""
-    # Hapus karakter yang tidak diperbolehkan
     filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
     filename = filename.strip()
-    # Ganti multiple spaces dengan single space
     filename = re.sub(r'\s+', ' ', filename)
-    # Hilangkan underscore yang tidak perlu
     filename = filename.replace('_ ', ' ').replace(' _', ' ')
     return filename
 
@@ -186,17 +316,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🤖 *Selamat datang di Bot Download Manager!*\n\n"
         "📥 Kirim link untuk download file\n"
         "📊 Gunakan menu di bawah untuk navigasi\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
         "*Fitur Utama:*\n"
         "✅ Download dengan Aria2 engine\n"
         "✅ Queue system (Max 2 concurrent)\n"
         "✅ Auto-retry 3x on error\n"
+        "✅ Auto HDD detection\n"
         "✅ Pause/Resume/Stop control\n"
         "✅ Progress tracking real-time\n"
         "✅ Speed monitoring & ETA\n"
         "✅ Notifikasi download selesai\n"
         "✅ Auto-resume pada error\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"{get_hdd_info_text()}\n\n"
         f"🔌 Aria2 Status: {aria2_status}\n"
         f"📦 Max Concurrent: {MAX_CONCURRENT_DOWNLOADS}\n"
         f"🔄 Max Retry: {MAX_RETRY_ATTEMPTS}x",
@@ -209,7 +341,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler untuk command /help"""
     await update.message.reply_text(
         "📖 *PANDUAN PENGGUNAAN*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
         "*🎯 Cara Download:*\n\n"
         "1️⃣ Kirim URL file yang ingin didownload\n"
         "2️⃣ Pilih folder dari inline keyboard:\n"
@@ -220,25 +352,90 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "4️⃣ Pilih: Gunakan nama default atau ubah nama\n"
         "5️⃣ Klik tombol *✅ Iya* untuk konfirmasi\n"
         "6️⃣ Download dimulai otomatis!\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
         "*🎛 Control Download:*\n\n"
         "⏸ *Pause* - Jeda download sementara\n"
         "▶️ *Resume* - Lanjutkan download\n"
         "⏹ *Stop* - Hentikan & hapus download\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
         "*📊 Menu Keyboard:*\n\n"
         "• *Status Download* - Cek progress\n"
         "• *Lihat Antrian* - Cek queue\n"
         "• *Lihat Folder* - List folder\n"
-        "• *Refresh Status* - Update progress\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "• *Refresh Status* - Update progress\n"
+        "• *Info HDD* - Detail HDD yang digunakan\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
         "*💡 Sistem Queue & Retry:*\n\n"
         f"📦 Max concurrent: {MAX_CONCURRENT_DOWNLOADS} download\n"
         "📋 Download berlebih akan masuk antrian\n"
         f"🔄 Auto-retry: {MAX_RETRY_ATTEMPTS}x on error/timeout\n"
         "♻️ Auto-resume aria2 (forceResume)\n"
         "🧹 Auto-cleanup setelah selesai\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━",
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "*💾 Auto HDD Detection:*\n\n"
+        "🔍 Scan otomatis /mnt/sda1, sdb1, dst\n"
+        "📊 Pilih HDD dengan data terbanyak\n"
+        "✅ Prioritas folder 'media'\n"
+        "🔄 Auto-switch saat ganti HDD\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━",
+        parse_mode="Markdown",
+        reply_markup=get_main_keyboard()
+    )
+
+
+async def show_hdd_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Tampilkan informasi detail HDD"""
+    # Re-scan untuk data terbaru
+    detect_hdd_path()
+    
+    all_hdds = []
+    for device in ['sda', 'sdb', 'sdc', 'sdd']:
+        for partition in range(1, 5):
+            mount_path = f"/mnt/{device}{partition}"
+            if os.path.exists(mount_path):
+                try:
+                    result = subprocess.run(
+                        ['du', '-s', mount_path],
+                        capture_output=True,
+                        text=True,
+                        timeout=3
+                    )
+                    if result.returncode == 0:
+                        size = int(result.stdout.split()[0]) * 1024
+                        is_active = mount_path == BASE_DOWNLOAD_PATH
+                        all_hdds.append({
+                            'device': f"{device}{partition}",
+                            'path': mount_path,
+                            'size': size,
+                            'active': is_active
+                        })
+                except:
+                    pass
+    
+    info_text = "💾 *INFORMASI HDD SYSTEM*\n\n━━━━━━━━━━━━━━━━━━━━━\n"
+    info_text += "*HDD Yang Sedang Digunakan:*\n\n"
+    info_text += f"{get_hdd_info_text()}\n\n"
+    info_text += "━━━━━━━━━━━━━━━━━━━━━\n"
+    
+    if all_hdds:
+        info_text += "*Semua HDD Terdeteksi:*\n\n"
+        for hdd in sorted(all_hdds, key=lambda x: x['size'], reverse=True):
+            status = "✅ ACTIVE" if hdd['active'] else "⚪ Available"
+            info_text += f"{status}\n"
+            info_text += f"├ Device: `{hdd['device']}`\n"
+            info_text += f"├ Path: `{hdd['path']}`\n"
+            info_text += f"└ Size: `{format_bytes(hdd['size'])}`\n\n"
+    else:
+        info_text += "⚠️ Tidak ada HDD tambahan terdeteksi\n"
+    
+    info_text += "━━━━━━━━━━━━━━━━━━━━━\n"
+    info_text += "*📌 Info:*\n"
+    info_text += "Bot otomatis memilih HDD dengan\n"
+    info_text += "folder 'media' yang memiliki data terbanyak.\n"
+    info_text += "Restart bot untuk re-scan HDD."
+    
+    await update.message.reply_text(
+        info_text,
         parse_mode="Markdown",
         reply_markup=get_main_keyboard()
     )
@@ -254,6 +451,8 @@ async def handle_keyboard_buttons(update: Update, context: ContextTypes.DEFAULT_
         await show_folders(update, context)
     elif text == "📋 Lihat Antrian":
         await show_queue(update, context)
+    elif text == "💾 Info HDD":
+        await show_hdd_info(update, context)
     elif text == "ℹ️ Help":
         await help_command(update, context)
 
@@ -265,7 +464,8 @@ async def show_folders(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if not base_path.exists():
             await update.message.reply_text(
-                f"⚠️ Base path belum ada: `{BASE_DOWNLOAD_PATH}`",
+                f"⚠️ Base path belum ada: `{BASE_DOWNLOAD_PATH}`\n\n"
+                f"Folder akan dibuat otomatis saat download pertama.",
                 parse_mode="Markdown",
                 reply_markup=get_main_keyboard()
             )
@@ -277,13 +477,13 @@ async def show_folders(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(
                 "📂 *Folder tersedia:*\n\n"
                 "Belum ada folder. Folder akan dibuat otomatis saat download.\n\n"
-                f"📁 Base path: `{BASE_DOWNLOAD_PATH}`",
+                f"{get_hdd_info_text()}",
                 parse_mode="Markdown",
                 reply_markup=get_main_keyboard()
             )
             return
         
-        folder_list = "📂 *DAFTAR FOLDER*\n\n━━━━━━━━━━━━━━━━━━━━━━━\n"
+        folder_list = "📂 *DAFTAR FOLDER*\n\n━━━━━━━━━━━━━━━━━━━━━\n"
         for folder in sorted(folders):
             file_count = len([f for f in folder.iterdir() if f.is_file()])
             total_size = sum(f.stat().st_size for f in folder.rglob('*') if f.is_file())
@@ -293,7 +493,8 @@ async def show_folders(update: Update, context: ContextTypes.DEFAULT_TYPE):
             folder_list += f"├ Files: `{file_count}` file(s)\n"
             folder_list += f"└ Size: `{format_bytes(total_size)}`\n"
         
-        folder_list += "\n━━━━━━━━━━━━━━━━━━━━━━━"
+        folder_list += "\n━━━━━━━━━━━━━━━━━━━━━\n"
+        folder_list += f"{get_hdd_info_text()}"
         
         await update.message.reply_text(
             folder_list,
@@ -318,17 +519,17 @@ async def show_queue(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_queued = sum(1 for q in download_queue if q['user_id'] == user_id)
     
     queue_text = "📋 *STATUS ANTRIAN DOWNLOAD*\n\n"
-    queue_text += "━━━━━━━━━━━━━━━━━━━━━━━\n"
+    queue_text += "━━━━━━━━━━━━━━━━━━━━━\n"
     queue_text += f"🔄 Active: {active_download_count}/{MAX_CONCURRENT_DOWNLOADS}\n"
     queue_text += f"📦 Queue: {len(download_queue)} waiting\n"
-    queue_text += "━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+    queue_text += "━━━━━━━━━━━━━━━━━━━━━\n\n"
     
     queue_text += f"*Your Downloads:*\n"
     queue_text += f"▶️ Active: {user_active}\n"
     queue_text += f"⏳ Queued: {user_queued}\n\n"
     
     if download_queue:
-        queue_text += "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        queue_text += "━━━━━━━━━━━━━━━━━━━━━\n"
         queue_text += "*Dalam Antrian:*\n\n"
         for idx, item in enumerate(list(download_queue)[:5], 1):
             queue_text += f"{idx}. `{item['filename'][:30]}...`\n"
@@ -388,9 +589,9 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(
         f"🔗 *Link Diterima!*\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"`{url[:100]}{'...' if len(url) > 100 else ''}`\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n\n"
         "📂 *Pilih folder untuk menyimpan file:*",
         parse_mode="Markdown",
         reply_markup=reply_markup
@@ -456,11 +657,11 @@ async def handle_folder_choice(update: Update, context: ContextTypes.DEFAULT_TYP
     
     await query.edit_message_text(
         f"📋 *KONFIRMASI FOLDER & NAMA FILE*\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"📁 Folder: `{folder_name}`\n"
         f"📂 Full: `{folder_path}`\n"
         f"{status_icon} Status: {status_text}\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"📄 *Nama File (terdeteksi):*\n"
         f"`{suggested_filename}`\n\n"
         f"❓ *Apakah Anda ingin menggunakan nama file ini?*",
@@ -508,9 +709,9 @@ async def handle_filename_choice(update: Update, context: ContextTypes.DEFAULT_T
     elif query.data == "filename_custom":
         await query.edit_message_text(
             "✏️ *UBAH NAMA FILE*\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📝 Nama saat ini: `{user_data[user_id]['suggested_filename']}`\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📁 Nama saat ini: `{user_data[user_id]['suggested_filename']}`\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n\n"
             "💬 Ketik nama file baru:\n\n"
             "✅ Contoh:\n"
             "• `My-Video.mp4`\n"
@@ -559,11 +760,11 @@ async def show_final_confirmation(query, context, user_id):
     
     await query.edit_message_text(
         f"🎯 *KONFIRMASI AKHIR*\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"📁 Folder: `{folder_name}`\n"
         f"📄 Nama File: `{filename}`\n"
         f"📂 Path Lengkap:\n`{os.path.join(folder_path, filename)}`\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"❓ *Lanjutkan download?*",
         reply_markup=reply_markup,
         parse_mode="Markdown"
@@ -588,11 +789,11 @@ async def show_final_confirmation_message(update, context, user_id):
     
     await update.message.reply_text(
         f"🎯 *KONFIRMASI AKHIR*\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"📁 Folder: `{folder_name}`\n"
         f"📄 Nama File: `{filename}`\n"
         f"📂 Path Lengkap:\n`{os.path.join(folder_path, filename)}`\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"❓ *Lanjutkan download?*",
         reply_markup=reply_markup,
         parse_mode="Markdown"
@@ -638,11 +839,11 @@ async def handle_final_confirmation(update: Update, context: ContextTypes.DEFAUL
     
     await query.edit_message_text(
         f"✅ *Konfirmasi Diterima!*\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"📦 Menambahkan ke queue...\n"
         f"📁 Folder: `{folder_name}`\n"
         f"📄 File: `{filename}`\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━",
+        f"━━━━━━━━━━━━━━━━━━━━━",
         parse_mode="Markdown"
     )
     
@@ -862,11 +1063,11 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
                 await bot.send_message(
                     chat_id=chat_id,
                     text=f"🚀 *Download dimulai!*\n\n"
-                         f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                         f"━━━━━━━━━━━━━━━━━━━━━\n"
                          f"📄 File: `{filename}`\n"
                          f"📁 Folder: `{folder_name}`\n"
                          f"🔗 URL: `{url[:50]}...`\n"
-                         f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                         f"━━━━━━━━━━━━━━━━━━━━━\n\n"
                          f"⏳ Menginisialisasi download...",
                     parse_mode="Markdown"
                 )
@@ -886,7 +1087,7 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
                     
                     if not status:
                         no_status_count += 1
-                        if no_status_count > 5:  # 15 detik tidak ada status
+                        if no_status_count > 5:
                             raise Exception("Gagal mendapatkan status dari Aria2")
                         continue
                     
@@ -899,7 +1100,7 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
                     # Deteksi stalled download
                     if completed_length == last_completed and download_speed == 0 and aria_status == 'active':
                         stalled_count += 1
-                        if stalled_count > 20:  # 60 detik tidak ada progress
+                        if stalled_count > 20:
                             raise Exception("Download timeout (tidak ada progress)")
                     else:
                         stalled_count = 0
@@ -930,12 +1131,12 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
                                 msg = await bot.send_message(
                                     chat_id=chat_id,
                                     text=f"⬇ *DOWNLOADING*\n\n"
-                                         f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                                         f"━━━━━━━━━━━━━━━━━━━━━\n"
                                          f"📄 File: `{filename[:40]}...`\n"
                                          f"📁 Folder: `{folder_name}`\n"
                                          f"📊 Total: `{format_bytes(total_length)}`\n"
                                          f"🔄 Retry: {retry_count}/{MAX_RETRY_ATTEMPTS}\n"
-                                         f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                                         f"━━━━━━━━━━━━━━━━━━━━━\n\n"
                                          f"{progress_bar}\n"
                                          f"📈 Progress: `{progress:.1f}%`\n"
                                          f"💾 Downloaded: `{format_bytes(completed_length)}`\n\n"
@@ -964,9 +1165,9 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
                         await bot.send_message(
                             chat_id=chat_id,
                             text=f"🎉 *DOWNLOAD SELESAI!*\n\n"
-                                 f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                                 f"━━━━━━━━━━━━━━━━━━━━━\n"
                                  f"✅ Status: *Berhasil*\n"
-                                 f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                                 f"━━━━━━━━━━━━━━━━━━━━━\n\n"
                                  f"📄 *File Info:*\n"
                                  f"├ Name: `{filename}`\n"
                                  f"├ Size: `{format_bytes(total_length)}`\n"
@@ -978,7 +1179,7 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
                                  f"├ Duration: `{format_time(elapsed_time)}`\n"
                                  f"├ Retries: {retry_count}/{MAX_RETRY_ATTEMPTS}\n"
                                  f"└ Comment: {speed_info['comment']}\n\n"
-                                 f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                                 f"━━━━━━━━━━━━━━━━━━━━━\n"
                                  f"💡 File tersimpan dan siap digunakan!\n"
                                  f"🚀 Powered by Aria2",
                             parse_mode="Markdown",
@@ -994,7 +1195,7 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
                         except:
                             pass
                         
-                        await asyncio.sleep(300)  # Hapus setelah 5 menit
+                        await asyncio.sleep(300)
                         if download_id in active_downloads:
                             del active_downloads[download_id]
                         
@@ -1009,7 +1210,6 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
                         
                         # Jika ada progress, coba resume
                         if completed > 0 and retry_count < MAX_RETRY_ATTEMPTS:
-                            # Coba forceResume
                             try:
                                 await bot.send_message(
                                     chat_id=chat_id,
@@ -1033,17 +1233,14 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
                             except Exception as e:
                                 print(f"ForceResume failed: {e}")
                         
-                        # Jika forceResume gagal, throw exception untuk retry
                         raise Exception(f"Download error: {error_message}")
                     
                     elif aria_status == 'paused':
-                        # Wait jika di-pause manual
                         active_downloads[download_id]['status'] = 'paused'
                         await asyncio.sleep(3)
                         continue
                     
                     elif aria_status == 'removed':
-                        # Download dihentikan manual
                         raise Exception("Download dihentikan oleh user")
             
             except Exception as e:
@@ -1073,7 +1270,6 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
                     await asyncio.sleep(5)
                     continue
                 else:
-                    # Retry habis, gagal total
                     raise e
         
     except Exception as e:
@@ -1086,10 +1282,10 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
         await bot.send_message(
             chat_id=chat_id,
             text=f"❌ *DOWNLOAD GAGAL!*\n\n"
-                 f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                 f"━━━━━━━━━━━━━━━━━━━━━\n"
                  f"📄 File: `{filename[:40]}...`\n"
                  f"🔄 Retry: {retry_count}/{MAX_RETRY_ATTEMPTS}\n"
-                 f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                 f"━━━━━━━━━━━━━━━━━━━━━\n\n"
                  f"❌ Error: `{error_message[:150]}`\n\n"
                  f"💡 Semua percobaan retry telah habis.\n"
                  f"Silakan coba download ulang.",
@@ -1100,7 +1296,6 @@ async def download_with_aria2(bot, chat_id, url: str, folder_path: str, folder_n
         # Cleanup
         active_download_count -= 1
         
-        # Hapus dari aria2
         try:
             if gid:
                 await aria2_rpc_call("aria2.forceRemove", [gid])
@@ -1123,7 +1318,7 @@ async def download_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not user_downloads:
         await update.message.reply_text(
             "🔭 *TIDAK ADA DOWNLOAD AKTIF*\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
             "Belum ada download yang sedang berjalan.\n\n"
             "💡 Kirim URL untuk memulai download baru!",
             parse_mode="Markdown",
@@ -1131,7 +1326,7 @@ async def download_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    status_text = "📊 *STATUS DOWNLOAD AKTIF*\n\n━━━━━━━━━━━━━━━━━━━━━━━\n"
+    status_text = "📊 *STATUS DOWNLOAD AKTIF*\n\n━━━━━━━━━━━━━━━━━━━━━\n"
     
     for download_id, info in user_downloads.items():
         progress_bar = create_progress_bar(info['progress'])
@@ -1165,7 +1360,7 @@ async def download_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         status_text += f"⏲ Elapsed: `{format_time(elapsed_time)}`\n"
         status_text += f"Status: `{info['status']}`\n"
-        status_text += "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        status_text += "━━━━━━━━━━━━━━━━━━━━━\n"
     
     await update.message.reply_text(
         status_text,
@@ -1221,6 +1416,15 @@ def format_time(seconds: float) -> str:
 
 def main():
     """Main function untuk menjalankan bot"""
+    # Detect HDD path saat startup
+    print("🔍 Detecting HDD path...")
+    detected_path = detect_hdd_path()
+    
+    if not detected_path:
+        print("❌ Failed to detect HDD path!")
+        return
+    
+    # Buat base path jika belum ada
     Path(BASE_DOWNLOAD_PATH).mkdir(parents=True, exist_ok=True)
     
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
@@ -1250,21 +1454,25 @@ def main():
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("cancel", cancel))
     application.add_handler(conv_handler)
-    
-    # Handler untuk download control
     application.add_handler(CallbackQueryHandler(handle_download_control, pattern="^ctrl_"))
-    
-    # Handler untuk keyboard buttons
     application.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND & ~filters.Regex(r'^(https?://|ftp://|magnet:)'),
         handle_keyboard_buttons
     ))
     
-    print("🤖 Bot started with enhanced queue system...")
-    print(f"📁 Base download path: {BASE_DOWNLOAD_PATH}")
-    print(f"🔌 Aria2 RPC URL: {ARIA2_RPC_URL}")
-    print(f"📦 Max concurrent downloads: {MAX_CONCURRENT_DOWNLOADS}")
-    print(f"🔄 Max retry attempts: {MAX_RETRY_ATTEMPTS}")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("🤖 Bot started with Auto HDD Detection!")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"📦 HDD Path: {BASE_DOWNLOAD_PATH}")
+    print(f"💾 Device: {HDD_INFO.get('device', 'N/A')}")
+    print(f"📊 Total Size: {format_bytes(HDD_INFO.get('total_size', 0))}")
+    print(f"📁 Media Size: {format_bytes(HDD_INFO.get('media_size', 0))}")
+    print(f"✅ Selection: {HDD_INFO.get('status', 'N/A')}")
+    print(f"🔌 Aria2 RPC: {ARIA2_RPC_URL}")
+    print(f"📦 Max Concurrent: {MAX_CONCURRENT_DOWNLOADS}")
+    print(f"🔄 Max Retry: {MAX_RETRY_ATTEMPTS}")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
