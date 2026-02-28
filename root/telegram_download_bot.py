@@ -25,7 +25,7 @@ from telegram.ext import (
 )
 
 # Konfigurasi
-TELEGRAM_BOT_TOKEN = "8213688071:AAEogqCAr52QLG6g8PYal9hI12D2Xo9as4s"
+TELEGRAM_BOT_TOKEN = "8159444500:AAF5HVebxUm-atq67f1KmP4U5vuJxtFurHc"
 ARIA2_RPC_URL = "http://localhost:6800/jsonrpc"
 ARIA2_RPC_SECRET = ""
 
