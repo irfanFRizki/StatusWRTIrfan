@@ -14,7 +14,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKe
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
 # ==================== KONFIGURASI ====================
-BOT_TOKEN = "8416814394:AAGNQOYEketw20NxR7nA9LtKQr5cMk3boUU"  # Ganti dengan token bot Anda
+BOT_TOKEN = "7024176173:AAECVsHHK9l9ZJbWBvkT_M6M82OmlTrGrWg"  # Ganti dengan token bot Anda
 ALLOWED_USERS = [5645537022]  # Ganti dengan Telegram User ID Anda
 CGI_ONLINE_PATH = "/www/cgi-bin/online"  # Path ke script CGI online
 
@@ -546,6 +546,7 @@ def get_disk_info() -> str:
         # List disk yang ingin dicek
         disks = [
             ("sda1", "sda1"),
+            ("sdb1", "sdb1"),
             ("root", "root"),
             ("mmcblk0p3", "mmcblk0p3")
         ]
