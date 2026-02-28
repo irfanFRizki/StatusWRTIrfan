@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-PACKING LIST MONITOR BOT - Python Version (Public Sheets)
+PACKING LIST MONITOR BOT - Python Version (Auto Multi-Tahun)
 Bot Telegram untuk monitoring packing list dari Google Sheets public
-Tidak memerlukan Google Service Account
+Mendukung multiple sheet tahun secara otomatis (2025, 2026, 2027+)
+Tanpa perlu ubah kode manual saat pergantian tahun
 """
 
 import os
@@ -23,27 +24,65 @@ from telegram.ext import (
 )
 
 # ==========================================
-# KONFIGURASI
+# KONFIGURASI DINAMIS (OTOMATIS UPDATE TIAP TAHUN)
 # ==========================================
 
 # Telegram Bot Token
-TELEGRAM_TOKEN = "8504765068:AAE4T9AGMuWmFFYE8SkFpw6ahvkzb8V5vgg"
+TELEGRAM_TOKEN = "8527514420:AAEeThMIVd2P0-lsaupfiBxGmx2GRrv0MBk"
 
 # Admin Chat ID untuk notifikasi
 ADMIN_CHAT_ID = "5645537022"
 
-# Google Sheets Public URL (bit.ly atau direct link)
-# Format: https://docs.google.com/spreadsheets/d/{SHEET_ID}/edit
+# Google Sheets Public URL
 SHEET_URL = "https://docs.google.com/spreadsheets/d/1xeq7mUWk--Nar82WX-mmGAsELGsl9OdX4s1Prvfpnic/edit?usp=sharing"
 
-# Sheet names
-SHEET_PACKING_LIST = "2025"
+# Sheet BOX tetap tidak berubah
 SHEET_BOX = "BOX"
+
+# ===== KONFIGURASI PENGELOLAAN TAHUN =====
+# Sheet historis yang SELALU dipertahankan (data belum selesai)
+HISTORICAL_SHEETS = ["2025"]  # Ubah sesuai kebutuhan historis
+
+# Rentang tahun aktif yang dipantau (tahun lalu sampai tahun ini)
+CURRENT_YEAR = datetime.now().year
+MIN_ACTIVE_YEAR = CURRENT_YEAR - 1  # Tahun lalu
+MAX_ACTIVE_YEARS = 2  # Maksimal rentang tahun aktif (termasuk tahun ini)
+
+# Batasan total sheet yang dipantau (untuk performa)
+MAX_TOTAL_SHEETS = 4  # Maksimal sheet yang diproses sekaligus
+
+# ===== GENERATE DAFTAR SHEET YANG AKTIF =====
+def get_active_packing_sheets():
+    """
+    Generate daftar sheet yang perlu dipantau:
+    1. Sheet historis wajib (HISTORICAL_SHEETS)
+    2. Sheet tahun aktif (tahun ini dan beberapa tahun sebelumnya)
+    3. Batasi maksimal sheet untuk performa
+    """
+    # Sheet aktif: dari MIN_ACTIVE_YEAR sampai CURRENT_YEAR
+    active_years = [str(year) for year in range(MIN_ACTIVE_YEAR, CURRENT_YEAR + 1)]
+    
+    # Gabungkan dengan sheet historis
+    all_sheets = list(set(HISTORICAL_SHEETS + active_years))
+    
+    # Urutkan dari tahun terbaru ke terlama
+    sorted_sheets = sorted(all_sheets, key=lambda x: int(x), reverse=True)
+    
+    # Batasi maksimal sheet
+    limited_sheets = sorted_sheets[:MAX_TOTAL_SHEETS]
+    
+    # Urutkan ascending untuk konsistensi tampilan
+    return sorted(limited_sheets, key=lambda x: int(x))
+
+# Generate daftar sheet aktif
+PACKING_SHEETS = get_active_packing_sheets()
+print(f"✅ Sheet aktif terdeteksi: {', '.join(PACKING_SHEETS)}")
+print(f"📅 Tahun sistem: {CURRENT_YEAR}, Rentang aktif: {MIN_ACTIVE_YEAR}-{CURRENT_YEAR}")
 
 # Database untuk tracking
 DB_FILE = "/root/packing_list_tracker.db"
 
-# Cache duration (dalam detik) - untuk mengurangi request ke Google Sheets
+# Cache duration (dalam detik)
 CACHE_DURATION = 300  # 5 menit
 
 # Logging
@@ -53,7 +92,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global cache
+# Global cache (per sheet)
 _cache = {
     'data': {},
     'timestamp': {}
@@ -71,6 +110,7 @@ def init_database():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS notified_packing_lists (
             packing_list TEXT PRIMARY KEY,
+            sheet_year TEXT NOT NULL,
             notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -78,6 +118,7 @@ def init_database():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS notified_h3 (
             packing_list TEXT PRIMARY KEY,
+            sheet_year TEXT NOT NULL,
             est_bongkar DATE,
             notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -119,7 +160,6 @@ def resolve_short_url(short_url):
 def extract_sheet_id(url):
     """Extract Sheet ID dari URL Google Sheets"""
     try:
-        # Pattern untuk Google Sheets URL
         pattern = r'/spreadsheets/d/([a-zA-Z0-9-_]+)'
         match = re.search(pattern, url)
         
@@ -136,7 +176,6 @@ def extract_sheet_id(url):
 def get_sheet_id():
     """Get Sheet ID dengan caching"""
     try:
-        # Check cache di database
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
         
@@ -145,19 +184,16 @@ def get_sheet_id():
         
         if result:
             sheet_id, updated_at = result
-            # Cache valid untuk 1 hari
             cache_time = datetime.strptime(updated_at, '%Y-%m-%d %H:%M:%S')
             if (datetime.now() - cache_time).days < 1:
                 conn.close()
                 return sheet_id
         
-        # Resolve URL dan extract ID
         logger.info("Resolving Sheet URL...")
         full_url = resolve_short_url(SHEET_URL)
         sheet_id = extract_sheet_id(full_url)
         
         if sheet_id:
-            # Save to cache
             cursor.execute('''
                 INSERT OR REPLACE INTO sheet_id_cache (id, sheet_id, updated_at) 
                 VALUES (1, ?, datetime('now'))
@@ -187,15 +223,12 @@ def get_sheet_data_csv(sheet_name):
                 logger.info(f"Using cached data for {sheet_name}")
                 return _cache['data'][cache_key]
         
-        # Google Sheets CSV export URL
-        # Format: https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}
         csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
         
         logger.info(f"Fetching data from: {sheet_name}")
         response = requests.get(csv_url, timeout=30)
         
         if response.status_code == 200:
-            # Parse CSV
             import csv
             from io import StringIO
             
@@ -203,18 +236,21 @@ def get_sheet_data_csv(sheet_name):
             reader = csv.reader(csv_data)
             data = list(reader)
             
-            # Cache data
+            if len(data) < 2:
+                logger.warning(f"Data sheet {sheet_name} kosong atau tidak valid")
+                return None
+            
             _cache['data'][cache_key] = data
             _cache['timestamp'][cache_key] = datetime.now().timestamp()
             
             logger.info(f"Successfully fetched {len(data)} rows from {sheet_name}")
             return data
         else:
-            logger.error(f"Failed to fetch data: HTTP {response.status_code}")
+            logger.error(f"Failed to fetch data from {sheet_name}: HTTP {response.status_code}")
             return None
             
     except Exception as e:
-        logger.error(f"Error fetching sheet data: {e}")
+        logger.error(f"Error fetching sheet {sheet_name}: {e}")
         return None
 
 # ==========================================
@@ -252,7 +288,6 @@ def format_tanggal(date_str):
 def parse_float(value):
     """Parse value ke float, return 0 jika gagal"""
     try:
-        # Remove comma if exists
         if isinstance(value, str):
             value = value.replace(',', '')
         return float(value) if value else 0
@@ -269,12 +304,10 @@ def format_koli(value):
 
 def extract_container_name(packing_list):
     """Extract nama container dari packing list"""
-    # Cari text dalam kurung
     match = re.search(r'\(([^)]+)\)', packing_list)
     if match:
         return match.group(1)
     
-    # Jika tidak ada kurung, ambil prefix
     match = re.match(r'^([A-Z]+)', packing_list)
     if match:
         return match.group(1)
@@ -311,427 +344,45 @@ def get_reply_keyboard():
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 # ==========================================
-# COMMAND HANDLERS
+# DATA AGGREGATION FUNCTIONS
 # ==========================================
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler untuk command /start"""
-    msg = (
-        "👋 *Selamat Datang di Packing List Monitor Bot!*\n\n"
-        "Bot ini membantu Anda memantau status packing list.\n\n"
-        "Pilih menu di bawah untuk memulai:"
-    )
+def get_combined_packing_data():
+    """Ambil dan gabungkan data dari semua sheet packing list aktif"""
+    combined_data = []
+    headers = None
     
-    await update.message.reply_text(
-        msg,
-        parse_mode='Markdown',
-        reply_markup=get_main_keyboard()
-    )
+    logger.info(f"🔍 Menggabungkan data dari sheet: {', '.join(PACKING_SHEETS)}")
     
-    # Kirim reply keyboard
-    await update.message.reply_text(
-        "Gunakan tombol di bawah untuk navigasi cepat:",
-        reply_markup=get_reply_keyboard()
-    )
-
-async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler untuk command /menu"""
-    msg = "📋 *MENU UTAMA*\n\nPilih menu yang Anda inginkan:"
-    
-    await update.message.reply_text(
-        msg,
-        parse_mode='Markdown',
-        reply_markup=get_main_keyboard()
-    )
-
-# ==========================================
-# MESSAGE HANDLERS (untuk KeyboardButton)
-# ==========================================
-
-async def handle_keyboard_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler untuk keyboard button (Menu, Help, Refresh)"""
-    text = update.message.text
-    
-    if text == "📋 Menu":
-        msg = "📋 *MENU UTAMA*\n\nPilih menu yang Anda inginkan:"
-        await update.message.reply_text(
-            msg,
-            parse_mode='Markdown',
-            reply_markup=get_main_keyboard()
-        )
-    
-    elif text == "ℹ️ Help":
-        msg = get_help_text()
-        await update.message.reply_text(
-            msg,
-            parse_mode='Markdown'
-        )
-    
-    elif text == "🔄 Refresh":
-        # Clear cache
-        _cache['data'].clear()
-        _cache['timestamp'].clear()
-        msg = "🔄 *Cache telah di-refresh!*\n\nSilakan pilih menu lagi untuk melihat data terbaru."
-        await update.message.reply_text(
-            msg,
-            parse_mode='Markdown',
-            reply_markup=get_main_keyboard()
-        )
-
-# ==========================================
-# CALLBACK QUERY HANDLERS
-# ==========================================
-
-async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler untuk button callback"""
-    query = update.callback_query
-    await query.answer()
-    
-    callback_data = query.data
-    
-    # Show loading message
-    loading_msg = "⏳ Mengambil data..."
-    await query.edit_message_text(text=loading_msg)
-    
-    try:
-        if callback_data == "cek_all":
-            result = cek_packing_list_all()
-            
-        elif callback_data == "cek_container":
-            result = cek_container()
-            
-        elif callback_data == "cek_box":
-            result = cek_box()
-            
-        elif callback_data == "cek_metro":
-            result = cek_metro()
-        
-        else:
-            result = "❌ Perintah tidak dikenali"
-        
-        # Split message if too long (Telegram limit 4096 characters)
-        if len(result) > 4000:
-            # Send in chunks
-            chunks = [result[i:i+4000] for i in range(0, len(result), 4000)]
-            await query.edit_message_text(
-                text=chunks[0],
-                parse_mode='Markdown',
-                reply_markup=get_main_keyboard()
-            )
-            for chunk in chunks[1:]:
-                await query.message.reply_text(
-                    text=chunk,
-                    parse_mode='Markdown'
-                )
-        else:
-            await query.edit_message_text(
-                text=result,
-                parse_mode='Markdown',
-                reply_markup=get_main_keyboard()
-            )
-            
-    except Exception as e:
-        logger.error(f"Error in button_callback: {e}")
-        error_msg = f"❌ Terjadi kesalahan: {str(e)}\n\nSilakan coba lagi."
-        await query.edit_message_text(
-            text=error_msg,
-            parse_mode='Markdown',
-            reply_markup=get_main_keyboard()
-        )
-
-# ==========================================
-# PACKING LIST FUNCTIONS
-# ==========================================
-
-def cek_packing_list_all():
-    """Cek semua packing list yang belum bongkar"""
-    try:
-        data = get_sheet_data_csv(SHEET_PACKING_LIST)
+    for sheet_name in PACKING_SHEETS:
+        data = get_sheet_data_csv(sheet_name)
         if not data:
-            return '❌ Gagal mengambil data dari sheet. Pastikan sheet dapat diakses secara public.'
+            logger.warning(f"Tidak ada data di sheet {sheet_name}")
+            continue
         
-        box_data = get_box_data()
+        if headers is None:
+            headers = data[0]
         
-        container_groups = {}
-        total_count = 0
-        
-        # Process packing list (skip header)
-        for i in range(1, len(data)):
-            row = data[i]
+        for row in data[1:]:
             if len(row) < 9:
                 continue
             
-            packing_list = row[1] if len(row) > 1 else ''
-            ctns = parse_float(row[2] if len(row) > 2 else 0)
-            est_bongkar = row[4] if len(row) > 4 else ''
-            tanggal_bongkar = row[8] if len(row) > 8 else ''
-            
-            if not packing_list or packing_list.strip() == '':
-                continue
-            
-            # Skip jika sudah dibongkar
-            if tanggal_bongkar and tanggal_bongkar.strip() != '':
-                continue
-            
-            if est_bongkar:
-                total_count += 1
-                
-                container_name = extract_container_name(packing_list)
-                
-                if container_name not in container_groups:
-                    container_groups[container_name] = {
-                        'total_ctns': 0,
-                        'items': [],
-                        'est_bongkar': est_bongkar
-                    }
-                
-                container_groups[container_name]['total_ctns'] += ctns
-                container_groups[container_name]['items'].append({
-                    'packing_list': packing_list,
-                    'ctns': ctns
-                })
-        
-        # Merge box data
-        for box_key, box_info in box_data.items():
-            if box_key in container_groups:
-                container_groups[box_key]['box_items'] = box_info['items']
-                container_groups[box_key]['box_total'] = box_info['total_koli']
-            else:
-                container_groups[box_key] = {
-                    'total_ctns': 0,
-                    'items': [],
-                    'est_bongkar': None,
-                    'box_items': box_info['items'],
-                    'box_total': box_info['total_koli']
-                }
-        
-        if total_count == 0 and not box_data:
-            return '✅ Semua packing list sudah dibongkar!'
-        
-        msg = '📦 *PACKING LIST BELUM BONGKAR*\n'
-        msg += f'Total: {total_count} packing list\n'
-        msg += '━━━━━━━━━━━━━━━━━━\n\n'
-        
-        item_number = 1
-        sorted_containers = sorted(container_groups.keys())
-        
-        for container_name in sorted_containers:
-            container = container_groups[container_name]
-            
-            # Hitung total koli (ctns + box)
-            total_koli = int(container["total_ctns"]) + int(container.get('box_total', 0))
-            
-            msg += f'*{container_name}* → {int(container["total_ctns"])}\n'
-            
-            if 'box_total' in container and container['box_total'] > 0:
-                msg += f'BOX → {int(container["box_total"])}\n'
-            
-            if total_koli > 0:
-                msg += f'*Total: {total_koli} Koli*\n'
-            
-            msg += '━━━━━━━━━━━━━━━━━━\n'
-            
-            for item in container.get('items', []):
-                msg += f'{item_number}. {item["packing_list"]} → {int(item["ctns"])} Koli\n'
-                item_number += 1
-            
-            if container.get('est_bongkar'):
-                msg += f'📅 *Est Bongkar:* {format_tanggal(container["est_bongkar"])}\n'
-            
-            if 'box_items' in container:
-                for box_item in container['box_items']:
-                    msg += f'📦 BOX: {box_item["jenis_barang"]} → {box_item["koli"]}\n'
-                    if box_item.get('tanggal_kirim'):
-                        msg += f'   📅 Tanggal Kirim: {format_tanggal(box_item["tanggal_kirim"])}\n'
-            
-            msg += '━━━━━━━━━━━━━━━━━━\n\n'
-        
-        return msg
+            row_with_year = row + [sheet_name]
+            combined_data.append(row_with_year)
     
-    except Exception as e:
-        logger.error(f"Error in cek_packing_list_all: {e}")
-        return f'❌ Error: {str(e)}'
-
-def cek_container():
-    """Cek hanya container (C-XX)"""
-    try:
-        data = get_sheet_data_csv(SHEET_PACKING_LIST)
-        if not data:
-            return '❌ Gagal mengambil data dari sheet.'
-        
-        box_data = get_box_data()
-        container_groups = {}
-        
-        for i in range(1, len(data)):
-            row = data[i]
-            if len(row) < 9:
-                continue
-            
-            packing_list = row[1] if len(row) > 1 else ''
-            ctns = parse_float(row[2] if len(row) > 2 else 0)
-            est_bongkar = row[4] if len(row) > 4 else ''
-            tanggal_bongkar = row[8] if len(row) > 8 else ''
-            
-            if not packing_list or tanggal_bongkar:
-                continue
-            
-            if '(' in packing_list and ')' in packing_list:
-                container_name = extract_container_name(packing_list)
-                
-                if container_name.startswith('C-') or ('C....') or ('C...') or ('C..') in container_name:
-                    if container_name not in container_groups:
-                        container_groups[container_name] = {
-                            'total_ctns': 0,
-                            'items': [],
-                            'est_bongkar': est_bongkar
-                        }
-                    
-                    container_groups[container_name]['total_ctns'] += ctns
-                    container_groups[container_name]['items'].append({
-                        'packing_list': packing_list,
-                        'ctns': ctns
-                    })
-        
-        # Merge box data untuk container yang cocok
-        for box_key, box_info in box_data.items():
-            if box_key in container_groups:
-                container_groups[box_key]['box_items'] = box_info['items']
-                container_groups[box_key]['box_total'] = box_info['total_koli']
-        
-        if not container_groups:
-            return '✅ Tidak ada container yang sedang dalam pengiriman.'
-        
-        msg = '🚢 *CONTAINER DALAM PENGIRIMAN*\n'
-        msg += f'Total: {len(container_groups)} container\n'
-        msg += '━━━━━━━━━━━━━━━━━━\n\n'
-        
-        for container_name in sorted(container_groups.keys()):
-            container = container_groups[container_name]
-            
-            # Hitung total koli (ctns + box)
-            total_ctns = int(container["total_ctns"])
-            box_total = int(container.get('box_total', 0))
-            total_koli = total_ctns + box_total
-            
-            msg += f'*{container_name}*\n'
-            msg += f'Container: {total_ctns} Koli\n'
-            
-            if box_total > 0:
-                msg += f'BOX: {box_total} Koli\n'
-            
-            msg += f'*Total: {total_koli} Koli*\n'
-            msg += '━━━━━━━━━━━━━━━━━━\n'
-            
-            for item in container['items']:
-                ctns_koli = int(item["ctns"])
-                msg += f'• {item["packing_list"]} → {ctns_koli} Koli\n'
-            
-            # Tampilkan box items jika ada
-            if 'box_items' in container:
-                for box_item in container['box_items']:
-                    msg += f'• BOX: {box_item["jenis_barang"]} → {box_item["koli"]}\n'
-            
-            if container['est_bongkar']:
-                msg += f'\n📅 Est Bongkar: {format_tanggal(container["est_bongkar"])}\n'
-            
-            msg += '━━━━━━━━━━━━━━━━━━\n\n'
-        
-        return msg
+    if not combined_data:
+        logger.error("Tidak ada data packing list dari semua sheet aktif")
+        return None, None
     
-    except Exception as e:
-        logger.error(f"Error in cek_container: {e}")
-        return f'❌ Error: {str(e)}'
-
-def cek_box():
-    """Cek update pengiriman box"""
-    try:
-        box_data = get_box_data()
-        
-        if not box_data:
-            return '✅ Tidak ada box yang sedang dalam pengiriman.'
-        
-        msg = '📦 *BOX DALAM PENGIRIMAN*\n'
-        msg += f'Total: {len(box_data)} group\n'
-        msg += '━━━━━━━━━━━━━━━━━━\n\n'
-        
-        for container_name, box_info in sorted(box_data.items()):
-            total_koli = int(box_info["total_koli"])
-            msg += f'*{container_name}* → Total: {total_koli} Koli\n'
-            msg += '━━━━━━━━━━━━━━━━━━\n'
-            
-            for item in box_info['items']:
-                msg += f'📦 *{item["jenis_barang"]}* → {item["koli"]}\n'
-                if item.get('tanggal_kirim'):
-                    msg += f'   📅 Kirim: {format_tanggal(item["tanggal_kirim"])}\n'
-                if item.get('link_gambar'):
-                    msg += f'   🔗 [Lihat Gambar]({item["link_gambar"]})\n'
-            
-            msg += '\n'
-        
-        return msg
-    
-    except Exception as e:
-        logger.error(f"Error in cek_box: {e}")
-        return f'❌ Error: {str(e)}'
-
-def cek_metro():
-    """Cek packing list selain container (non C-XX)"""
-    try:
-        data = get_sheet_data_csv(SHEET_PACKING_LIST)
-        if not data:
-            return '❌ Gagal mengambil data dari sheet.'
-        
-        metro_items = []
-        
-        for i in range(1, len(data)):
-            row = data[i]
-            if len(row) < 9:
-                continue
-            
-            packing_list = row[1] if len(row) > 1 else ''
-            ctns = parse_float(row[2] if len(row) > 2 else 0)
-            est_bongkar = row[4] if len(row) > 4 else ''
-            tanggal_bongkar = row[8] if len(row) > 8 else ''
-            
-            if not packing_list or tanggal_bongkar:
-                continue
-            
-            container_name = extract_container_name(packing_list)
-            
-            if not container_name.startswith('C-') and ('C....') and ('C...') and ('C..') not in container_name:
-                metro_items.append({
-                    'packing_list': packing_list,
-                    'ctns': ctns,
-                    'est_bongkar': est_bongkar,
-                    'container': container_name
-                })
-        
-        if not metro_items:
-            return '✅ Tidak ada pengiriman metro yang sedang berjalan.'
-        
-        msg = '🚚 *PENGIRIMAN METRO*\n'
-        msg += f'Total: {len(metro_items)} packing list\n'
-        msg += '━━━━━━━━━━━━━━━━━━\n\n'
-        
-        for idx, item in enumerate(metro_items, 1):
-            ctns_koli = int(item["ctns"])
-            msg += f'{idx}. *{item["packing_list"]}*\n'
-            msg += f'   Koli: {ctns_koli} Koli\n'
-            if item['est_bongkar']:
-                msg += f'   📅 Est Bongkar: {format_tanggal(item["est_bongkar"])}\n'
-            msg += '\n'
-        
-        return msg
-    
-    except Exception as e:
-        logger.error(f"Error in cek_metro: {e}")
-        return f'❌ Error: {str(e)}'
+    logger.info(f"✅ Berhasil menggabungkan {len(combined_data)} baris data dari {len(PACKING_SHEETS)} sheet")
+    return headers, combined_data
 
 def get_box_data():
     """Ambil data box dari sheet BOX"""
     try:
         data = get_sheet_data_csv(SHEET_BOX)
         if not data:
+            logger.warning("Gagal mengambil data sheet BOX")
             return {}
         
         box_data = {}
@@ -776,92 +427,582 @@ def get_box_data():
         logger.error(f"Error in get_box_data: {e}")
         return {}
 
+# ==========================================
+# COMMAND HANDLERS
+# ==========================================
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler untuk command /start"""
+    sheet_list = "\n".join([f"• `{sheet}`" for sheet in PACKING_SHEETS])
+    
+    msg = (
+        "👋 *Selamat Datang di Packing List Monitor Bot!*\n\n"
+        "Bot ini secara otomatis memantau packing list dari:\n"
+        f"{sheet_list}\n\n"
+        f"📅 *Tahun Sistem:* {CURRENT_YEAR}\n"
+        "Pilih menu di bawah untuk memulai:"
+    )
+    
+    await update.message.reply_text(
+        msg,
+        parse_mode='Markdown',
+        reply_markup=get_main_keyboard()
+    )
+    
+    await update.message.reply_text(
+        "Gunakan tombol di bawah untuk navigasi cepat:",
+        reply_markup=get_reply_keyboard()
+    )
+
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler untuk command /menu"""
+    sheet_list = "\n".join([f"• `{sheet}`" for sheet in PACKING_SHEETS])
+    
+    msg = (
+        "📋 *MENU UTAMA*\n\n"
+        "📊 *Sheet yang dipantau:*\n"
+        f"{sheet_list}\n\n"
+        "Pilih menu yang Anda inginkan:"
+    )
+    
+    await update.message.reply_text(
+        msg,
+        parse_mode='Markdown',
+        reply_markup=get_main_keyboard()
+    )
+
+async def refresh_sheets_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler untuk command /refresh_sheets - Perbarui daftar sheet aktif"""
+    global PACKING_SHEETS
+    
+    # Clear cache
+    _cache['data'].clear()
+    _cache['timestamp'].clear()
+    
+    # Refresh daftar sheet aktif
+    PACKING_SHEETS = get_active_packing_sheets()
+    
+    sheet_list = "\n".join([f"• `{sheet}`" for sheet in PACKING_SHEETS])
+    
+    msg = (
+        f"🔄 *Daftar sheet telah diperbarui!*\n\n"
+        "📊 *Sheet aktif saat ini:*\n"
+        f"{sheet_list}\n\n"
+        "📅 *Konfigurasi tahun:*\n"
+        f"• Tahun sistem: {CURRENT_YEAR}\n"
+        f"• Rentang aktif: {MIN_ACTIVE_YEAR}-{CURRENT_YEAR}\n"
+        f"• Sheet historis: {', '.join(HISTORICAL_SHEETS)}\n\n"
+        "Data terbaru akan diambil pada request berikutnya."
+    )
+    
+    await update.message.reply_text(
+        msg,
+        parse_mode='Markdown',
+        reply_markup=get_main_keyboard()
+    )
+
+# ==========================================
+# MESSAGE HANDLERS
+# ==========================================
+
+async def handle_keyboard_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler untuk keyboard button (Menu, Help, Refresh)"""
+    text = update.message.text
+    
+    if text == "📋 Menu":
+        sheet_list = "\n".join([f"• `{sheet}`" for sheet in PACKING_SHEETS])
+        
+        msg = (
+            "📋 *MENU UTAMA*\n\n"
+            "📊 *Sheet Aktif:*\n"
+            f"{sheet_list}\n\n"
+            "Pilih menu yang Anda inginkan:"
+        )
+        await update.message.reply_text(
+            msg,
+            parse_mode='Markdown',
+            reply_markup=get_main_keyboard()
+        )
+    
+    elif text == "ℹ️ Help":
+        msg = get_help_text()
+        await update.message.reply_text(
+            msg,
+            parse_mode='Markdown'
+        )
+    
+    elif text == "🔄 Refresh":
+        _cache['data'].clear()
+        _cache['timestamp'].clear()
+        
+        sheet_list = "\n".join([f"• `{sheet}`" for sheet in PACKING_SHEETS])
+        
+        msg = (
+            "🔄 *Cache telah di-refresh!*\n\n"
+            "Data terbaru akan diambil pada request berikutnya.\n\n"
+            "📊 *Sheet yang dipantau:*\n"
+            f"{sheet_list}\n\n"
+            "Silakan pilih menu lagi untuk melihat data terbaru:"
+        )
+        await update.message.reply_text(
+            msg,
+            parse_mode='Markdown',
+            reply_markup=get_main_keyboard()
+        )
+
+# ==========================================
+# CALLBACK QUERY HANDLERS
+# ==========================================
+
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler untuk button callback"""
+    query = update.callback_query
+    await query.answer()
+    
+    callback_data = query.data
+    
+    sheet_list = ", ".join(PACKING_SHEETS)
+    loading_msg = f"⏳ Mengambil data dari sheet: {sheet_list}..."
+    await query.edit_message_text(text=loading_msg)
+    
+    try:
+        if callback_data == "cek_all":
+            result = cek_packing_list_all()
+            
+        elif callback_data == "cek_container":
+            result = cek_container()
+            
+        elif callback_data == "cek_box":
+            result = cek_box()
+            
+        elif callback_data == "cek_metro":
+            result = cek_metro()
+        
+        else:
+            result = "❌ Perintah tidak dikenali"
+        
+        if len(result) > 4000:
+            chunks = [result[i:i+4000] for i in range(0, len(result), 4000)]
+            await query.edit_message_text(
+                text=chunks[0],
+                parse_mode='Markdown',
+                reply_markup=get_main_keyboard()
+            )
+            for chunk in chunks[1:]:
+                await query.message.reply_text(
+                    text=chunk,
+                    parse_mode='Markdown'
+                )
+        else:
+            await query.edit_message_text(
+                text=result,
+                parse_mode='Markdown',
+                reply_markup=get_main_keyboard()
+            )
+            
+    except Exception as e:
+        logger.error(f"Error in button_callback: {e}")
+        error_msg = f"❌ Terjadi kesalahan: {str(e)}\n\n"
+        error_msg += f"📊 Sheet aktif: {', '.join(PACKING_SHEETS)}"
+        await query.edit_message_text(
+            text=error_msg,
+            parse_mode='Markdown',
+            reply_markup=get_main_keyboard()
+        )
+
+# ==========================================
+# PACKING LIST FUNCTIONS (MULTI-TAHUN OTOMATIS)
+# ==========================================
+
+def cek_packing_list_all():
+    """Cek semua packing list yang belum bongkar dari semua sheet aktif"""
+    try:
+        headers, combined_data = get_combined_packing_data()
+        if not combined_data:
+            return '❌ Gagal mengambil data dari sheet aktif.'
+        
+        box_data = get_box_data()
+        
+        container_groups = {}
+        total_count = 0
+        
+        for row in combined_data:
+            if len(row) < 10:
+                continue
+            
+            packing_list = row[1] if len(row) > 1 else ''
+            ctns = parse_float(row[2] if len(row) > 2 else 0)
+            est_bongkar = row[4] if len(row) > 4 else ''
+            tanggal_bongkar = row[8] if len(row) > 8 else ''
+            sheet_year = row[9] if len(row) > 9 else str(CURRENT_YEAR)
+            
+            if not packing_list or packing_list.strip() == '':
+                continue
+            
+            if tanggal_bongkar and tanggal_bongkar.strip() != '':
+                continue
+            
+            if est_bongkar:
+                total_count += 1
+                
+                container_name = extract_container_name(packing_list)
+                
+                if container_name not in container_groups:
+                    container_groups[container_name] = {
+                        'total_ctns': 0,
+                        'items': [],
+                        'est_bongkar': est_bongkar
+                    }
+                
+                container_groups[container_name]['total_ctns'] += ctns
+                container_groups[container_name]['items'].append({
+                    'packing_list': f"{packing_list} ({sheet_year})",
+                    'ctns': ctns,
+                    'sheet_year': sheet_year
+                })
+        
+        for box_key, box_info in box_data.items():
+            if box_key in container_groups:
+                container_groups[box_key]['box_items'] = box_info['items']
+                container_groups[box_key]['box_total'] = box_info['total_koli']
+            else:
+                container_groups[box_key] = {
+                    'total_ctns': 0,
+                    'items': [],
+                    'est_bongkar': None,
+                    'box_items': box_info['items'],
+                    'box_total': box_info['total_koli']
+                }
+        
+        if total_count == 0 and not box_data:
+            return '✅ Semua packing list sudah dibongkar di semua sheet!'
+        
+        msg = '📦 *PACKING LIST BELUM BONGKAR*\n'
+        msg += '📊 *Sumber Data:*\n'
+        for sheet in PACKING_SHEETS:
+            status = "✅ Aktif" if sheet in PACKING_SHEETS else "⏸ Nonaktif"
+            msg += f'• `{sheet}` → {status}\n'
+        msg += f'Total: {total_count} packing list\n'
+        msg += '━━━━━━━━━━━━━━━━━━\n\n'
+        
+        item_number = 1
+        sorted_containers = sorted(container_groups.keys())
+        
+        for container_name in sorted_containers:
+            container = container_groups[container_name]
+            
+            total_koli = int(container["total_ctns"]) + int(container.get('box_total', 0))
+            
+            msg += f'*{container_name}* → {int(container["total_ctns"])}\n'
+            
+            if 'box_total' in container and container['box_total'] > 0:
+                msg += f'BOX → {int(container["box_total"])}\n'
+            
+            if total_koli > 0:
+                msg += f'*Total: {total_koli} Koli*\n'
+            
+            msg += '━━━━━━━━━━━━━━━━━━\n'
+            
+            for item in container.get('items', []):
+                msg += f'{item_number}. {item["packing_list"]} → {int(item["ctns"])} Koli\n'
+                item_number += 1
+            
+            if container.get('est_bongkar'):
+                msg += f'📅 *Est Bongkar:* {format_tanggal(container["est_bongkar"])}\n'
+            
+            if 'box_items' in container:
+                for box_item in container['box_items']:
+                    msg += f'📦 BOX: {box_item["jenis_barang"]} → {box_item["koli"]}\n'
+                    if box_item.get('tanggal_kirim'):
+                        msg += f'   📅 Tanggal Kirim: {format_tanggal(box_item["tanggal_kirim"])}\n'
+            
+            msg += '━━━━━━━━━━━━━━━━━━\n\n'
+        
+        return msg
+    
+    except Exception as e:
+        logger.error(f"Error in cek_packing_list_all: {e}")
+        return f'❌ Error: {str(e)}'
+
+def cek_container():
+    """Cek container (C-XX) dari semua sheet aktif"""
+    try:
+        headers, combined_data = get_combined_packing_data()
+        if not combined_data:
+            return '❌ Gagal mengambil data dari sheet aktif.'
+        
+        box_data = get_box_data()
+        container_groups = {}
+        
+        for row in combined_data:
+            if len(row) < 10:
+                continue
+            
+            packing_list = row[1] if len(row) > 1 else ''
+            ctns = parse_float(row[2] if len(row) > 2 else 0)
+            est_bongkar = row[4] if len(row) > 4 else ''
+            tanggal_bongkar = row[8] if len(row) > 8 else ''
+            sheet_year = row[9] if len(row) > 9 else str(CURRENT_YEAR)
+            
+            if not packing_list or tanggal_bongkar:
+                continue
+            
+            if '(' in packing_list and ')' in packing_list:
+                container_name = extract_container_name(packing_list)
+                
+                if container_name.startswith('C-') or ('C....') in container_name or ('C...') in container_name or ('C..') in container_name:
+                    if container_name not in container_groups:
+                        container_groups[container_name] = {
+                            'total_ctns': 0,
+                            'items': [],
+                            'est_bongkar': est_bongkar
+                        }
+                    
+                    container_groups[container_name]['total_ctns'] += ctns
+                    container_groups[container_name]['items'].append({
+                        'packing_list': f"{packing_list} ({sheet_year})",
+                        'ctns': ctns,
+                        'sheet_year': sheet_year
+                    })
+        
+        for box_key, box_info in box_data.items():
+            if box_key in container_groups:
+                container_groups[box_key]['box_items'] = box_info['items']
+                container_groups[box_key]['box_total'] = box_info['total_koli']
+        
+        if not container_groups:
+            return '✅ Tidak ada container yang sedang dalam pengiriman di semua sheet.'
+        
+        msg = '🚢 *CONTAINER DALAM PENGIRIMAN*\n'
+        msg += '📊 *Sumber Data:*\n'
+        for sheet in PACKING_SHEETS:
+            msg += f'• `{sheet}`\n'
+        msg += f'Total: {len(container_groups)} container\n'
+        msg += '━━━━━━━━━━━━━━━━━━\n\n'
+        
+        for container_name in sorted(container_groups.keys()):
+            container = container_groups[container_name]
+            
+            total_ctns = int(container["total_ctns"])
+            box_total = int(container.get('box_total', 0))
+            total_koli = total_ctns + box_total
+            
+            msg += f'*{container_name}*\n'
+            msg += f'Container: {total_ctns} Koli\n'
+            
+            if box_total > 0:
+                msg += f'BOX: {box_total} Koli\n'
+            
+            msg += f'*Total: {total_koli} Koli*\n'
+            msg += '━━━━━━━━━━━━━━━━━━\n'
+            
+            for item in container['items']:
+                msg += f'• {item["packing_list"]} → {int(item["ctns"])} Koli\n'
+            
+            if 'box_items' in container:
+                for box_item in container['box_items']:
+                    msg += f'• BOX: {box_item["jenis_barang"]} → {box_item["koli"]}\n'
+            
+            if container['est_bongkar']:
+                msg += f'\n📅 Est Bongkar: {format_tanggal(container["est_bongkar"])}\n'
+            
+            msg += '━━━━━━━━━━━━━━━━━━\n\n'
+        
+        return msg
+    
+    except Exception as e:
+        logger.error(f"Error in cek_container: {e}")
+        return f'❌ Error: {str(e)}'
+
+def cek_box():
+    """Cek update pengiriman box"""
+    try:
+        box_data = get_box_data()
+        
+        if not box_data:
+            return '✅ Tidak ada box yang sedang dalam pengiriman.'
+        
+        msg = '📦 *BOX DALAM PENGIRIMAN*\n'
+        msg += f'📊 Sheet BOX: `{SHEET_BOX}`\n'
+        msg += f'Total: {len(box_data)} group\n'
+        msg += '━━━━━━━━━━━━━━━━━━\n\n'
+        
+        for container_name, box_info in sorted(box_data.items()):
+            total_koli = int(box_info["total_koli"])
+            msg += f'*{container_name}* → Total: {total_koli} Koli\n'
+            msg += '━━━━━━━━━━━━━━━━━━\n'
+            
+            for item in box_info['items']:
+                msg += f'📦 *{item["jenis_barang"]}* → {item["koli"]}\n'
+                if item.get('tanggal_kirim'):
+                    msg += f'   📅 Kirim: {format_tanggal(item["tanggal_kirim"])}\n'
+                if item.get('link_gambar'):
+                    msg += f'   🔗 [Lihat Gambar]({item["link_gambar"]})\n'
+            
+            msg += '\n'
+        
+        return msg
+    
+    except Exception as e:
+        logger.error(f"Error in cek_box: {e}")
+        return f'❌ Error: {str(e)}'
+
+def cek_metro():
+    """Cek packing list selain container dari semua sheet aktif"""
+    try:
+        headers, combined_data = get_combined_packing_data()
+        if not combined_data:
+            return '❌ Gagal mengambil data dari sheet aktif.'
+        
+        metro_items = []
+        
+        for row in combined_data:
+            if len(row) < 10:
+                continue
+            
+            packing_list = row[1] if len(row) > 1 else ''
+            ctns = parse_float(row[2] if len(row) > 2 else 0)
+            est_bongkar = row[4] if len(row) > 4 else ''
+            tanggal_bongkar = row[8] if len(row) > 8 else ''
+            sheet_year = row[9] if len(row) > 9 else str(CURRENT_YEAR)
+            
+            if not packing_list or tanggal_bongkar:
+                continue
+            
+            container_name = extract_container_name(packing_list)
+            
+            if not (container_name.startswith('C-') or ('C....') in container_name or ('C...') in container_name or ('C..') in container_name):
+                metro_items.append({
+                    'packing_list': f"{packing_list} ({sheet_year})",
+                    'ctns': ctns,
+                    'est_bongkar': est_bongkar,
+                    'container': container_name,
+                    'sheet_year': sheet_year
+                })
+        
+        if not metro_items:
+            return '✅ Tidak ada pengiriman metro yang sedang berjalan di semua sheet.'
+        
+        msg = '🚚 *PENGIRIMAN METRO*\n'
+        msg += '📊 *Sumber Data:*\n'
+        for sheet in PACKING_SHEETS:
+            msg += f'• `{sheet}`\n'
+        msg += f'Total: {len(metro_items)} packing list\n'
+        msg += '━━━━━━━━━━━━━━━━━━\n\n'
+        
+        for idx, item in enumerate(metro_items, 1):
+            ctns_koli = int(item["ctns"])
+            msg += f'{idx}. *{item["packing_list"]}*\n'
+            msg += f'   Koli: {ctns_koli} Koli\n'
+            if item['est_bongkar']:
+                msg += f'   📅 Est Bongkar: {format_tanggal(item["est_bongkar"])}\n'
+            msg += '\n'
+        
+        return msg
+    
+    except Exception as e:
+        logger.error(f"Error in cek_metro: {e}")
+        return f'❌ Error: {str(e)}'
+
 def get_help_text():
-    """Get help text"""
+    """Get help text dengan informasi konfigurasi tahun"""
+    sheet_list = "\n".join([f"• `{sheet}`" for sheet in PACKING_SHEETS])
+    historical_list = ", ".join([f"`{sheet}`" for sheet in HISTORICAL_SHEETS])
+    
     return (
-        "📦 *PANDUAN PACKING LIST BOT*\n\n"
+        "📦 *PANDUAN PACKING LIST BOT (AUTO MULTI-TAHUN)*\n\n"
+        "*SISTEM PENGELOLAAN TAHUN:*\n"
+        f"• Tahun Sistem: `{CURRENT_YEAR}`\n"
+        f"• Rentang Aktif: `{MIN_ACTIVE_YEAR} - {CURRENT_YEAR}`\n"
+        f"• Sheet Historis: {historical_list}\n"
+        f"• Maksimal Sheet: `{MAX_TOTAL_SHEETS}`\n\n"
+        "*SHEET YANG DIPANTAU:*\n"
+        f"{sheet_list}\n\n"
+        "*CARA KERJA:*\n"
+        "• Bot otomatis mendeteksi sheet tahun berjalan\n"
+        "• Sheet historis penting selalu dipertahankan\n"
+        "• Data dari semua sheet digabungkan dalam satu tampilan\n"
+        "• Setiap data dilabeli dengan tahun asalnya\n\n"
         "*MENU TERSEDIA:*\n"
         "• 📦 Cek Semua - Lihat semua PL yang belum bongkar\n"
         "• 🚢 Container - Lihat container (C-XX) dalam pengiriman\n"
         "• 📦 Box - Lihat pengiriman box\n"
         "• 🚚 Metro - Lihat pengiriman selain container\n\n"
-        "*TOMBOL NAVIGASI:*\n"
-        "• 📋 Menu - Kembali ke menu utama\n"
-        "• ℹ️ Help - Tampilkan panduan ini\n"
-        "• 🔄 Refresh - Clear cache dan ambil data terbaru\n\n"
+        "*COMMAND KHUSUS:*\n"
+        "• /refresh_sheets - Perbarui daftar sheet aktif\n\n"
         "*NOTIFIKASI OTOMATIS:*\n"
         "• Update packing list baru (setiap 1 jam)\n"
         "• 3 hari sebelum Est Bongkar (daily jam 08:00)\n"
         "• Link gambar dari sheet BOX (setiap 2 jam)\n\n"
         "*CATATAN:*\n"
-        "Data diambil dari Google Sheets public.\n"
-        "Cache: 5 menit untuk performa optimal."
+        "• Tidak perlu ubah kode manual saat pergantian tahun\n"
+        "• Jika sheet baru belum muncul, gunakan /refresh_sheets\n"
+        "• Performa optimal dengan batasan maksimal sheet"
     )
 
 # ==========================================
-# AUTO NOTIFICATION FUNCTIONS
+# AUTO NOTIFICATION FUNCTIONS (MULTI-TAHUN OTOMATIS)
 # ==========================================
 
 async def check_new_packing_list(context: ContextTypes.DEFAULT_TYPE):
-    """Cek packing list baru dan kirim notifikasi"""
+    """Cek packing list baru dari semua sheet aktif"""
     try:
-        # Clear cache untuk data terbaru
-        cache_key = f"{get_sheet_id()}_{SHEET_PACKING_LIST}"
-        if cache_key in _cache['data']:
-            del _cache['data'][cache_key]
-            del _cache['timestamp'][cache_key]
-        
-        data = get_sheet_data_csv(SHEET_PACKING_LIST)
-        if not data:
-            return
+        _cache['data'].clear()
+        _cache['timestamp'].clear()
         
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
         
-        for i in range(1, len(data)):
-            row = data[i]
-            if len(row) < 5:
+        for sheet_year in PACKING_SHEETS:
+            data = get_sheet_data_csv(sheet_year)
+            if not data:
                 continue
             
-            packing_list = row[1] if len(row) > 1 else ''
-            ctns = row[2] if len(row) > 2 else ''
-            tanggal_nota = row[3] if len(row) > 3 else ''
-            est_bongkar = row[4] if len(row) > 4 else ''
-            
-            if not packing_list or packing_list.strip() == '':
-                continue
-            
-            cursor.execute(
-                'SELECT packing_list FROM notified_packing_lists WHERE packing_list = ?',
-                (packing_list,)
-            )
-            
-            if cursor.fetchone() is None:
-                ctns_koli = int(parse_float(ctns)) if ctns else 0
+            for i in range(1, len(data)):
+                row = data[i]
+                if len(row) < 5:
+                    continue
                 
-                msg = '🆕 *PACKING LIST BARU*\n\n'
-                msg += '━━━━━━━━━━━━━━━━━━\n'
-                msg += f'*Packing List:* {packing_list}\n'
-                msg += f'*Koli:* {ctns_koli} Koli\n'
+                packing_list = row[1] if len(row) > 1 else ''
+                ctns = row[2] if len(row) > 2 else ''
+                tanggal_nota = row[3] if len(row) > 3 else ''
+                est_bongkar = row[4] if len(row) > 4 else ''
                 
-                if tanggal_nota:
-                    msg += f'*Tanggal Nota:* {format_tanggal(tanggal_nota)}\n'
-                
-                if est_bongkar:
-                    msg += f'*Est Bongkar:* {format_tanggal(est_bongkar)}\n'
-                
-                msg += '━━━━━━━━━━━━━━━━━━'
-                
-                await context.bot.send_message(
-                    chat_id=ADMIN_CHAT_ID,
-                    text=msg,
-                    parse_mode='Markdown'
-                )
+                if not packing_list or packing_list.strip() == '':
+                    continue
                 
                 cursor.execute(
-                    'INSERT INTO notified_packing_lists (packing_list) VALUES (?)',
-                    (packing_list,)
+                    'SELECT packing_list FROM notified_packing_lists WHERE packing_list = ? AND sheet_year = ?',
+                    (packing_list, sheet_year)
                 )
+                
+                if cursor.fetchone() is None:
+                    ctns_koli = int(parse_float(ctns)) if ctns else 0
+                    
+                    msg = '🆕 *PACKING LIST BARU*\n\n'
+                    msg += f'📊 Sheet: `{sheet_year}`\n'
+                    msg += '━━━━━━━━━━━━━━━━━━\n'
+                    msg += f'*Packing List:* {packing_list}\n'
+                    msg += f'*Koli:* {ctns_koli} Koli\n'
+                    
+                    if tanggal_nota:
+                        msg += f'*Tanggal Nota:* {format_tanggal(tanggal_nota)}\n'
+                    
+                    if est_bongkar:
+                        msg += f'*Est Bongkar:* {format_tanggal(est_bongkar)}\n'
+                    
+                    msg += '━━━━━━━━━━━━━━━━━━'
+                    
+                    await context.bot.send_message(
+                        chat_id=ADMIN_CHAT_ID,
+                        text=msg,
+                        parse_mode='Markdown'
+                    )
+                    
+                    cursor.execute(
+                        'INSERT OR REPLACE INTO notified_packing_lists (packing_list, sheet_year) VALUES (?, ?)',
+                        (packing_list, sheet_year)
+                    )
         
         conn.commit()
         conn.close()
@@ -870,17 +1011,10 @@ async def check_new_packing_list(context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error in check_new_packing_list: {e}")
 
 async def check_upcoming_bongkar(context: ContextTypes.DEFAULT_TYPE):
-    """Cek H-3 sebelum Est Bongkar dan kirim notifikasi"""
+    """Cek H-3 sebelum Est Bongkar dari semua sheet aktif"""
     try:
-        # Clear cache untuk data terbaru
-        cache_key = f"{get_sheet_id()}_{SHEET_PACKING_LIST}"
-        if cache_key in _cache['data']:
-            del _cache['data'][cache_key]
-            del _cache['timestamp'][cache_key]
-        
-        data = get_sheet_data_csv(SHEET_PACKING_LIST)
-        if not data:
-            return
+        _cache['data'].clear()
+        _cache['timestamp'].clear()
         
         today = datetime.now().date()
         three_days_later = today + timedelta(days=3)
@@ -888,64 +1022,70 @@ async def check_upcoming_bongkar(context: ContextTypes.DEFAULT_TYPE):
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
         
-        for i in range(1, len(data)):
-            row = data[i]
-            if len(row) < 9:
+        for sheet_year in PACKING_SHEETS:
+            data = get_sheet_data_csv(sheet_year)
+            if not data:
                 continue
             
-            packing_list = row[1] if len(row) > 1 else ''
-            ctns = row[2] if len(row) > 2 else ''
-            est_bongkar = row[4] if len(row) > 4 else ''
-            tanggal_bongkar = row[8] if len(row) > 8 else ''
-            
-            if not packing_list or tanggal_bongkar or not est_bongkar:
-                continue
-            
-            try:
-                formats = ['%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y']
-                est_date = None
-                
-                for fmt in formats:
-                    try:
-                        est_date = datetime.strptime(str(est_bongkar), fmt).date()
-                        break
-                    except:
-                        continue
-                
-                if not est_date:
+            for i in range(1, len(data)):
+                row = data[i]
+                if len(row) < 9:
                     continue
                 
-                if est_date == three_days_later:
-                    cursor.execute(
-                        'SELECT packing_list FROM notified_h3 WHERE packing_list = ? AND est_bongkar = ?',
-                        (packing_list, est_bongkar)
-                    )
+                packing_list = row[1] if len(row) > 1 else ''
+                ctns = row[2] if len(row) > 2 else ''
+                est_bongkar = row[4] if len(row) > 4 else ''
+                tanggal_bongkar = row[8] if len(row) > 8 else ''
+                
+                if not packing_list or tanggal_bongkar or not est_bongkar:
+                    continue
+                
+                try:
+                    formats = ['%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y']
+                    est_date = None
                     
-                    if cursor.fetchone() is None:
-                        ctns_koli = int(parse_float(ctns)) if ctns else 0
-                        
-                        msg = '⚠️ *3 HARI BARANG AKAN DATANG*\n\n'
-                        msg += '━━━━━━━━━━━━━━━━━━\n'
-                        msg += f'*Packing List:* {packing_list}\n'
-                        msg += f'*Koli:* {ctns_koli} Koli\n'
-                        msg += f'*Est Bongkar:* {format_tanggal(est_bongkar)}\n'
-                        msg += '━━━━━━━━━━━━━━━━━━\n\n'
-                        msg += '📌 Harap persiapkan untuk pembongkaran!'
-                        
-                        await context.bot.send_message(
-                            chat_id=ADMIN_CHAT_ID,
-                            text=msg,
-                            parse_mode='Markdown'
-                        )
-                        
+                    for fmt in formats:
+                        try:
+                            est_date = datetime.strptime(str(est_bongkar), fmt).date()
+                            break
+                        except:
+                            continue
+                    
+                    if not est_date:
+                        continue
+                    
+                    if est_date == three_days_later:
                         cursor.execute(
-                            'INSERT INTO notified_h3 (packing_list, est_bongkar) VALUES (?, ?)',
-                            (packing_list, est_bongkar)
+                            'SELECT packing_list FROM notified_h3 WHERE packing_list = ? AND sheet_year = ?',
+                            (packing_list, sheet_year)
                         )
-            
-            except Exception as e:
-                logger.error(f"Error processing row: {e}")
-                continue
+                        
+                        if cursor.fetchone() is None:
+                            ctns_koli = int(parse_float(ctns)) if ctns else 0
+                            
+                            msg = '⚠️ *3 HARI BARANG AKAN DATANG*\n\n'
+                            msg += f'📊 Sheet: `{sheet_year}`\n'
+                            msg += '━━━━━━━━━━━━━━━━━━\n'
+                            msg += f'*Packing List:* {packing_list}\n'
+                            msg += f'*Koli:* {ctns_koli} Koli\n'
+                            msg += f'*Est Bongkar:* {format_tanggal(est_bongkar)}\n'
+                            msg += '━━━━━━━━━━━━━━━━━━\n\n'
+                            msg += '📌 Harap persiapkan untuk pembongkaran!'
+                            
+                            await context.bot.send_message(
+                                chat_id=ADMIN_CHAT_ID,
+                                text=msg,
+                                parse_mode='Markdown'
+                            )
+                            
+                            cursor.execute(
+                                'INSERT OR REPLACE INTO notified_h3 (packing_list, sheet_year, est_bongkar) VALUES (?, ?, ?)',
+                                (packing_list, sheet_year, est_bongkar)
+                            )
+                
+                except Exception as e:
+                    logger.error(f"Error processing row: {e}")
+                    continue
         
         conn.commit()
         conn.close()
@@ -956,7 +1096,6 @@ async def check_upcoming_bongkar(context: ContextTypes.DEFAULT_TYPE):
 async def check_box_with_images(context: ContextTypes.DEFAULT_TYPE):
     """Cek box dengan link gambar dan kirim notifikasi"""
     try:
-        # Clear cache untuk data terbaru
         cache_key = f"{get_sheet_id()}_{SHEET_BOX}"
         if cache_key in _cache['data']:
             del _cache['data'][cache_key]
@@ -1036,6 +1175,8 @@ def main():
     sheet_id = get_sheet_id()
     if sheet_id:
         logger.info(f"Sheet ID: {sheet_id}")
+        logger.info(f"Sheet yang dipantau: {', '.join(PACKING_SHEETS)}")
+        logger.info(f"Konfigurasi tahun: {MIN_ACTIVE_YEAR} - {CURRENT_YEAR}")
     else:
         logger.error("Failed to get Sheet ID. Please check SHEET_URL.")
         return
@@ -1046,8 +1187,9 @@ def main():
     # Register command handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("menu", menu_command))
+    application.add_handler(CommandHandler("refresh_sheets", refresh_sheets_command))
     
-    # Register message handler untuk keyboard buttons
+    # Register message handler
     application.add_handler(MessageHandler(
         filters.Regex('^(📋 Menu|ℹ️ Help|🔄 Refresh)$'),
         handle_keyboard_button
@@ -1056,7 +1198,7 @@ def main():
     # Register callback query handler
     application.add_handler(CallbackQueryHandler(button_callback))
     
-    # Setup job queue untuk notifikasi otomatis
+    # Setup job queue
     job_queue = application.job_queue
     
     # Cek packing list baru setiap 1 jam
@@ -1080,8 +1222,11 @@ def main():
     )
     
     # Mulai bot
-    logger.info("Bot started successfully!")
-    logger.info(f"Monitoring sheet: {SHEET_URL}")
+    logger.info("🚀 Bot started successfully!")
+    logger.info(f"Monitoring Google Sheets: {SHEET_URL}")
+    logger.info(f"Active Packing Sheets: {', '.join(PACKING_SHEETS)}")
+    logger.info(f"BOX Sheet: {SHEET_BOX}")
+    logger.info(f"Year Configuration: {MIN_ACTIVE_YEAR} - {CURRENT_YEAR}")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
