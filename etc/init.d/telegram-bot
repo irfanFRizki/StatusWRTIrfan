@@ -1,72 +1,130 @@
 #!/bin/sh /etc/rc.common
+# Telegram Download Bot init script for OpenWrt
+# Compatible with existing aria2 init.d
+# Put this file in /etc/init.d/telegram_bot
 
 START=99
 STOP=10
 
-start() {
-    echo "Starting Telegram Bot..."
-    
-    # Kill jika ada yang lama
-    killall -9 python3 2>/dev/null
-    sleep 1
-    
-    # Start bot
-    cd /root
-    nohup /usr/bin/python3 /root/telegram_download_bot.py > /tmp/telegram_bot.log 2>&1 &
-    
-    sleep 2
-    
-    if pgrep -f "telegram_download_bot.py" > /dev/null; then
-        echo "Telegram Bot started successfully"
-        return 0
-    else
-        echo "Failed to start Telegram Bot"
-        return 1
-    fi
+USE_PROCD=1
+PROG=/usr/bin/python3
+BOT_SCRIPT=/root/telegram_download_bot.py
+BOT_NAME="telegram_download_bot"
+
+_info() {
+	logger -p daemon.info -t "$BOT_NAME" "$*"
 }
 
-stop() {
-    echo "Stopping Telegram Bot..."
-    
-    local pid=$(pgrep -f "telegram_download_bot.py")
-    if [ -n "$pid" ]; then
-        kill -15 $pid 2>/dev/null
-        sleep 2
-        kill -9 $pid 2>/dev/null
-        echo "Telegram Bot stopped"
-    else
-        echo "Telegram Bot is not running"
-    fi
+_err() {
+	logger -p daemon.err -t "$BOT_NAME" "$*"
 }
 
-restart() {
-    stop
-    sleep 2
-    start
+check_aria2_status() {
+	# Check if aria2c process is running
+	if pgrep -x aria2c > /dev/null 2>&1; then
+		return 0
+	else
+		return 1
+	fi
 }
 
-status() {
-    local pid=$(pgrep -f "telegram_download_bot.py")
-    if [ -n "$pid" ]; then
-        echo "✅ Telegram Bot is running (PID: $pid)"
-        echo "📁 Log file: /tmp/telegram_bot.log"
-        echo ""
-        echo "📊 Recent activity:"
-        tail -5 /tmp/telegram_bot.log 2>/dev/null || echo "No log available"
-        return 0
-    else
-        echo "❌ Telegram Bot is not running"
-        if [ -f /tmp/telegram_bot.log ]; then
-            echo ""
-            echo "Last error (if any):"
-            tail -10 /tmp/telegram_bot.log | grep -i "error\|exception" || echo "No error found"
-        fi
-        return 1
-    fi
+check_aria2_rpc() {
+	# Check if aria2 RPC is responding
+	if command -v curl >/dev/null 2>&1; then
+		curl -s -X POST http://localhost:6800/jsonrpc \
+			-H "Content-Type: application/json" \
+			-d '{"jsonrpc":"2.0","method":"aria2.getVersion","id":"1","params":[]}' \
+			--max-time 3 >/dev/null 2>&1
+		return $?
+	fi
+	return 0
 }
 
-boot() {
-    # Wait for system to be ready
-    sleep 15
-    start
+wait_for_aria2() {
+	local timeout=30
+	local count=0
+	
+	_info "Waiting for Aria2 to be ready..."
+	
+	while [ $count -lt $timeout ]; do
+		if check_aria2_status && check_aria2_rpc; then
+			_info "Aria2 is ready"
+			return 0
+		fi
+		sleep 1
+		count=$((count + 1))
+	done
+	
+	_err "Timeout waiting for Aria2"
+	return 1
+}
+
+start_service() {
+	# Check if bot script exists
+	if [ ! -f "$BOT_SCRIPT" ]; then
+		_err "Bot script not found at $BOT_SCRIPT"
+		return 1
+	fi
+	
+	# Check if python3 is installed
+	if ! command -v python3 >/dev/null 2>&1; then
+		_err "Python3 not found. Please install: opkg install python3"
+		return 1
+	fi
+	
+	# Check if aria2 is running
+	if ! check_aria2_status; then
+		_info "Aria2 is not running, attempting to start..."
+		if [ -f /etc/init.d/aria2 ]; then
+			/etc/init.d/aria2 start
+			sleep 2
+		else
+			_err "Aria2 init.d not found. Please install aria2"
+			return 1
+		fi
+	fi
+	
+	# Wait for aria2 RPC to be ready
+	if ! wait_for_aria2; then
+		_err "Aria2 RPC is not responding. Bot may not function properly."
+		_err "Check aria2 configuration: uci show aria2"
+	fi
+	
+	_info "Starting Telegram Download Bot..."
+	
+	procd_open_instance
+	procd_set_param command "$PROG" "$BOT_SCRIPT"
+	
+	# Respawn settings: threshold interval retry
+	# Will retry 5 times with 10 seconds interval if crashes within 3600 seconds
+	procd_set_param respawn 3600 10 5
+	
+	# Enable stdout/stderr logging
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	
+	# Set PID file
+	procd_set_param pidfile /var/run/${BOT_NAME}.pid
+	
+	# Monitor bot script file changes
+	procd_set_param file "$BOT_SCRIPT"
+	
+	procd_close_instance
+	
+	_info "Telegram Download Bot started successfully"
+}
+
+stop_service() {
+	_info "Stopping Telegram Download Bot..."
+}
+
+reload_service() {
+	_info "Reloading Telegram Download Bot..."
+	stop
+	sleep 2
+	start
+}
+
+service_triggers() {
+	procd_add_reload_trigger "$BOT_NAME"
 }
