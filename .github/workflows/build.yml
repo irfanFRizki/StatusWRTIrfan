@@ -14,29 +14,33 @@ jobs:
 
     steps:
 
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Setup scripts
-        run: chmod +x scripts/*.sh
+    - name: Setup scripts
+      run: chmod +x scripts/*.sh
 
-      - name: Generate version
-        id: version
-        run: |
-          VERSION=$(bash scripts/version.sh)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+    - name: Generate version
+      run: |
+        VERSION=$(bash scripts/version.sh)
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Generate changelog
-        run: |
-          bash scripts/changelog.sh $VERSION
+    - name: Generate changelog
+      run: |
+        bash scripts/changelog.sh $VERSION
 
-      - name: Build IPK
-        run: |
-          echo "2.0" > debian-binary
-          mkdir control
+    - name: Commit version update
+      run: |
+        git config --global user.name github-actions
+        git config --global user.email actions@github.com
+        git add VERSION CHANGELOG.md
+        git commit -m "ci: release $VERSION" || true
+        git push
 
-          cat <<EOF > control/control
+    - name: Build IPK
+      run: |
+        echo "2.0" > debian-binary
+        mkdir control
+        cat <<EOF > control/control
 Package: luci-app-statuswrtirfan
 Version: $VERSION
 Architecture: all
@@ -45,18 +49,18 @@ Depends: luci, python3
 Description: StatusWRT Monitoring
 EOF
 
-          tar -czf control.tar.gz control
-          tar -czf data.tar.gz usr etc www
+        tar -czf control.tar.gz control
+        tar -czf data.tar.gz usr etc www
 
-          tar -czf luci-app-statuswrtirfan_${VERSION}_all.ipk \
-          debian-binary control.tar.gz data.tar.gz
+        tar -czf luci-app-statuswrtirfan_${VERSION}_all.ipk \
+        debian-binary control.tar.gz data.tar.gz
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: StatusWRT v${{ steps.version.outputs.version }}
-          body_path: CHANGELOG.md
-          files: luci-app-statuswrtirfan_${{ steps.version.outputs.version }}_all.ipk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ env.VERSION }}
+        name: StatusWRT v${{ env.VERSION }}
+        body_path: CHANGELOG.md
+        files: luci-app-statuswrtirfan_${{ env.VERSION }}_all.ipk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
