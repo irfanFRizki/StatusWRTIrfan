@@ -22,3 +22,6 @@
 ## v1.0.8 - 2026-03-10
 - remove opt/data-monitor moved to BackupXwrt
 
+## v1.0.9 - 2026-03-10
+- remove root moved to BackupXwrt
+
