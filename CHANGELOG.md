@@ -10,3 +10,6 @@
 ## v1.0.4 - 2026-03-10
 - remove etc/init.d moved to BackupXwrt
 
+## v1.0.5 - 2026-03-10
+- remove etc/nlbwmon moved to BackupXwrt
+
