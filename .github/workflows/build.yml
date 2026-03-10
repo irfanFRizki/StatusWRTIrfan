@@ -25,7 +25,8 @@ jobs:
         id: version
         run: |
           VERSION=$(bash scripts/version.sh)
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Generate changelog
         run: |
