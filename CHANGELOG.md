@@ -16,3 +16,6 @@
 ## v1.0.6 - 2026-03-10
 - remove mm moved to BackupXwrt
 
+## v1.0.7 - 2026-03-10
+- remove n8n moved to BackupXwrt
+
