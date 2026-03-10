@@ -25,3 +25,6 @@
 ## v1.0.9 - 2026-03-10
 - remove root moved to BackupXwrt
 
+## v1.0.10 - 2026-03-10
+- remove script moved to BackupXwrt
+
