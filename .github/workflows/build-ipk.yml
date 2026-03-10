@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Generate version
@@ -21,6 +21,14 @@ jobs:
         run: |
           VERSION=$(date +'%Y.%m.%d.%H%M')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          LOG=$(git log -5 --pretty=format:"- %s")
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          echo "$LOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Build IPK
         run: |
@@ -33,7 +41,7 @@ jobs:
           Architecture: all
           Maintainer: Irfan
           Depends: luci, python3
-          Description: StatusWRT Titanium Edition
+          Description: StatusWRT Monitoring System
           EOF
 
           tar -czf control.tar.gz control
@@ -42,11 +50,14 @@ jobs:
           tar -czf luci-app-statuswrtirfan_${{ steps.version.outputs.VERSION }}_all.ipk \
           debian-binary control.tar.gz data.tar.gz
 
-      - name: Upload Release
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.VERSION }}
           name: StatusWRT v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Changelog
+            ${{ steps.changelog.outputs.CHANGELOG }}
           files: luci-app-statuswrtirfan_${{ steps.version.outputs.VERSION }}_all.ipk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
