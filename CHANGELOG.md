@@ -13,3 +13,6 @@
 ## v1.0.5 - 2026-03-10
 - remove etc/nlbwmon moved to BackupXwrt
 
+## v1.0.6 - 2026-03-10
+- remove mm moved to BackupXwrt
+
