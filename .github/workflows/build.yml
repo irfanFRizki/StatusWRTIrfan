@@ -40,7 +40,7 @@ jobs:
 
           cat <<EOF > control/control
           Package: luci-app-statuswrtirfan
-          Version: ${{ steps.version.outputs.VERSION }}
+          Version: $VERSION
           Architecture: all
           Maintainer: Irfan
           Depends: luci, python3
@@ -50,7 +50,7 @@ jobs:
           tar -czf control.tar.gz control
           tar -czf data.tar.gz usr etc www
 
-          tar -czf luci-app-statuswrtirfan_${{ steps.version.outputs.VERSION }}_all.ipk \
+          tar -czf luci-app-statuswrtirfan_${VERSION}_all.ipk \
           debian-binary control.tar.gz data.tar.gz
 
       - name: Create GitHub Release
