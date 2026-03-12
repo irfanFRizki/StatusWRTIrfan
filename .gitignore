@@ -1,0 +1,7 @@
+*.ipk
+*.tar.gz
+debian-binary
+control/
+ipk_work/
+__pycache__/
+*.pyc

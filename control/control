@@ -1,6 +1,0 @@
-Package: luci-app-statuswrtirfan
-Version: 1.0
-Architecture: all
-Maintainer: Irfan
-Depends: luci, python3
-Description: StatusWRT Titanium Edition
