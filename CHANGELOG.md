@@ -1,3 +1,8 @@
+## v1.0.13 - 2026-03-12
+
+* fix: hapus subfolder StatusWRTIrfan dari tracking git (irfanFRizki)
+* feat: tambah halaman Klien Online dari online.sh (irfanFRizki)
+
 ## v1.0.12 - 2026-03-12
 
 * fix: hapus embedded repo & file build artifacts (irfanFRizki)
