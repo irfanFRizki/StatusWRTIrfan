@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard OpenWRT - Dua Kolom</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #00ff88;
+      --secondary: #2196f3;
+      --background: #121212;
+      --surface: #1e1e1e;
+      --error: #cf6679;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--background);
+      color: #e0e0e0;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.36);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    /* Layout dua kolom */
+    .columns {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .left-column,
+    .right-column {
+      flex: 1;
+      min-width: 300px;
+    }
+    /* Stack vertikal di dalam kolom */
+    .vertical-stack > * {
+      margin-bottom: 30px;
+    }
+    /* Digital Clock */
+    .digital-clock {
+      text-align: center;
+    }
+    .digital-clock #time-hm {
+      font-size: 4em;
+      font-weight: bold;
+    }
+    .digital-clock #time-sec {
+      font-size: 1.5em;
+      vertical-align: super;
+      margin-left: 5px;
+    }
+    .digital-clock #digital-date {
+      font-size: 1.2em;
+      margin-top: 5px;
+    }
+    /* Status Card */
+    .status-card {
+      background: linear-gradient(145deg, #252525, #1a1a1a);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: transform 0.2s;
+    }
+    .status-card:hover {
+      transform: translateY(-2px);
+    }
+    .status-card h2 {
+      color: var(--primary);
+      margin: 0 0 10px 0;
+      font-size: 1.1em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-card p {
+      font-size: 1.4em;
+      margin: 0;
+      font-weight: 600;
+      color: white;
+      text-shadow: 0 0 8px rgba(0,255,136,0.2);
+    }
+    .progress-container {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), #00ccff);
+      width: 50%;
+      transition: width 0.5s ease;
+    }
+    /* Tabel */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #181818;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    th {
+      background: linear-gradient(45deg, #1a237e, #0d47a1);
+      color: white;
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+    }
+    td {
+      padding: 12px 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    tr:hover {
+      background: rgba(255,255,255,0.02);
+    }
+    .rank-cell {
+      text-align: center;
+      width: 50px;
+      font-weight: bold;
+    }
+    /* Live Traffic */
+    #live-traffic-card {
+      background: linear-gradient(145deg, #1e1e1e, #151515);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .traffic-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 10px;
+    }
+    .traffic-item {
+      text-align: center;
+      padding: 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+    }
+    .traffic-value {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: var(--primary);
+      text-shadow: 0 0 8px rgba(0,255,136,0.3);
+    }
+    .traffic-label {
+      font-size: 0.9em;
+      color: #aaa;
+      margin-top: 5px;
+    }
+    /* Online Status */
+    .online-status {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .online-status.connected {
+      background: var(--primary);
+      box-shadow: 0 0 8px rgba(0,255,136,0.4);
+      animation: blink 1.5s ease-in-out infinite, glow 2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+    @keyframes glow {
+      0% { box-shadow: 0 0 5px rgba(0,255,136,0.4); transform: scale(1); }
+      50% { box-shadow: 0 0 15px rgba(0,255,136,0.8); transform: scale(1.2); }
+      100% { box-shadow: 0 0 5px rgba(0,255,136,0.4); transform: scale(1); }
+    }
+    /* System Info Row (Uptime & CPU) */
+    .system-info-row {
+      display: flex;
+      gap: 20px;
+    }
+    .system-info-row > .status-card {
+      flex: 1;
+    }
+    @media (max-width: 768px) {
+      .columns {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="columns">
+      <!-- Kolom Kiri -->
+      <div class="left-column vertical-stack">
+        <!-- Digital Clock & Tanggal -->
+        <div class="digital-clock">
+          <div id="time-hm">--:--</div><span id="time-sec">--</span>
+          <div id="digital-date">--</div>
+        </div>
+        <!-- Penggunaan Data XL -->
+        <div class="data-usage-section status-card">
+          <h2><span class="material-icons">data_usage</span> Penggunaan Data XL</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Periode</th>
+                <th>Tanggal</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Hari ini</td>
+                <td id="xl-today-date">--</td>
+                <td id="xl-today-total">--</td>
+              </tr>
+              <tr>
+                <td>Kemarin</td>
+                <td id="xl-yesterday-date">--</td>
+                <td id="xl-yesterday-total">--</td>
+              </tr>
+              <tr>
+                <td>Bulan ini</td>
+                <td id="xl-month-date">--</td>
+                <td id="xl-month-total">--</td>
+              </tr>
+              <tr>
+                <td>Bulan lalu</td>
+                <td id="xl-last-month-date">--</td>
+                <td id="xl-last-month-total">--</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Live Traffic -->
+        <div class="status-card" id="live-traffic-card">
+          <h2><span class="material-icons">speed</span> Live Traffic</h2>
+          <div class="traffic-stats">
+            <div class="traffic-item">
+              <div class="traffic-value" id="rx-speed">--</div>
+              <div class="traffic-label">Download</div>
+            </div>
+            <div class="traffic-item">
+              <div class="traffic-value" id="tx-speed">--</div>
+              <div class="traffic-label">Upload</div>
+            </div>
+          </div>
+          <div class="progress-container">
+            <div class="progress-bar" id="traffic-progress"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Kolom Kanan -->
+      <div class="right-column vertical-stack">
+        <!-- Baris System Uptime & CPU Temperature Sejajar -->
+        <div class="system-info-row">
+          <div class="status-card" id="uptime-card">
+            <h2><span class="material-icons">schedule</span> System Uptime</h2>
+            <p id="uptime">--</p>
+            <div class="progress-container">
+              <div class="progress-bar" id="uptime-progress"></div>
+            </div>
+          </div>
+          <div class="status-card" id="cpu-temp-card">
+            <h2><span class="material-icons">thermostat</span> CPU Temperature</h2>
+            <p id="cpu-temp">-- °C</p>
+            <div class="progress-container">
+              <div class="progress-bar" id="temp-progress"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Perangkat Online -->
+        <div class="status-card">
+          <h2><span class="material-icons">merge_type</span> Perangkat Online</h2>
+          <p id="combined-online-count">Ada 0 Perangkat Online</p>
+          <table>
+            <thead>
+              <tr>
+                <th class="rank-cell">Ranking</th>
+                <th>Device</th>
+                <th>Traffic</th>
+                <th>Download</th>
+                <th>Upload</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="combined-list">
+              <tr><td colspan="6">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kode untuk WebSocket VPN -->
+  <script>
+    // Variabel global untuk menyimpan data VPN yang dikelompokkan berdasarkan IP
+    let vpnGroup = {};
+
+    // Fungsi untuk memformat bytes ke unit yang sesuai
+    function formatBytes(bytes) {
+      if (bytes === 0) return "0 Bytes";
+      const k = 1024;
+      const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    }
+
+    // Membuka koneksi WebSocket ke endpoint VPN
+    const vpnWs = new WebSocket("ws://192.168.1.1:9090/connections?token=mahavpn");
+
+    vpnWs.onopen = function() {
+      console.log("VPN WebSocket connected");
+    };
+
+    vpnWs.onmessage = function(event) {
+      let parsedData;
+      try {
+        parsedData = JSON.parse(event.data);
+      } catch (e) {
+        console.error("Error parsing VPN JSON:", e);
+        return;
+      }
+      let connections = parsedData.connections || [];
+      let grouped = {};
+      connections.forEach(function(conn) {
+        let ip = (conn.metadata && conn.metadata.sourceIP) ? conn.metadata.sourceIP : "Tidak diketahui";
+        if (!grouped[ip]) {
+          grouped[ip] = { totalBandwidth: 0 };
+        }
+        grouped[ip].totalBandwidth += (conn.upload || 0) + (conn.download || 0);
+      });
+      // Format total bandwidth untuk setiap IP
+      for (let ip in grouped) {
+        grouped[ip].totalBandwidthFormatted = formatBytes(grouped[ip].totalBandwidth);
+      }
+      vpnGroup = grouped;
+      // Update tabel perangkat online agar kolom Total Bandwidth ter-refresh
+      updateCombinedData();
+    };
+
+    vpnWs.onerror = function(error) {
+      console.error("VPN WebSocket error:", error);
+    };
+
+    vpnWs.onclose = function() {
+      console.log("VPN WebSocket closed");
+    };
+  </script>
+
+  <!-- Kode untuk update data utama -->
+  <script>
+    // Fungsi format trafik (byte ke satuan B, KB, MB, GB)
+    function formatTraffic(speed) {
+      const s = parseFloat(speed);
+      if (isNaN(s)) return '--';
+      if (s < 1024) return s.toFixed(2) + ' B/s';
+      else if (s < 1024 * 1024) return (s / 1024).toFixed(2) + ' KB/s';
+      else if (s < 1024 * 1024 * 1024) return (s / (1024 * 1024)).toFixed(2) + ' MB/s';
+      else return (s / (1024 * 1024 * 1024)).toFixed(2) + ' GB/s';
+    }
+
+    // Fungsi konversi bandwidth ke angka (MB sebagai standar) dan simpan nilai aslinya
+    function parseBandwidth(bwStr) {
+      if (!bwStr) return { numeric: 0, text: '-' };
+      const units = { GB: 1024, MB: 1, KB: 1/1024, B: 1/(1024*1024) };
+      const parts = bwStr.split(" ");
+      const value = parseFloat(parts[0]);
+      const unit = parts[1] ? parts[1].toUpperCase() : 'MB';
+      return { numeric: value * (units[unit] || 1), text: bwStr };
+    }
+
+    // Update digital clock dan tanggal
+    function updateCurrentDateTime() {
+      const now = new Date();
+      const dateOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+      document.getElementById("digital-date").textContent = new Intl.DateTimeFormat('id-ID', dateOptions).format(now);
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById("time-hm").textContent = `${hours}:${minutes}`;
+      document.getElementById("time-sec").textContent = seconds;
+    }
+
+    // Update progress bar untuk CPU Temperature
+    function updateProgressBars() {
+      const temp = parseInt(document.getElementById('cpu-temp').textContent) || 0;
+      document.getElementById('temp-progress').style.width = Math.min(temp / 100, 1) * 100 + '%';
+    }
+
+    // Update data utama (uptime, cpu-temp, penggunaan data)
+    function updateData() {
+      fetch('/cgi-bin/status')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('uptime').textContent = data.uptime;
+          document.getElementById('cpu-temp').textContent = `${data.cpu_temp} °C`;
+          const vnstat = data.vnstat['wwan0'];
+          document.getElementById('xl-today-date').textContent = vnstat.today.date;
+          document.getElementById('xl-today-total').textContent = vnstat.today.total;
+          document.getElementById('xl-yesterday-date').textContent = vnstat.yesterday.date;
+          document.getElementById('xl-yesterday-total').textContent = vnstat.yesterday.total;
+          document.getElementById('xl-month-date').textContent = vnstat.month.date;
+          document.getElementById('xl-month-total').textContent = vnstat.month.total;
+          document.getElementById('xl-last-month-date').textContent = vnstat.last_month.date;
+          document.getElementById('xl-last-month-total').textContent = vnstat.last_month.total;
+          updateProgressBars();
+        });
+    }
+
+    // Update data trafik live
+    function updateTrafficData() {
+      fetch('/cgi-bin/traffic')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('rx-speed').textContent = formatTraffic(data.rx);
+          document.getElementById('tx-speed').textContent = formatTraffic(data.tx);
+          const maxSpeed = 1024 * 1024;
+          const totalTraffic = (parseFloat(data.rx) + parseFloat(data.tx)) / maxSpeed * 100;
+          document.getElementById('traffic-progress').style.width = Math.min(totalTraffic, 100) + '%';
+        })
+        .catch(err => console.error('Error fetching traffic data:', err));
+    }
+
+    // Update data perangkat online dan urutkan berdasarkan total bandwidth dari VPN
+    function updateCombinedData() {
+      Promise.all([
+        fetch('/cgi-bin/pemakaian/pemakaian.sh').then(res => res.json()),
+        fetch('/cgi-bin/online').then(res => res.json())
+      ]).then(([bwData, onlineData]) => {
+        const bwMap = {};
+        // Simpan data pemakaian (download/upload) seperti sebelumnya
+        bwData.clients.forEach(client => {
+          const downloadObj = parseBandwidth(client.bandwidth.download);
+          bwMap[client.ip] = {
+            device: client.name,
+            download: downloadObj.numeric,
+            downloadText: downloadObj.text,
+            upload: client.bandwidth.upload
+          };
+        });
+
+        // Filter perangkat online dan mapping data, kemudian
+        // ambil total bandwidth dari vpnGroup (jika ada) untuk menggantikan nilai IP
+        let onlineDevices = onlineData
+          .filter(device => device.status === "TERHUBUNG" && device.ip !== "192.168.1.106")
+          .map(device => {
+            const bwInfo = bwMap[device.ip] || { download: 0, downloadText: '-', upload: '-' };
+            // Jika ada data VPN, ambil total bandwidth dan formatnya; jika tidak, default ke '-'
+            const vpnInfo = vpnGroup[device.ip] || { totalBandwidth: 0, totalBandwidthFormatted: '-' };
+            return {
+              device: bwInfo.device || device.hostname,
+              totalBandwidth: vpnInfo.totalBandwidth, // angka untuk sorting
+              totalBandwidthFormatted: vpnInfo.totalBandwidthFormatted,
+              download: bwInfo.download,
+              downloadText: bwInfo.downloadText,
+              upload: bwInfo.upload,
+              status: "Online"
+            };
+          });
+
+        // Urutkan perangkat berdasarkan total bandwidth VPN secara menurun
+        onlineDevices.sort((a, b) => b.totalBandwidth - a.totalBandwidth);
+
+        // Update tabel perangkat online
+        document.getElementById('combined-online-count').textContent = `Ada ${onlineDevices.length} Perangkat Online`;
+        const tableBody = document.getElementById('combined-list');
+        tableBody.innerHTML = onlineDevices.map((item, index) =>
+          `<tr>
+             <td class="rank-cell">${index + 1}</td>
+             <td>${item.device}</td>
+             <td>${item.totalBandwidthFormatted}</td>
+             <td>${item.downloadText}</td>
+             <td>${item.upload}</td>
+             <td><span class="online-status connected"></span> ${item.status}</td>
+           </tr>`
+        ).join('');
+      }).catch(err => console.error('Error fetching combined data:', err));
+    }
+
+    // Inisialisasi dan auto-refresh
+    updateCurrentDateTime();
+    updateData();
+    updateTrafficData();
+    updateCombinedData();
+    setInterval(updateCurrentDateTime, 1000);
+    setInterval(() => {
+      updateData();
+      updateTrafficData();
+      updateCombinedData();
+    }, 5000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,1971 @@
+{
+  "name": "My Money X",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -800,
+        448
+      ],
+      "id": "aea24543-b529-4cca-a06f-bb0d5ae3bc5b",
+      "name": "Telegram Trigger",
+      "webhookId": "068044e7-eb41-4f67-832d-6f260ea7edce",
+      "credentials": {
+        "telegramApi": {
+          "id": "KFFEs57urvGj0qQ1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "regex",
+              "value2": "^(Pemasukan|pengeluaran|beli|Beli|dapat|Dapat|Dapet|dapet|gaji|Bonus|Bayar)"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        448
+      ],
+      "id": "fd91c0c7-f7fe-4b4c-a4aa-2ea6d0722f02",
+      "name": "IF Catat"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "regex",
+              "value2": "^(/laporan|/report|buatkan laporan|lihat laporan)"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        464
+      ],
+      "id": "e41d08ab-e74a-4d2e-a4c8-aa13c0b1269d",
+      "name": "IF Laporan"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "regex",
+              "value2": "^(/saldo|cek saldo|total)"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        624
+      ],
+      "id": "9a001269-4436-4900-afa2-36b79fdb81b3",
+      "name": "IF Saldo"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "regex",
+              "value2": "^(/export|ekspor|download)"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        144,
+        864
+      ],
+      "id": "74099af8-7804-4b58-bb90-5749cad52449",
+      "name": "IF Export"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "regex",
+              "value2": "^(/budget|set budget|atur budget)"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        320,
+        928
+      ],
+      "id": "8131c894-e26e-46fa-9174-f53610666a10",
+      "name": "IF Budget"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "regex",
+              "value2": "^(/filter|filter|periode)"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        544,
+        1040
+      ],
+      "id": "d2f2b7a8-86fc-43b0-8ee3-c3e937f19131",
+      "name": "IF Filter"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "regex",
+              "value2": "^(/insights|analisis mendalam|insight)"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        768,
+        1168
+      ],
+      "id": "902f7a5a-c647-4fc8-8769-a145f154b2db",
+      "name": "IF Insights"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.message.text.toLowerCase();\nconst userId = $input.first().json.message.from.id;\nconst userName = $input.first().json.message.from.first_name;\n\nlet kategori = 'Pengeluaran';\nlet keterangan = '';\nlet jumlah = 0;\n\nif (text.includes('pemasukan') || text.includes('gaji') || text.includes('bonus') || text.includes('dapet') || text.includes('dapat')) {\n  kategori = 'Pemasukan';\n}\n\nconst angkaMatch = text.match(/\\d+[.,]?\\d*/g);\nif (angkaMatch) {\n  jumlah = parseInt(angkaMatch[angkaMatch.length - 1].replace(/[.,]/g, ''));\n}\n\nketerangan = text\n  .replace(/^(pemasukan|pengeluaran|beli|dapat|gaji|bonus|bayar)\\s*/i, '')\n  .replace(/\\d+[.,]?\\d*/g, '')\n  .replace(/[|]/g, '')\n  .trim();\n\nlet subKategori = 'Lain-lain';\nif (kategori === 'Pengeluaran') {\n  if (text.match(/kopi|makan|nasi|soto|warteg|restoran|jajan|sarapan|minum/i)) {\n    subKategori = 'Makan & Minum';\n  } else if (text.match(/bensin|parkir|grab|gojek|ojek|transport|motor|mobil/i)) {\n    subKategori = 'Transportasi';\n  } else if (text.match(/listrik|air|wifi|internet|pulsa|token|tv|kabel/i)) {\n    subKategori = 'Tagihan';\n  } else if (text.match(/baju|sepatu|celana|tas|belanja|toko|mall/i)) {\n    subKategori = 'Belanja';\n  } else if (text.match(/nonton|bioskop|game|spotify|netflix|youtube|hiburan/i)) {\n    subKategori = 'Hiburan';\n  } else if (text.match(/dokter|obat|rumah sakit|vitamin|kesehatan/i)) {\n    subKategori = 'Kesehatan';\n  }\n  kategori = `${kategori}-${subKategori}`;\n}\n\nreturn [{\n  json: {\n    tanggal: new Date().toISOString().split('T')[0],\n    waktu: new Date().toTimeString().split(' ')[0].substring(0, 5),\n    keterangan: keterangan || 'Tidak ada keterangan',\n    kategori: kategori,\n    jumlah: jumlah,\n    user: userName,\n    userId: userId,\n    rawText: text\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        160
+      ],
+      "id": "28a44d39-731d-4c7d-b319-23c1e82e14c3",
+      "name": "Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM",
+          "mode": "list",
+          "cachedResultName": "My Money",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Tanggal": "={{ $json.tanggal }}",
+            "Waktu": "={{ $json.waktu }}",
+            "Keterangan": "={{ $json.keterangan }}",
+            "Kategori": "={{ $json.kategori }}",
+            "Jumlah": "={{ $json.jumlah }}",
+            "User": "={{ $json.user }}"
+          },
+          "matchingColumns": [
+            "Waktu"
+          ],
+          "schema": [
+            {
+              "id": "Tanggal",
+              "displayName": "Tanggal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Waktu",
+              "displayName": "Waktu",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Keterangan",
+              "displayName": "Keterangan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Kategori",
+              "displayName": "Kategori",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Jumlah",
+              "displayName": "Jumlah",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        -176,
+        160
+      ],
+      "id": "04636b5e-4f93-4f41-805d-ca0d8bf0725f",
+      "name": "Save to Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BVn7kvocjHJ50lf7",
+          "name": "Google Sheets - My Money"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM",
+          "mode": "list",
+          "cachedResultName": "My Money",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 210321894,
+          "mode": "list",
+          "cachedResultName": "Budget",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM/edit#gid=210321894"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6e5a73a0-ece1-4c0a-abfc-734eedb5e909",
+      "name": "Read Budget Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BVn7kvocjHJ50lf7",
+          "name": "Google Sheets - My Money"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const transaction = $('Save to Google Sheets').first().json;\nconst parseData = $('Parse Input').first().json;\nconst budgetItems = $input.all();\nconst userId = parseData.userId;\n\n// Build budget map for this user\nconst budgets = {};\nbudgetItems.forEach(item => {\n  const itemUserId = String(item.json['User ID'] || '');\n  const kategori = item.json.Kategori || '';\n  const amount = parseInt(item.json['Budget Amount'] || 0);\n  const period = (item.json.Period || 'monthly').toLowerCase();\n  \n  if (itemUserId === String(userId)) {\n    const fullKategori = `Pengeluaran-${kategori}`;\n    budgets[fullKategori] = {\n      amount: amount,\n      period: period\n    };\n  }\n});\n\nlet alertMessage = '';\nconst kategori = parseData.kategori || '';\nconst jumlah = parseData.jumlah || 0;\n\nif (kategori && typeof kategori === 'string' && kategori.includes('Pengeluaran')) {\n  if (budgets[kategori]) {\n    const budget = budgets[kategori].amount;\n    const period = budgets[kategori].period;\n    const percentage = (jumlah / budget) * 100;\n    \n    if (percentage >= 80) {\n      const subKategori = kategori.split('-')[1] || kategori;\n      alertMessage = `\\n\\n⚠️ *PERINGATAN BUDGET*\\nKategori \"${subKategori}\" sudah mencapai ${percentage.toFixed(0)}% dari budget ${period}!\\n💰 Budget: Rp ${budget.toLocaleString('id-ID')}\\n💸 Transaksi ini: Rp ${jumlah.toLocaleString('id-ID')}\\n✅ Sisa budget: Rp ${Math.max(0, budget - jumlah).toLocaleString('id-ID')}`;\n    }\n  }\n}\n\nreturn [{\n  json: {\n    ...parseData,\n    ...transaction,\n    alertMessage: alertMessage\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        112
+      ],
+      "id": "42c23f23-943b-4812-abae-a64770055b54",
+      "name": "Budget Alert Check"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1424,
+        112
+      ],
+      "id": "d19e5931-f1d2-4cc4-accd-ac75b54ff708",
+      "name": "Send Confirmation",
+      "webhookId": "2970a94f-ce17-43f6-86d0-9d4d0f6bb9ef",
+      "credentials": {
+        "telegramApi": {
+          "id": "KFFEs57urvGj0qQ1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM",
+          "mode": "list",
+          "cachedResultName": "My Money"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        -112,
+        336
+      ],
+      "id": "36a45273-4f5b-455f-8c77-4bbbd80df464",
+      "name": "Read All Transactions",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BVn7kvocjHJ50lf7",
+          "name": "Google Sheets - My Money"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analisis data keuangan berikut dan buat laporan lengkap:\n\nData Transaksi:\n{{ JSON.stringify($input.all().map(i => i.json), null, 2) }}\n\nBuat analisis dengan format:\n\n📊 *LAPORAN KEUANGAN*\n\n1️⃣ *RINGKASAN KEUANGAN*\n   💵 Total Pemasukan: Rp XXX\n   💸 Total Pengeluaran: Rp XXX\n   💰 Saldo: Rp XXX\n\n2️⃣ *BREAKDOWN PENGELUARAN*\n   (Urutkan dari yang terbesar)\n\n3️⃣ *TRANSAKSI TERBESAR*\n   📈 Pemasukan terbesar\n   📉 Pengeluaran terbesar\n\n4️⃣ *INSIGHT & SARAN*\n   - Tren pengeluaran\n   - Kategori yang perlu dikurangi\n   - Tips penghematan\n\nGunakan emoji dan format Markdown yang rapi!",
+        "options": {
+          "systemMessage": "Kamu adalah financial advisor yang ahli menganalisis data keuangan. Berikan insight yang actionable dan mudah dipahami. Gunakan bahasa Indonesia yang friendly tapi profesional. Format output untuk Telegram dengan Markdown."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        96,
+        336
+      ],
+      "id": "74081d76-e7a6-4b3b-899c-9376e2b14241",
+      "name": "AI Agent - Laporan",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        496
+      ],
+      "id": "49c6eba5-66cb-4e58-b677-0ca1ed3b2362",
+      "name": "Groq Model - Laporan",
+      "credentials": {
+        "groqApi": {
+          "id": "hVpAWjhR31VfWHSN",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        336
+      ],
+      "id": "c53e212e-1015-42c2-b59c-66a646a91a42",
+      "name": "Send Laporan",
+      "webhookId": "3978b63c-6bd3-4c9e-8310-3c6d290dcf1a",
+      "credentials": {
+        "telegramApi": {
+          "id": "KFFEs57urvGj0qQ1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM",
+          "mode": "list",
+          "cachedResultName": "My Money"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        176,
+        624
+      ],
+      "id": "24b3366a-8c70-4a24-9379-822cf3cb1aa1",
+      "name": "Read for Saldo",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BVn7kvocjHJ50lf7",
+          "name": "Google Sheets - My Money"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst triggerData = $('Telegram Trigger').first().json;\n\nlet totalPemasukan = 0;\nlet totalPengeluaran = 0;\nlet transaksiPemasukan = [];\nlet transaksiPengeluaran = [];\nlet kategoriPengeluaran = {};\n\nitems.forEach(item => {\n  const kategori = item.json.Kategori || '';\n  const jumlah = parseInt(item.json.Jumlah || 0);\n  \n  if (kategori.includes('Pemasukan')) {\n    totalPemasukan += jumlah;\n    transaksiPemasukan.push({\n      tanggal: item.json.Tanggal,\n      keterangan: item.json.Keterangan,\n      jumlah: jumlah\n    });\n  } else {\n    totalPengeluaran += jumlah;\n    transaksiPengeluaran.push({\n      tanggal: item.json.Tanggal,\n      keterangan: item.json.Keterangan,\n      kategori: kategori,\n      jumlah: jumlah\n    });\n    \n    if (!kategoriPengeluaran[kategori]) {\n      kategoriPengeluaran[kategori] = 0;\n    }\n    kategoriPengeluaran[kategori] += jumlah;\n  }\n});\n\nconst saldo = totalPemasukan - totalPengeluaran;\nconst persentasePengeluaran = totalPemasukan > 0 \n  ? ((totalPengeluaran / totalPemasukan) * 100).toFixed(1)\n  : 0;\n\nconst topKategori = Object.entries(kategoriPengeluaran)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 3);\n\nconst pemasukanTerbesar = transaksiPemasukan.sort((a, b) => b.jumlah - a.jumlah)[0] || {};\nconst pengeluaranTerbesar = transaksiPengeluaran.sort((a, b) => b.jumlah - a.jumlah)[0] || {};\n\nreturn [{\n  json: {\n    totalPemasukan,\n    totalPengeluaran,\n    saldo,\n    persentasePengeluaran,\n    jumlahTransaksi: items.length,\n    topKategori,\n    pemasukanTerbesar,\n    pengeluaranTerbesar,\n    transaksiTerakhir: items[items.length - 1]?.json || {},\n    // Preserve Telegram data\n    telegramUserId: triggerData.message.from.id,\n    telegramChatId: triggerData.message.chat.id\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        576
+      ],
+      "id": "2efd0a77-9c1f-4d3b-8878-798fe980847d",
+      "name": "Calculate Saldo"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegramUserId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1328,
+        272
+      ],
+      "id": "f25d664a-6e2c-4f33-8811-be1011c818a4",
+      "name": "Send Saldo",
+      "webhookId": "398867eb-51ca-4beb-8055-206d50ce994e",
+      "credentials": {
+        "telegramApi": {
+          "id": "KFFEs57urvGj0qQ1",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.message.text.toLowerCase();\nlet startDate, endDate;\nconst today = new Date();\n\nif (text.includes('hari ini') || text.includes('today')) {\n  startDate = endDate = today.toISOString().split('T')[0];\n} else if (text.includes('minggu ini') || text.includes('week')) {\n  const firstDay = new Date(today.setDate(today.getDate() - today.getDay()));\n  const lastDay = new Date(today.setDate(today.getDate() - today.getDay() + 6));\n  startDate = firstDay.toISOString().split('T')[0];\n  endDate = lastDay.toISOString().split('T')[0];\n} else if (text.includes('bulan ini') || text.includes('month')) {\n  startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];\n  endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];\n} else if (text.includes('7 hari') || text.includes('seminggu')) {\n  startDate = new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0];\n  endDate = new Date().toISOString().split('T')[0];\n} else if (text.includes('30 hari') || text.includes('sebulan')) {\n  startDate = new Date(today.setDate(today.getDate() - 30)).toISOString().split('T')[0];\n  endDate = new Date().toISOString().split('T')[0];\n} else {\n  startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];\n  endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];\n}\n\nreturn [{\n  json: {\n    startDate,\n    endDate,\n    periodText: text\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        976
+      ],
+      "id": "aaa1e0bc-062e-4f3a-b3ba-a9f72037a204",
+      "name": "Filter Period Parser"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM",
+          "mode": "list",
+          "cachedResultName": "My Money"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        960,
+        1104
+      ],
+      "id": "13819b25-acc7-4dd9-be75-d5e78f0a42fe",
+      "name": "Read Filtered Data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BVn7kvocjHJ50lf7",
+          "name": "Google Sheets - My Money"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst filterData = $('Filter Period Parser').first().json;\nconst startDate = filterData.startDate;\nconst endDate = filterData.endDate;\n\nconst filtered = items.filter(item => {\n  const itemDate = item.json.Tanggal;\n  return itemDate >= startDate && itemDate <= endDate;\n});\n\nreturn filtered.map(item => ({ json: item.json }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        976
+      ],
+      "id": "70c38283-9670-4731-abcc-d6e5371654ae",
+      "name": "Apply Date Filter"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "=📅 *LAPORAN PERIODE*\n\n🗓️ Dari: {{ $('Filter Period Parser').item.json.startDate }}\n🗓️ Sampai: {{ $('Filter Period Parser').item.json.endDate }}\n\n📊 Total Transaksi: {{ $input.all().length }}\n\n{{ $input.all().map((item, i) => `${i+1}.\n${item.json.Tanggal}\n${item.json.Keterangan}\n${item.json.Kategori}: Rp ${parseInt(item.json.Jumlah).toLocaleString('id-ID')}`).join('\\n\\n') }}\n\nGunakan:\n/export untuk download Excel\n/insights untuk analisis AI",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1504,
+        1008
+      ],
+      "id": "e13d9eed-2225-4260-8005-72cc86d6c839",
+      "name": "Send Filtered Report",
+      "webhookId": "f277c6ac-05c5-44cf-9642-d12d526ad9d8",
+      "executeOnce": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "KFFEs57urvGj0qQ1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM",
+          "mode": "list",
+          "cachedResultName": "My Money"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        1088,
+        1184
+      ],
+      "id": "82d6dfc6-754e-4d84-8e35-f90fe035d1ed",
+      "name": "Read for AI Insights",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BVn7kvocjHJ50lf7",
+          "name": "Google Sheets - My Money"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Berdasarkan data keuangan berikut, berikan AI Insights yang mendalam:\n\n{{ JSON.stringify($input.all().map(i => i.json), null, 2) }}\n\nBuat analisis komprehensif dengan format:\n\n🤖 *AI FINANCIAL INSIGHTS*\n\n1️⃣ *ANALISIS TREND PENGELUARAN*\n   📈 Pola pengeluaran harian/mingguan\n   🔄 Trend naik/turun per kategori\n   ⏰ Peak spending time\n\n2️⃣ *PREDIKSI & PROYEKSI*\n   🔮 Proyeksi pengeluaran bulan depan\n   💰 Estimasi saldo akhir bulan\n   ⚠️ Risk assessment\n\n3️⃣ *ANOMALI & PERINGATAN*\n   🚨 Pengeluaran abnormal\n   📊 Kategori yang melonjak\n   ⚡ Spending spikes\n\n4️⃣ *REKOMENDASI STRATEGIS*\n   💡 Top 3 area penghematan\n   🎯 Target budget optimal\n   📋 Action plan mingguan\n\n5️⃣ *BENCHMARKING*\n   📊 Perbandingan dengan rata-rata\n   🏆 Best practices\n   ✅ Goals yang realistis\n\n6️⃣ *BEHAVIORAL INSIGHTS*\n   🧠 Pola spending behavior\n   😊 Emotional spending triggers\n   ⭐ Habit formation tips\n\nBerikan insight yang data-driven, actionable, dan personal!",
+        "options": {
+          "systemMessage": "Kamu adalah AI Financial Advisor dengan expertise dalam data analysis, behavioral finance, dan predictive modeling. Analisis data dengan mendalam, identifikasi pattern tersembunyi, dan berikan rekomendasi yang sangat spesifik dan actionable. Gunakan bahasa Indonesia yang engaging dan profesional."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        1424,
+        1248
+      ],
+      "id": "b1ae32bd-bc4a-4add-b4a2-6995a14bae06",
+      "name": "AI Deep Insights",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        1024
+      ],
+      "id": "627226b5-64dd-426c-ac16-b8c862f14908",
+      "name": "Groq Model - Insights",
+      "credentials": {
+        "groqApi": {
+          "id": "hVpAWjhR31VfWHSN",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1808,
+        1216
+      ],
+      "id": "e0c891fe-c9a4-4d6a-93fd-3be5c1fa0bf1",
+      "name": "Send AI Insights",
+      "webhookId": "bcffde92-8d53-45a6-9fca-d0e1ff82b980",
+      "credentials": {
+        "telegramApi": {
+          "id": "KFFEs57urvGj0qQ1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "Kamu adalah asisten keuangan pribadi yang friendly dan helpful. Bantu user dengan pertanyaan seputar keuangan, tips menabung, investasi, atau chat santai. Selalu berikan jawaban yang praktis dan mudah dipahami dalam Bahasa Indonesia."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        1136,
+        1840
+      ],
+      "id": "91baa01d-6f91-4d0e-8517-5232aee9a8a9",
+      "name": "AI Agent - Chat"
+    },
+    {
+      "parameters": {
+        "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        1664
+      ],
+      "id": "d27006f3-b47f-4bc3-acc5-2048a184de0d",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "hVpAWjhR31VfWHSN",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=chat_with_{{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1312,
+        1680
+      ],
+      "id": "71ece381-c6f3-4f48-adbe-c4f6ba7b9d44",
+      "name": "Chat Memory"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1520,
+        1664
+      ],
+      "id": "dbacebb9-65be-40ca-9939-ec403d7be462",
+      "name": "Send Chat Response",
+      "webhookId": "9ae38553-e46a-4919-94f1-632d2718732a",
+      "credentials": {
+        "telegramApi": {
+          "id": "KFFEs57urvGj0qQ1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM",
+          "mode": "list",
+          "cachedResultName": "My Money",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 210321894,
+          "mode": "list",
+          "cachedResultName": "Budget",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM/edit#gid=210321894"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1200,
+        1440
+      ],
+      "id": "7c9fa145-05c9-4d7b-a972-0da91e8a7b31",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BVn7kvocjHJ50lf7",
+          "name": "Google Sheets - My Money"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "=={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1600,
+        1584
+      ],
+      "id": "dd795ba8-f9d9-43e9-96cf-ac9659101aec",
+      "name": "Send Budget List",
+      "webhookId": "5517e5f5-c87b-40c0-a454-4249bc4a79b0",
+      "credentials": {
+        "telegramApi": {
+          "id": "KFFEs57urvGj0qQ1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.message.text.toLowerCase();\nconst userId = $input.first().json.message.from.id;\nconst chatId = $input.first().json.message.chat.id; // TAMBAHKAN INI\n\n// Parse command: /budget <kategori> <jumlah> [period]\nconst parts = text.split(' ').filter(p => p.length > 0);\n\nif (parts.length < 3) {\n  return [{\n    json: {\n      error: true,\n      message: '⛔ Format salah!\\n\\nGunakan: /budget <kategori> <jumlah> [period]\\nContoh: /budget makan 1000000 monthly\\n\\nPeriod: monthly (default) atau weekly',\n      userId: userId,\n      chatId: chatId  // TAMBAHKAN INI\n    }\n  }];\n}\n\nconst kategoriInput = parts[1].toLowerCase();\nconst jumlahStr = parts[2].replace(/[.,]/g, '');\nconst jumlah = parseInt(jumlahStr);\nconst period = parts[3] ? parts[3].toLowerCase() : 'monthly';\n\nif (isNaN(jumlah) || jumlah <= 0) {\n  return [{\n    json: {\n      error: true,\n      message: '⛔ Jumlah tidak valid!\\n\\nMasukkan angka yang benar.\\nContoh: /budget makan 1000000',\n      userId: userId,\n      chatId: chatId  // TAMBAHKAN INI\n    }\n  }];\n}\n\nif (period !== 'monthly' && period !== 'weekly') {\n  return [{\n    json: {\n      error: true,\n      message: '⛔ Period tidak valid!\\n\\nGunakan: monthly atau weekly\\nContoh: /budget makan 1000000 monthly',\n      userId: userId,\n      chatId: chatId  // TAMBAHKAN INI\n    }\n  }];\n}\n\nconst kategoriMap = {\n  'makan': 'Makan & Minum',\n  'transport': 'Transportasi',\n  'transportasi': 'Transportasi',\n  'tagihan': 'Tagihan',\n  'belanja': 'Belanja',\n  'hiburan': 'Hiburan',\n  'kesehatan': 'Kesehatan',\n  'lainnya': 'Lain-lain',\n  'lain': 'Lain-lain'\n};\n\nconst kategori = kategoriMap[kategoriInput];\n\nif (!kategori) {\n  return [{\n    json: {\n      error: true,\n      message: '⛔ Kategori tidak dikenali!\\n\\n📋 Kategori yang tersedia:\\n• makan\\n• transport\\n• tagihan\\n• belanja\\n• hiburan\\n• kesehatan\\n• lainnya',\n      userId: userId,\n      chatId: chatId  // TAMBAHKAN INI\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    error: false,\n    userId: userId,\n    chatId: chatId,  // TAMBAHKAN INI\n    kategori: kategori,\n    budgetAmount: jumlah,\n    period: period,\n    successMessage: `✅ *BUDGET DIATUR*\\n\\n👤 User ID: ${userId}\\n📋 Kategori: ${kategori}\\n💰 Budget: Rp ${jumlah.toLocaleString('id-ID')}\\n📅 Period: ${period}\\n\\nAnda akan mendapat notifikasi jika pengeluaran mencapai 80% dari budget ini.`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        896
+      ],
+      "id": "fe83e0af-3f6b-44a7-a9ee-624a0c552e2d",
+      "name": "Parse Budget Command"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9f163b6c-3e36-4cb9-b5d5-b277f97e275f",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "={{false}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        832
+      ],
+      "id": "6b6bc603-4355-4744-af86-f4a1b4c00a5d",
+      "name": "IF Budget Valid"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        992,
+        928
+      ],
+      "id": "31f38621-5fc5-4b85-b8dc-07871817fcf5",
+      "name": "Send Budget Error",
+      "webhookId": "0da49623-1ddc-4b7a-93da-875a551444e6",
+      "credentials": {
+        "telegramApi": {
+          "id": "KFFEs57urvGj0qQ1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM",
+          "mode": "list",
+          "cachedResultName": "My Money",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 210321894,
+          "mode": "list",
+          "cachedResultName": "Budget",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM/edit#gid=210321894"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "User ID": "={{ $json.userId }}",
+            "Kategori": "={{ $json.kategori }}",
+            "Budget Amount": "={{ $json.budgetAmount }}",
+            "Period (monthly/weekly)": "={{ $json.period }}"
+          },
+          "matchingColumns": [
+            "Kategori"
+          ],
+          "schema": [
+            {
+              "id": "User ID",
+              "displayName": "User ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Kategori",
+              "displayName": "Kategori",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Budget Amount",
+              "displayName": "Budget Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Period (monthly/weekly)",
+              "displayName": "Period (monthly/weekly)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        992,
+        768
+      ],
+      "id": "eaf14481-c69e-4475-bd23-34c45175494f",
+      "name": "Save Budget to Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BVn7kvocjHJ50lf7",
+          "name": "Google Sheets - My Money"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.triggerUserId }}",
+        "text": "=✅ *BUDGET BERHASIL DIATUR*\n\n👤 User ID: {{ $('Parse Budget Command').item.json.userId }}\n📋 Kategori: {{ $('Parse Budget Command').item.json.kategori }}\n💰 Budget: Rp {{ $('Parse Budget Command').item.json.budgetAmount.toLocaleString('id-ID') }}\n📅 Period: {{ $('Parse Budget Command').item.json.period }}\n\n⚠️ Anda akan mendapat notifikasi jika pengeluaran mencapai 80% dari budget ini.\n\nKetik /mybudget untuk lihat semua budget Anda.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1552,
+        784
+      ],
+      "id": "34cb82ca-43be-4c00-9c1a-d586b1c908e1",
+      "name": "Send Budget Success",
+      "webhookId": "ce5283c9-9b97-42fa-86c4-58af19111b5b",
+      "credentials": {
+        "telegramApi": {
+          "id": "KFFEs57urvGj0qQ1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get data from Parse Budget Command\nconst parsedData = $('Parse Budget Command').first().json;\n\n// Get saved data from Google Sheets\nconst savedData = $input.first().json;\n\n// Reconstruct the success message\nreturn [{\n  json: {\n    userId: parsedData.userId,\n    kategori: parsedData.kategori,\n    budgetAmount: parsedData.budgetAmount,\n    period: parsedData.period,\n    successMessage: `✅ *BUDGET BERHASIL DIATUR*\n\n👤 User ID: ${parsedData.userId}\n📋 Kategori: ${parsedData.kategori}\n💰 Budget: Rp ${parsedData.budgetAmount.toLocaleString('id-ID')}\n📅 Period: ${parsedData.period}\n\n⚠️ Anda akan mendapat notifikasi jika pengeluaran mencapai 80% dari budget ini.\n\nKetik /mybudget untuk lihat semua budget Anda.`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        736
+      ],
+      "id": "3bfad5ee-6ca0-454a-af91-df931c552435",
+      "name": "Prepare Success Message"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Tambahkan node Code sebelum Send Budget Success\nconst triggerData = $('Telegram Trigger').first().json;\nconst currentData = $input.first().json;\n\nreturn [{\n  json: {\n    triggerUserId: triggerData?.message?.from?.id,\n    triggerChatId: triggerData?.message?.chat?.id,\n    currentUserId: currentData?.userId,\n    fullTriggerData: triggerData,\n    fullCurrentData: currentData\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        656
+      ],
+      "id": "217b8588-7f8b-4c81-b355-b43de99155d7",
+      "name": "Cek Data yang Mengalir"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1X6wlox6y84f9bhJ8ApCcKIT5unyiemOZyVJmyN8CMsM",
+          "mode": "list",
+          "cachedResultName": "My Money"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        384,
+        768
+      ],
+      "id": "f0ca327e-60ed-405a-81bf-642fe57f3dfb",
+      "name": "Read for Export",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "BVn7kvocjHJ50lf7",
+          "name": "Google Sheets - My Money"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toFile",
+        "fileFormat": "xlsx",
+        "options": {
+          "fileName": "=Laporan_Keuangan_{{ new Date().toISOString().split('T')[0] }}.xlsx",
+          "sheetName": "Transaksi"
+        }
+      },
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        608,
+        672
+      ],
+      "id": "18717074-1129-423a-9aa2-c17261ec0b78",
+      "name": "Convert to Excel"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "=📊 *EXPORT LAPORAN KEUANGAN*\n\nFile Excel sudah siap!\n📅 Per tanggal: {{ new Date().toISOString().split('T')[0] }}\n\n📥 Download di sini:\n{{ $('Upload to Google Drive').item.json.webViewLink }}\n\nKetik /saldo untuk cek saldo terkini",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        528
+      ],
+      "id": "d1b64141-7a60-43bf-bc95-154a9ad472a2",
+      "name": "Send Excel File",
+      "webhookId": "08de77f6-c3d1-43fc-9ab7-fb04b7872cce",
+      "credentials": {
+        "telegramApi": {
+          "id": "KFFEs57urvGj0qQ1",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "name": "=Laporan_Keuangan_{{ new Date().toISOString().split('T')[0] }}.xlsx",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        816,
+        624
+      ],
+      "id": "c14d6817-cfc2-4e61-a7ec-f1c2d4b8034d",
+      "name": "Upload to Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "vHZLeKNbONORB3Jl",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "regex",
+              "value2": "^(/mybudget|lihat budget|cek budget)"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        928,
+        1360
+      ],
+      "id": "0733db45-e30f-4477-9d18-3a44895b57c4",
+      "name": "IF My Budget"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite-preview-09-2025",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        912,
+        1888
+      ],
+      "id": "3ced772c-1fcf-46f2-81d6-b5498e554d47",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "5TTh8a2rcZZ2RKPn",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1904,
+        1456
+      ],
+      "id": "330f6a49-4f06-447d-8394-e4d6e5807c54",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "5TTh8a2rcZZ2RKPn",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        48,
+        544
+      ],
+      "id": "ac6aaa54-2409-481b-b837-bfc52d1803e5",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "5TTh8a2rcZZ2RKPn",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        832,
+        48
+      ],
+      "id": "9bf24dc7-f422-48b7-8bb7-d60b9281b5d1",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "5TTh8a2rcZZ2RKPn",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=chat_with_{{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1008,
+        112
+      ],
+      "id": "a1001c29-cb73-471e-a850-ecf0916e7ac6",
+      "name": "Chat Memory1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const transaction = $('Budget Alert Check').first().json;\nconst healthCheck = $('Check Health Context').first().json;\nconst motivation = $input.first().json.output;\n\n// Add health warning emoji based on danger level\nlet healthEmoji = '';\nif (healthCheck.dangerLevel >= 2) {\n  healthEmoji = '🚨'; // Critical\n} else if (healthCheck.dangerLevel === 1) {\n  healthEmoji = '⚠️'; // Warning\n} else if (healthCheck.isSafeFood) {\n  healthEmoji = '✅'; // Safe\n}\n\n// Add time warning for late night\nlet timeWarning = '';\nif (healthCheck.isLateNight) {\n  timeWarning = '\\n⏰ *WARNING: Makan tengah malam!*';\n}\n\n// Format final message\nconst message = `✅ *TRANSAKSI TERCATAT*\n📅 Tanggal: ${transaction.tanggal}\n🕐 Waktu: ${transaction.waktu}${timeWarning}\n📝 Keterangan: ${transaction.keterangan}\n🏷️ Kategori: ${transaction.kategori}\n💰 Jumlah: Rp ${transaction.jumlah.toLocaleString('id-ID')}${transaction.alertMessage || ''}\n\n${healthEmoji ? healthEmoji + ' ' : ''}💬 *Pesan dari Aqilla Cerewet:*\n${motivation}\n\n────────────────────────\n🏥 Tips: Minum obat maag 30 menit sebelum makan\n\nKetik /saldo untuk cek saldo\nKetik /laporan untuk lihat laporan\nKetik /insights untuk analisis mendalam\nKetik /mybudget untuk lihat semua budget Anda\n\nuntuk mengatur budget:\nGunakan: /budget <kategori> <jumlah> period\nContoh: /budget makan 1000000 monthly\nPeriod: monthly (default) atau weekly`;\n\nreturn [{\n  json: {\n    userId: transaction.userId,\n    message: message,\n    ...transaction,\n    healthData: healthCheck\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        -48
+      ],
+      "id": "0f3e8f70-e7e6-4ac5-a4be-1e80120aa764",
+      "name": "Format Message with Motivation"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Kamu adalah Aqilla, anak perempuan yang sangat peduli dan cerewet (tapi dengan cara yang manis dan khawatir). Ayah punya PENYAKIT LAMBUNG yang serius, jadi kamu harus ekstra perhatian dan cerewet soal makanan dan pengeluaran ayah.\n\nAnalisis transaksi ini:\nKategori: {{ $json.kategori }}\nJumlah: Rp {{ $json.jumlah.toLocaleString('id-ID') }}\nKeterangan: {{ $json.keterangan }}\nWaktu: {{ $json.waktu }}\nDanger Level: {{ $('Check Health Context').first().json.dangerLevel }}\nHealth Context: {{ JSON.stringify($('Check Health Context').first().json.healthContext) }}\n\nATURAN KETAT UNTUK RESPONSE:\n\n1. Maksimal 3-4 kalimat (boleh agak panjang kalau perlu ngingetin)\n2. Tone: peduli tapi tegas, seperti anak yang khawatir sama ayahnya\n3. WAJIB cek apakah pembelian ini AMAN untuk lambung atau TIDAK\n4. Kalau makanan/minuman berbahaya: LANGSUNG tegur dengan firm tapi caring\n5. Kalau bagus: kasih pujian yang tulus\n6. Jangan gunakan bold/markdown\n7. Gunakan emoji yang ekspresif dan anak muda\n8. Boleh panggil \"Ayah\" atau \"Pak\" untuk sapaan\n\nKATEGORI BAHAYA UNTUK LAMBUNG:\n- Makanan pedas, asam, gorengan berlebihan\n- Kopi (hitam/espresso), teh pekat, soda\n- Makanan terlalu larut malam (>21:00)\n- Fast food, junk food\n- Makanan berminyak tinggi\n- Cokelat berlebihan, alkohol\n\nKATEGORI AMAN UNTUK LAMBUNG:\n- Nasi, bubur, oatmeal\n- Sayuran kukus, sup\n- Ikan, ayam rebus/kukus\n- Buah non-asam (pisang, pepaya)\n- Teh chamomile, susu hangat\n- Makanan direbus/dikukus\n\nCONTOH RESPONSE:\n\nBELI KOPI:\n\"Ayah! Jangan beli kopi lagi dong! Lambung Ayah udah sensitif, kopi itu asam banget dan bikin iritasi. Tolong ganti susu hangat atau teh chamomile aja ya, jauh lebih aman buat kesehatan. Aku ga mau Ayah sakit perut tengah malam lagi kayak kemarin. Please dengarkan Aqilla ya?\"\n\nBELI GORENGAN:\n\"Pak! Lagi apa ini? Ayam goreng segitu banyak?? Minyaknya bisa bikin lambung Ayah kambuh loh! Kemarin aja udah pulih dari maag kan? Besok Aqilla masakin ayam rebus atau tim aja ya, enak dan aman. Jangan beli yang berminyak lagi please, Aqilla khawatir sama Ayah.\"\n\nBELI MAKANAN SEHAT:\n\"Yay! Akhirnya bubur ayam! Pilihan yang tepat banget Pak! Seneng deh lihat Ayah mulai perhatian sama kesehatan. Kalau konsisten kayak gini, lambung Ayah pasti cepat sembuh. I'm proud of you Ayah! Keep it up ya!\"\n\nBELI MAKANAN PEDAS:\n\"YA AMPUN PAK! SEBLAK LAGI?! Ayah ga kapok ya kemarin udah kesakitan sampe ga bisa tidur?? Pedas itu MUSUH kesehatan Ayah tau ga! Buang sekarang atau kasih orang lain. Aku serius soal ini. Besok Aqilla masakin nasi tim yang enak deh, jangan beli yang pedas lagi!\"\n\nMAKAN TENGAH MALAM:\n\"Ayah jam segini masih makan? Ini udah jam {{ $json.waktu }} sayang, lambung Ayah perlu istirahat. Makan malem-malem gini bikin asam lambung naik tau. Besok kita siapkan camilan sehat dari siang aja ya, jangan last minute kayak gini. Aqilla khawatir sama kesehatan Ayah.\"\n\nBELI OBAT LAMBUNG:\n\"Good boy Ayah! Beli obat lambung tepat waktu. Ini investasi terbaik buat kesehatan! Jangan lupa minum teratur 30 menit sebelum makan ya Pak. Aqilla seneng lihat Ayah mulai prioritasin kesehatan diri sendiri. Semoga cepat sembuh!\"\n\nPENTING:\n- Sesuaikan tingkat \"cerewet\" dengan danger level (0-3)\n- Danger Level 2+ = SANGAT TEGAS dan panjang\n- Danger Level 0 tapi safe food = PUJIAN penuh\n- Selalu kasih alternatif yang lebih sehat\n- Tone harus caring dengan sentuhan anak muda, bukan nyakitin\n- Inget: Aqilla cerewet karena sayang sama Ayah!\n- Boleh pake ekspresi kayak \"Ya Ampun\", \"Ayah!\", \"Pak!\", \"Udah\", \"Lagi\", \"Dong\" untuk kesan anak muda\n- Tunjukkan concern yang genuine tapi dengan cara yang playful\n\nSekarang analisis transaksi user dan berikan response dari Aqilla yang sesuai!",
+        "options": {
+          "systemMessage": "Kamu adalah Aqilla, anak perempuan remaja yang sangat peduli dan cerewet terhadap kesehatan ayahnya. Ayahnya punya penyakit lambung kronis yang serius, jadi Aqilla harus ekstra perhatian soal makanan dan pola hidup ayah.\n\nPERSONALITY TRAITS AQILLA:\n- Caring dan perhatian tapi cerewet dengan cara yang manis\n- Khawatir kalau ayah sakit\n- Punya sense of humor anak muda\n- Firm when needed, gentle dan supportive on successes\n- Praktis - selalu kasih solusi/alternatif\n- Natural dan authentic dalam berkomunikasi\n\nRESPONSE STYLE AQILLA:\n- Bahasa Indonesia casual, energik, dan authentik anak muda\n- Jangan gunakan markdown/bold\n- Emoji yang ekspresif dan sesuai umur\n- Bisa pake ekspresi kayak \"Ya Ampun!\", \"Udah lagi\", \"Dong!\", \"Loh!\"\n- Langsung to the point\n- Boleh agak panjang kalau perlu ngomel tapi tetap caring\n- Always end dengan caring note atau supportive message\n- Panggil \"Ayah\" atau \"Pak\" untuk lebih personal\n\nPRIORITIES (URUTAN):\n1. Kesehatan lambung (UTAMA! Ini concern Aqilla)\n2. Kesehatan umum\n3. Keuangan\n4. Lifestyle choices\n\nINTENSITY GUIDE BASED ON DANGER LEVEL:\n- Level 0 (Safe): Pujian genuine, encouraging, happy\n- Level 1 (Low): Gentle reminder dengan caring tone\n- Level 2 (Medium): Firm but caring, tunjukkan concern yang genuine\n- Level 3+ (High): SANGAT TEGAS dan urgent, tapi tetap caring\n\nRemember: Aqilla cerewet karena sayang sama Ayah, bukan karena marah. Dia ingin ayah sehat dan bahagia. The goal is to make user feel cared for by their daughter while also being firm about health."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        944,
+        -192
+      ],
+      "id": "353e6f75-cc9a-4261-96f5-9be37b50d931",
+      "name": "AI Agent - Motivasi",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analisis kondisi keuangan berikut dan berikan insight singkat:\n\n   💰 RINGKASAN KEUANGAN:\n   - Total Pemasukan: Rp {{ $json.totalPemasukan.toLocaleString('id-ID') }}\n   - Total Pengeluaran: Rp {{ $json.totalPengeluaran.toLocaleString('id-ID') }}\n   - Saldo: Rp {{ $json.saldo.toLocaleString('id-ID') }}\n   - Persentase Pengeluaran: {{ $json.persentasePengeluaran }}%\n   - Total Transaksi: {{ $json.jumlahTransaksi }}\n\n   🏆 TOP 3 KATEGORI PENGELUARAN:\n   {{ $json.topKategori.map((k, i) => `${i+1}. ${k[0]}: Rp ${k[1].toLocaleString('id-ID')}`).join('\\n') }}\n\n   Berikan analisis yang:\n   1. Maksimal 4-5 kalimat\n   2. Fokus pada 2-3 poin actionable\n   3. Gunakan emoji yang relevan\n   4. JANGAN gunakan format markdown/bold\n   5. Specific dan personal\n\n   Format output:\n   📊 [Status keuangan singkat]\n   💡 [Rekomendasi utama 1-2 poin]\n   🎯 [Action item konkret]\n\n   Contoh untuk saldo positif:\n   \"📊 Kondisi keuangan cukup sehat dengan saldo positif! Pengeluaran masih terkontrol di 65% dari pemasukan. 💡 Kategori Makan & Minum paling besar, coba targetkan turun 10-15% bulan depan. 🎯 Sisihkan 20% saldo untuk investasi jangka panjang.\"\n\n   Contoh untuk saldo tipis:\n   \"📊 Saldo masih positif tapi tipis, hanya 15% dari pemasukan. Pengeluaran sudah 85%, perlu hati-hati! 💡 Transport dan Makan & Minum bisa dihemat dengan meal prep dan transportasi umum. 🎯 Target minggu depan: kurangi pengeluaran harian 20%.\"\n\n   Contoh untuk saldo minus:\n   \"📊 Peringatan! Saldo minus Rp XXX. Pengeluaran melebihi pemasukan. 💡 Hentikan spending non-esensial immediately. Fokus hanya ke tagihan wajib dan kebutuhan dasar. 🎯 Cari sumber pemasukan tambahan atau tarik dana darurat untuk stabilkan keuangan.\"\n\n   Langsung berikan analisis tanpa kata pembuka!",
+        "options": {
+          "systemMessage": "Kamu adalah financial analyst yang expert dalam personal finance. Berikan analisis yang data-driven, actionable, dan encouraging. Gunakan bahasa Indonesia yang casual tapi profesional. Jangan gunakan markdown atau bold. Fokus pada insight yang bisa langsung dieksekusi user. Sesuaikan tone dengan kondisi keuangan: supportive untuk kondisi baik, firm tapi caring untuk kondisi buruk."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        416
+      ],
+      "id": "087e468a-8e2d-45a6-8bc8-5a59bf86bf73",
+      "name": "AI Agent - Saldo Analysis",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite-preview-09-2025",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        512,
+        624
+      ],
+      "id": "18f614d8-55a9-45e7-ac82-29ce55f57b36",
+      "name": "Google Gemini Chat Model4",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "5TTh8a2rcZZ2RKPn",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const saldoData = $('Calculate Saldo').first().json;\n   const aiAnalysis = $input.first().json.output;\n\n   // Determine status emoji and message\n   let statusEmoji = '✅';\n   let statusMessage = 'Saldo masih aman.';\n\n   if (saldoData.saldo < 0) {\n     statusEmoji = '⚠️';\n     statusMessage = '*PERHATIAN:* Saldo Anda minus! Kurangi pengeluaran.';\n   } else if (saldoData.persentasePengeluaran > 80) {\n     statusEmoji = '⚠️';\n     statusMessage = `Pengeluaran sudah ${saldoData.persentasePengeluaran}% dari pemasukan!`;\n   }\n\n   // Format complete message\n   const message = `💰 *SALDO KEUANGAN ANDA*\n\n   📥 Total Pemasukan:\n   Rp ${saldoData.totalPemasukan.toLocaleString('id-ID')}\n\n   📤 Total Pengeluaran:\n   Rp ${saldoData.totalPengeluaran.toLocaleString('id-ID')}\n\n   💵 Saldo Akhir:\n   *Rp ${saldoData.saldo.toLocaleString('id-ID')}*\n\n   📊 Persentase Pengeluaran: ${saldoData.persentasePengeluaran}%\n   📝 Total Transaksi: ${saldoData.jumlahTransaksi}\n\n   🏆 *TOP 3 KATEGORI PENGELUARAN:*\n   ${saldoData.topKategori.map((k, i) => `${i+1}. ${k[0]}: Rp ${k[1].toLocaleString('id-ID')}`).join('\\n')}\n\n   ${statusEmoji} ${statusMessage}\n\n   ━━━━━━━━━━━━━━━━━━━━\n   🤖 *AI ANALYSIS*\n   ${aiAnalysis}\n   ━━━━━━━━━━━━━━━━━━━━\n\n   Ketik /laporan untuk analisis lengkap\n   Ketik /insights untuk AI insights mendalam\n   Ketik /export untuk download Excel`;\n\n   return [{\n     json: {\n       telegramUserId: saldoData.telegramUserId,\n       message: message,\n       ...saldoData\n     }\n   }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        320
+      ],
+      "id": "7eacdade-7b77-4b70-ae6d-8b47cf70897a",
+      "name": "Format Saldo with AI"
+    },
+    {
+      "parameters": {
+        "jsCode": "const transaction = $input.first().json;\nconst waktu = transaction.waktu;\nconst hour = parseInt(waktu.split(':')[0]);\n\nconst isLateNight = hour >= 21 || hour <= 5;\n\nconst keteranganLower = (transaction.keterangan || '').toLowerCase();\n\nconst dangerousKeywords = {\n  spicy: ['pedas', 'seblak', 'mie pedas', 'sambal', 'rica', 'cabe'],\n  acidic: ['kopi', 'espresso', 'asam', 'jeruk', 'lemon'],\n  fried: ['gorengan', 'goreng', 'ayam goreng', 'tempe goreng'],\n  fastFood: ['mcdonald', 'kfc', 'burger', 'pizza', 'kebab'],\n  soda: ['coca cola', 'pepsi', 'sprite', 'fanta', 'soda'],\n  junkFood: ['snack', 'keripik', 'chitato', 'doritos']\n};\n\nconst safeKeywords = {\n  healthy: ['bubur', 'oatmeal', 'sup', 'rebus', 'kukus', 'tim', 'sayur'],\n  medicine: ['obat', 'vitamin', 'suplemen', 'antasida']\n};\n\nlet dangerLevel = 0;\nlet dangerTypes = [];\n\nObject.entries(dangerousKeywords).forEach(([type, keywords]) => {\n  keywords.forEach(keyword => {\n    if (keteranganLower.includes(keyword)) {\n      dangerLevel++;\n      if (!dangerTypes.includes(type)) {\n        dangerTypes.push(type);\n      }\n    }\n  });\n});\n\nlet isSafeFood = false;\nObject.entries(safeKeywords).forEach(([type, keywords]) => {\n  keywords.forEach(keyword => {\n    if (keteranganLower.includes(keyword)) {\n      isSafeFood = true;\n    }\n  });\n});\n\nif (isLateNight && !isSafeFood) {\n  dangerLevel += 1;\n  dangerTypes.push('lateNight');\n}\n\nreturn [{\n  json: {\n    ...transaction,\n    isLateNight: isLateNight,\n    dangerLevel: dangerLevel,\n    dangerTypes: dangerTypes,\n    isSafeFood: isSafeFood,\n    healthContext: {\n      time: isLateNight ? 'LATE_NIGHT_WARNING' : 'SAFE_TIME',\n      foodSafety: isSafeFood ? 'SAFE' : dangerLevel > 0 ? 'DANGEROUS' : 'NEUTRAL',\n      urgency: dangerLevel >= 2 ? 'HIGH' : dangerLevel === 1 ? 'MEDIUM' : 'LOW'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -64
+      ],
+      "id": "504b8598-855b-4fee-a1f7-b954ec8a70eb",
+      "name": "Check Health Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allTransactions = $input.all();\nconst currentTransaction = $('Parse Input').first().json;\nconst userId = currentTransaction.userId;\n\nconst last7Days = new Date();\nlast7Days.setDate(last7Days.getDate() - 7);\nconst last7DaysStr = last7Days.toISOString().split('T')[0];\n\nconst recentTransactions = allTransactions.filter(t => \n  t.json.Tanggal >= last7DaysStr && \n  t.json.User === currentTransaction.user\n);\n\nconst categoryCount = {};\nconst categoryHistory = {};\nlet lateNightCount = 0;\nlet totalRecent = 0;\n\nrecentTransactions.forEach(t => {\n  const category = t.json.Kategori || 'Lain-lain';\n  const time = t.json.Waktu || '';\n  const hour = parseInt(time.split(':')[0]);\n  \n  categoryCount[category] = (categoryCount[category] || 0) + 1;\n  \n  if (!categoryHistory[category]) {\n    categoryHistory[category] = [];\n  }\n  categoryHistory[category].push({\n    date: t.json.Tanggal,\n    amount: t.json.Jumlah,\n    desc: t.json.Keterangan\n  });\n  \n  if (hour >= 21 || hour <= 5) {\n    lateNightCount++;\n  }\n  \n  totalRecent++;\n});\n\nconst topCategories = Object.entries(categoryCount)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 3)\n  .map(([cat, count]) => ({ category: cat, frequency: count }));\n\nconst frequentDangerousItems = [];\nconst dangerousKeywords = {\n  'kopi': 'Kopi',\n  'pedas': 'Makanan Pedas',\n  'goreng': 'Gorengan',\n  'fast food': 'Fast Food',\n  'soda': 'Soda/Softdrink',\n  'mie instan': 'Mie Instan'\n};\n\nrecentTransactions.forEach(t => {\n  const desc = (t.json.Keterangan || '').toLowerCase();\n  Object.entries(dangerousKeywords).forEach(([keyword, name]) => {\n    if (desc.includes(keyword)) {\n      const existing = frequentDangerousItems.find(item => item.name === name);\n      if (existing) {\n        existing.count++;\n      } else {\n        frequentDangerousItems.push({ name, count: 1 });\n      }\n    }\n  });\n});\n\nconst memoryContext = {\n  totalTransactionsLast7Days: totalRecent,\n  lateNightTransactions: lateNightCount,\n  topCategories: topCategories,\n  frequentDangerousItems: frequentDangerousItems.sort((a, b) => b.count - a.count),\n  categoryHistory: categoryHistory,\n  lastTransactionDate: recentTransactions[recentTransactions.length - 1]?.json?.Tanggal || 'N/A',\n  memoryText: `Dalam 7 hari terakhir, Ayah telah melakukan ${totalRecent} transaksi. Kategori terbanyak adalah ${topCategories[0]?.category || 'Umum'} (${topCategories[0]?.frequency || 0}x). Transaksi tengah malam: ${lateNightCount}x. Item berbahaya yang sering dibeli: ${frequentDangerousItems.slice(0, 2).map(i => i.name + ' (' + i.count + 'x)').join(', ') || 'Tidak ada'}.`\n};\n\nreturn [{\n  json: {\n    ...currentTransaction,\n    memoryContext: memoryContext,\n    spendingPattern: memoryContext.memoryText,\n    frequentCategories: topCategories,\n    historicalData: categoryHistory\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -64
+      ],
+      "id": "2789ddf2-4ea0-48eb-a166-3c6d7ca19f02",
+      "name": "Extract Memory Context"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "IF Catat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Catat": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Laporan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Laporan": {
+      "main": [
+        [
+          {
+            "node": "Read All Transactions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Saldo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Saldo": {
+      "main": [
+        [
+          {
+            "node": "Read for Saldo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Export": {
+      "main": [
+        [
+          {
+            "node": "Read for Export",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Budget",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Budget": {
+      "main": [
+        [
+          {
+            "node": "Parse Budget Command",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Filter": {
+      "main": [
+        [
+          {
+            "node": "Filter Period Parser",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Insights": {
+      "main": [
+        [
+          {
+            "node": "Read for AI Insights",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF My Budget",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Read Budget Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Budget Alert Check": {
+      "main": [
+        [
+          {
+            "node": "Check Health Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read All Transactions": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Laporan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Laporan": {
+      "main": [
+        [
+          {
+            "node": "Send Laporan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Model - Laporan": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Read for Saldo": {
+      "main": [
+        [
+          {
+            "node": "Calculate Saldo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Saldo": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Saldo Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Period Parser": {
+      "main": [
+        [
+          {
+            "node": "Read Filtered Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Filtered Data": {
+      "main": [
+        [
+          {
+            "node": "Apply Date Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Date Filter": {
+      "main": [
+        [
+          {
+            "node": "Send Filtered Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read for AI Insights": {
+      "main": [
+        [
+          {
+            "node": "AI Deep Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Deep Insights": {
+      "main": [
+        [
+          {
+            "node": "Send AI Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Model - Insights": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Deep Insights",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Chat": {
+      "main": [
+        [
+          {
+            "node": "Send Chat Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent - Chat",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Budget Sheet": {
+      "main": [
+        [
+          {
+            "node": "Budget Alert Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send Budget List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Budget Command": {
+      "main": [
+        [
+          {
+            "node": "IF Budget Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Budget Valid": {
+      "main": [
+        [
+          {
+            "node": "Save Budget to Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Budget Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Budget to Sheets": {
+      "main": [
+        [
+          {
+            "node": "Prepare Success Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Success Message": {
+      "main": [
+        [
+          {
+            "node": "Cek Data yang Mengalir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek Data yang Mengalir": {
+      "main": [
+        [
+          {
+            "node": "Send Budget Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read for Export": {
+      "main": [
+        [
+          {
+            "node": "Convert to Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Send Excel File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to Excel": {
+      "main": [
+        [
+          {
+            "node": "Upload to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF My Budget": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Chat",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Laporan",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Motivasi",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent - Motivasi",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Message with Motivation": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Motivasi": {
+      "main": [
+        [
+          {
+            "node": "Format Message with Motivation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Saldo Analysis": {
+      "main": [
+        [
+          {
+            "node": "Format Saldo with AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Saldo Analysis",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Saldo with AI": {
+      "main": [
+        [
+          {
+            "node": "Send Saldo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Health Context": {
+      "main": [
+        [
+          {
+            "node": "Extract Memory Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Memory Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Motivasi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jakarta",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "f365ea77-e78d-4f5f-95cf-9010835df7f2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "68621bedd9b43aa01964ae3fe52d061a5b944a0284b30ddbcdc9ec8e391db81d"
+  },
+  "id": "P5jVcetcFGhPRGET",
+  "tags": [
+    {
+      "createdAt": "2025-10-16T09:39:56.700Z",
+      "updatedAt": "2025-10-16T09:39:56.700Z",
+      "id": "eGj6mKOTHJS9ZUGg",
+      "name": "finance"
+    },
+    {
+      "createdAt": "2025-10-18T02:28:56.421Z",
+      "updatedAt": "2025-10-18T02:28:56.421Z",
+      "id": "AUiZsnjBkIWEVr66",
+      "name": "fix-terakhir"
+    }
+  ]
+}

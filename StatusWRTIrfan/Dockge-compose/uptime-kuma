@@ -1,0 +1,19 @@
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    container_name: uptime-kuma
+    restart: unless-stopped
+    user: root
+    network_mode: host
+    environment:
+      - TZ=Asia/Jakarta
+    volumes:
+      # Data Uptime Kuma
+      - /mnt/mmcblk0p3/uptime-kuma/data:/app/data
+    privileged: false
+    security_opt:
+      - no-new-privileges:true
+volumes:
+  uptime_kuma_data:
+    driver: local
+networks: {}

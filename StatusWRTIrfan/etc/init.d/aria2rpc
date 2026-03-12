@@ -1,0 +1,42 @@
+#!/bin/sh /etc/rc.common
+# Aria2 RPC Service for OpenWrt
+START=99
+STOP=10
+
+DAEMON="/usr/bin/aria2c"
+PIDFILE="/var/run/aria2c.pid"
+LOGFILE="/tmp/aria2rpc.log"
+
+start() {
+    echo "Starting Aria2 RPC..."
+
+    # Stop aria2c if running
+    killall aria2c 2>/dev/null
+
+    # Start aria2 exactly like your manual command (tanpa secret)
+    $DAEMON \
+        --enable-rpc \
+        --rpc-listen-all=true \
+        --rpc-allow-origin-all=true \
+        --daemon=true \
+        --continue=true \
+        --max-connection-per-server=16 \
+        --file-allocation=none \
+        --log=$LOGFILE
+
+    echo "$!" > "$PIDFILE"
+    echo "Aria2 RPC started."
+}
+
+stop() {
+    echo "Stopping Aria2 RPC..."
+    killall aria2c 2>/dev/null
+    rm -f "$PIDFILE"
+    echo "Stopped."
+}
+
+restart() {
+    stop
+    sleep 1
+    start
+}

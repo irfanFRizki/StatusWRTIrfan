@@ -1,0 +1,29 @@
+#!/bin/sh
+echo "Content-Type: application/json; charset=utf-8"
+echo ""
+
+# Get CPU temperature
+temp_output=$(vcgencmd measure_temp)
+temperature=$(echo "$temp_output" | sed "s/temp=//g;s/'C//g")
+temp_int=$(echo "$temperature" | cut -d'.' -f1)
+
+# Determine duty cycle
+if [ "$temp_int" -ge 46 ]; then
+    duty=100
+elif [ "$temp_int" -ge 43 ]; then
+    duty=80
+elif [ "$temp_int" -ge 35 ]; then
+    duty=70
+else
+    duty=0
+fi
+
+# Generate JSON output
+cat <<EOF
+{
+  "temperature": "$temperature",
+  "duty_cycle": "$duty",
+  "status": "$([ "$duty" -gt 0 ] && echo "Aktif" || echo "Nonaktif")",
+  "timestamp": "$(date +'%H:%M:%S')"
+}
+EOF

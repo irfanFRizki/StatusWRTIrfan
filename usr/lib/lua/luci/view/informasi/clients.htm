@@ -1,0 +1,186 @@
+<%#
+Template: informasi/clients
+Online Clients Monitor - realtime dari online.sh
+Maintainer: irfanFRizki
+-%>
+<%+header%>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<style>
+.status-badge { font-size: 0.78rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+.status-terhubung         { background:#d1fae5; color:#065f46; }
+.status-tidak-aktif       { background:#fef3c7; color:#92400e; }
+.status-tidak-diketahui   { background:#e0e7ff; color:#3730a3; }
+.status-tidak-terhubung   { background:#fee2e2; color:#991b1b; }
+.pulse { animation: pulse 1.5s infinite; }
+@keyframes pulse {
+  0%,100% { opacity:1; }
+  50%      { opacity:0.4; }
+}
+#last-update { font-size:0.78rem; color:#6b7280; }
+</style>
+
+<div class="container-fluid px-3">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+      <i class="bi bi-people-fill text-primary"></i> Klien Online
+    </h4>
+    <div class="d-flex align-items-center gap-2">
+      <span class="pulse text-success">●</span>
+      <span id="last-update">Memuat...</span>
+      <button class="btn btn-sm btn-outline-primary" onclick="fetchClients()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center py-2">
+        <div class="text-success fs-3 fw-bold" id="count-online">-</div>
+        <small class="text-muted">Terhubung</small>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center py-2">
+        <div class="text-warning fs-3 fw-bold" id="count-stale">-</div>
+        <small class="text-muted">Tidak Aktif</small>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center py-2">
+        <div class="text-danger fs-3 fw-bold" id="count-offline">-</div>
+        <small class="text-muted">Terputus</small>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm text-center py-2">
+        <div class="text-primary fs-3 fw-bold" id="count-total">-</div>
+        <small class="text-muted">Total</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="mb-3">
+    <input type="text" class="form-control form-control-sm" id="search-box"
+      placeholder="🔍 Cari IP, MAC, atau Hostname..."
+      oninput="filterTable()">
+  </div>
+
+  <!-- Table -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="clients-table">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th><i class="bi bi-hdd-network"></i> IP Address</th>
+              <th><i class="bi bi-broadcast"></i> MAC Address</th>
+              <th><i class="bi bi-pc-display"></i> Hostname</th>
+              <th><i class="bi bi-activity"></i> Status</th>
+            </tr>
+          </thead>
+          <tbody id="clients-body">
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">
+                <div class="spinner-border spinner-border-sm me-2"></div>
+                Memuat data klien...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-muted mt-2" style="font-size:0.78rem">
+    <i class="bi bi-info-circle"></i>
+    Data diambil dari <code>/tmp/dhcp.leases</code> dan <code>ip neigh</code>.
+    Auto-refresh setiap <b>15 detik</b>.
+  </p>
+
+</div>
+
+<script>
+(function() {
+  var allClients = [];
+
+  function statusBadge(status) {
+    var s = (status || '').toUpperCase().trim();
+    if (s === 'TERHUBUNG')
+      return '<span class="status-badge status-terhubung"><i class="bi bi-wifi"></i> Terhubung</span>';
+    if (s === 'TERHUBUNG TIDAK AKTIF')
+      return '<span class="status-badge status-tidak-aktif"><i class="bi bi-wifi-2"></i> Tidak Aktif</span>';
+    if (s === 'TIDAK DIKETAHUI')
+      return '<span class="status-badge status-tidak-diketahui"><i class="bi bi-question-circle"></i> Tidak Diketahui</span>';
+    return '<span class="status-badge status-tidak-terhubung"><i class="bi bi-wifi-off"></i> Terputus</span>';
+  }
+
+  function renderTable(clients) {
+    var tb = document.getElementById('clients-body');
+    if (!clients.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada klien ditemukan.</td></tr>';
+      return;
+    }
+    tb.innerHTML = clients.map(function(c, i) {
+      return '<tr>' +
+        '<td class="text-muted">' + (i+1) + '</td>' +
+        '<td><code class="text-primary">' + c.ip + '</code></td>' +
+        '<td><small class="font-monospace text-muted">' + c.mac + '</small></td>' +
+        '<td><i class="bi bi-pc-display-horizontal me-1 text-secondary"></i>' + (c.hostname||'<em class="text-muted">unknown</em>') + '</td>' +
+        '<td>' + statusBadge(c.status) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  window.fetchClients = function() {
+    // Panggil script online.sh via CGI wrapper atau API
+    fetch('/cgi-bin/luci/admin/services/informasi/api?action=clients')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        allClients = Array.isArray(data) ? data : (data.clients || []);
+
+        // Hitung summary
+        var online  = allClients.filter(function(c){ return c.status==='TERHUBUNG'; }).length;
+        var stale   = allClients.filter(function(c){ return c.status==='TERHUBUNG TIDAK AKTIF'; }).length;
+        var offline = allClients.filter(function(c){ return c.status==='TIDAK TERHUBUNG'; }).length;
+
+        document.getElementById('count-online').textContent  = online;
+        document.getElementById('count-stale').textContent   = stale;
+        document.getElementById('count-offline').textContent = offline;
+        document.getElementById('count-total').textContent   = allClients.length;
+
+        renderTable(allClients);
+        document.getElementById('last-update').textContent =
+          'Update: ' + new Date().toLocaleTimeString('id-ID');
+      })
+      .catch(function(e) {
+        document.getElementById('clients-body').innerHTML =
+          '<tr><td colspan="5" class="text-danger text-center py-3">' +
+          '<i class="bi bi-exclamation-triangle"></i> Gagal memuat data: ' + e.message +
+          '</td></tr>';
+      });
+  };
+
+  window.filterTable = function() {
+    var q = document.getElementById('search-box').value.toLowerCase();
+    var filtered = allClients.filter(function(c) {
+      return (c.ip||'').toLowerCase().includes(q) ||
+             (c.mac||'').toLowerCase().includes(q) ||
+             (c.hostname||'').toLowerCase().includes(q);
+    });
+    renderTable(filtered);
+  };
+
+  fetchClients();
+  setInterval(fetchClients, 15000);
+})();
+</script>
+
+<%+footer%>

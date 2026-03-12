@@ -1,0 +1,286 @@
+<%+header%>
+<style>
+  :root {
+    --primary: #6366f1;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --background: #f8fafc;
+    --card-bg: #ffffff;
+  }
+
+  .settings-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  .settings-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .settings-form {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-label {
+    display: block;
+    font-weight: 500;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    transition: border-color 0.3s ease;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  .btn-save {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.3s ease;
+  }
+
+  .btn-save:hover {
+    background: #4f46e5;
+    transform: translateY(-1px);
+  }
+
+  .bot-info-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    margin-top: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.5s ease-out;
+  }
+
+  .info-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .info-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .info-item {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .info-label {
+    font-weight: 500;
+    color: #64748b;
+  }
+
+  .info-value {
+    color: #1e293b;
+    word-break: break-all;
+  }
+
+  @keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .notification-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #1e293b;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @media (max-width: 640px) {
+    .settings-container {
+      padding: 0 0.5rem;
+    }
+    
+    .info-item {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="settings-container">
+  <div class="settings-header">
+    <h2>Pengaturan Telegram</h2>
+  </div>
+  
+  <form id="settings_form" class="settings-form">
+    <div class="form-group">
+      <label class="form-label" for="bot_token">Token Bot:</label>
+      <input type="text" 
+             id="bot_token" 
+             name="bot_token" 
+             class="form-input"
+             placeholder="Masukkan Token Bot Anda">
+    </div>
+    
+    <div class="form-group">
+      <label class="form-label" for="chat_id">ID Chat:</label>
+      <input type="text" 
+             id="chat_id" 
+             name="chat_id" 
+             class="form-input"
+             placeholder="Masukkan ID Chat Anda">
+    </div>
+    
+    <button type="button" 
+            class="btn-save"
+            onclick="saveSettings()">
+      Simpan Pengaturan
+    </button>
+  </form>
+
+  <div class="bot-info-card" id="bot_info">
+    <div class="info-section">
+      <h3 class="info-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0M4.5 7.5a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1zM8 9a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+        </svg>
+        Informasi Bot
+      </h3>
+      <div id="bot_info_content"></div>
+    </div>
+    
+    <div class="info-section">
+      <h3 class="info-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0M5 8a1 1 0 1 1 2 0 1 1 0 0 1-2 0m4 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0"/>
+        </svg>
+        Informasi Chat
+      </h3>
+      <div id="chat_info_content"></div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+function saveSettings(){
+    const formData = new FormData(document.getElementById('settings_form'));
+    fetch("<%= luci.dispatcher.build_url('admin/services/informasi/settings/save') %>", {
+        method: "POST",
+        body: formData
+    })
+    .then(response => response.text())
+    .then(text => {
+        showNotification(text);
+        loadBotInfo();
+    })
+    .catch(err => {
+        showNotification("Error: " + err.message);
+    });
+}
+
+function loadBotInfo(){
+    fetch("<%= luci.dispatcher.build_url('admin/services/informasi/settings/botinfo') %>?_ts=" + new Date().getTime())
+    .then(response => response.json())
+    .then(data => {
+        const botContent = document.getElementById('bot_info_content');
+        const chatContent = document.getElementById('chat_info_content');
+        
+        // Bot Info
+        if(data.bot_info?.ok) {
+            const bot = data.bot_info.result;
+            botContent.innerHTML = `
+                <div class="info-item">
+                    <div class="info-label">Nama Bot</div>
+                    <div class="info-value">${bot.first_name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Username</div>
+                    <div class="info-value">@${bot.username}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">ID Bot</div>
+                    <div class="info-value">${bot.id}</div>
+                </div>
+            `;
+        } else {
+            botContent.innerHTML = `<div class="info-value text-danger">Gagal memuat info bot</div>`;
+        }
+        
+        // Chat Info
+        if(data.chat_info?.ok) {
+            const chat = data.chat_info.result;
+            chatContent.innerHTML = `
+                <div class="info-item">
+                    <div class="info-label">Nama</div>
+                    <div class="info-value">${chat.first_name || ''} ${chat.last_name || ''}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Username</div>
+                    <div class="info-value">${chat.username ? '@' + chat.username : '-'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Tipe</div>
+                    <div class="info-value">${chat.type}</div>
+                </div>
+            `;
+        } else {
+            chatContent.innerHTML = `<div class="info-value text-danger">Gagal memuat info chat</div>`;
+        }
+    })
+    .catch(err => {
+        showNotification("Error: " + err.message);
+    });
+}
+
+function showNotification(message) {
+    const toast = document.createElement('div');
+    toast.className = 'notification-toast';
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// Initial load
+document.addEventListener('DOMContentLoaded', loadBotInfo);
+</script>
+
+<%+footer%>

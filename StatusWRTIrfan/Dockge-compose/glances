@@ -1,0 +1,25 @@
+name: glances
+services:
+  glances:
+    image: nicolargo/glances:latest-full
+    container_name: glances
+    hostname: CasaOS
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    pid: host
+    ports:
+      - 61208:61208
+      - 61209:61209
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    environment:
+      - TZ=Asia/Jakarta
+      - GLANCES_OPT=-w
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    deploy:
+      resources:
+        reservations:
+          memory: 64M

@@ -1,0 +1,105 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2025 OpenWrt.org
+# Telegram Bot File Manager Service
+
+START=99
+STOP=10
+
+USE_PROCD=1
+
+# Konfigurasi
+BOT_NAME="data"
+BOT_SCRIPT="/root/data.py"
+BOT_USER="root"
+LOG_FILE="/mnt/sda1/data/bot_service.log"
+PID_FILE="/var/run/${BOT_NAME}.pid"
+
+start_service() {
+    # Cek apakah script bot ada
+    if [ ! -f "$BOT_SCRIPT" ]; then
+        echo "Error: Bot script tidak ditemukan di $BOT_SCRIPT"
+        logger -t ${BOT_NAME} "Bot script tidak ditemukan: $BOT_SCRIPT"
+        return 1
+    fi
+
+    # Cek apakah Python3 terinstall
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "Error: Python3 tidak terinstall"
+        logger -t ${BOT_NAME} "Python3 tidak terinstall"
+        return 1
+    fi
+
+    # Buat folder log jika belum ada
+    mkdir -p "$(dirname $LOG_FILE)"
+
+    logger -t ${BOT_NAME} "Starting Telegram Bot..."
+    
+    procd_open_instance
+    procd_set_param command python3 "$BOT_SCRIPT"
+    procd_set_param pidfile "$PID_FILE"
+    procd_set_param stdout 1
+    procd_set_param stderr 1
+    procd_set_param user "$BOT_USER"
+    
+    # Restart jika crash
+    procd_set_param respawn ${respawn_threshold:-3600} ${respawn_timeout:-5} ${respawn_retry:-5}
+    
+    # Set file untuk log output
+    procd_set_param file "$BOT_SCRIPT"
+    
+    procd_close_instance
+    
+    echo "Telegram Bot service started"
+    logger -t ${BOT_NAME} "Service started successfully"
+}
+
+stop_service() {
+    logger -t ${BOT_NAME} "Stopping Telegram Bot..."
+    
+    # Kill process by PID file
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        if [ -n "$PID" ]; then
+            kill -TERM "$PID" 2>/dev/null
+            sleep 2
+            
+            # Force kill jika masih jalan
+            if kill -0 "$PID" 2>/dev/null; then
+                kill -KILL "$PID" 2>/dev/null
+            fi
+        fi
+        rm -f "$PID_FILE"
+    fi
+    
+    # Backup: kill by process name
+    killall -q python3
+    
+    echo "Telegram Bot service stopped"
+    logger -t ${BOT_NAME} "Service stopped"
+}
+
+restart() {
+    stop
+    sleep 2
+    start
+}
+
+status() {
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        if kill -0 "$PID" 2>/dev/null; then
+            echo "Telegram Bot is running (PID: $PID)"
+            return 0
+        else
+            echo "Telegram Bot is not running (stale PID file)"
+            return 1
+        fi
+    else
+        echo "Telegram Bot is not running"
+        return 1
+    fi
+}
+
+service_triggers() {
+    procd_add_reload_trigger "${BOT_NAME}"
+}
