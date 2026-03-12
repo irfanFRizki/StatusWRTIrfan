@@ -1,0 +1,15 @@
+#!/bin/sh
+# prerm: Cleanup sebelum uninstall
+# Package: luci-app-informasi-wrt
+
+echo "[INFO] Menghapus luci-app-informasi-wrt..."
+
+# Bersihkan LuCI cache
+rm -rf /tmp/luci-indexcache 2>/dev/null || true
+rm -rf /tmp/luci-modulecache/ 2>/dev/null || true
+
+# Restart uhttpd
+/etc/init.d/uhttpd restart 2>/dev/null || true
+
+echo "[DONE] luci-app-informasi-wrt berhasil dihapus."
+exit 0

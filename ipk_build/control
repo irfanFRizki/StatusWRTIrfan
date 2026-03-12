@@ -1,0 +1,19 @@
+Package: luci-app-informasi-wrt
+Version: 1.0.0
+Architecture: all
+Maintainer: irfanFRizki <github.com/irfanFRizki>
+Installed-Size: 0
+Depends: luci-base, luci-compat, lua, liblua5.1, python3, python3-pip, uhttpd, rpcd, ubus, uci
+Conflicts:
+Source: https://github.com/irfanFRizki/StatusWRTIrfan
+Section: luci
+Priority: optional
+Description: LuCI App Informasi WRT
+ Paket monitoring dan informasi sistem untuk OpenWrt.
+ Menambahkan menu Services > Informasi di LuCI dengan fitur:
+  - Dashboard real-time (CPU, Memory, Uptime, Suhu)
+  - Informasi network interfaces
+  - Monitor storage / disk usage
+  - System log viewer
+ Cocok untuk Raspberry Pi 4B dengan OpenWrt.
+ Repo: https://github.com/irfanFRizki/StatusWRTIrfan

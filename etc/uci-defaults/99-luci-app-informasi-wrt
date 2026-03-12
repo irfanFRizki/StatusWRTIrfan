@@ -1,0 +1,16 @@
+#!/bin/sh
+# uci-defaults: 99-luci-app-informasi-wrt
+# Dijalankan sekali saat pertama boot setelah install
+# Maintainer: irfanFRizki
+
+# Pastikan LuCI cache dibersihkan agar menu muncul
+rm -rf /tmp/luci-indexcache /tmp/luci-modulecache/
+
+# Set permission file Lua
+chmod 644 /usr/lib/lua/luci/controller/informasi.lua 2>/dev/null
+chmod -R 644 /usr/lib/lua/luci/view/informasi/ 2>/dev/null
+
+# Restart rpcd agar ACL berlaku
+/etc/init.d/rpcd restart 2>/dev/null
+
+exit 0

@@ -1,0 +1,182 @@
+name: StatusWRT CI/CD - Build IPK
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'VERSION'
+      - 'CHANGELOG.md'
+      - '**.md'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build luci-app-informasi-wrt IPK
+
+    steps:
+      # ─────────────────────────────────────────
+      # 1. Checkout repository
+      # ─────────────────────────────────────────
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # Butuh history untuk changelog & versioning
+
+      # ─────────────────────────────────────────
+      # 2. Setup permission scripts
+      # ─────────────────────────────────────────
+      - name: Setup scripts permission
+        run: chmod +x scripts/*.sh
+
+      # ─────────────────────────────────────────
+      # 3. Generate versi otomatis
+      # ─────────────────────────────────────────
+      - name: Generate version
+        id: version
+        run: |
+          VERSION=$(bash scripts/version.sh)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Versi: $VERSION"
+
+      # ─────────────────────────────────────────
+      # 4. Generate CHANGELOG
+      # ─────────────────────────────────────────
+      - name: Generate changelog
+        run: |
+          bash scripts/changelog.sh ${{ env.VERSION }}
+          echo "✅ Changelog diperbarui"
+
+      # ─────────────────────────────────────────
+      # 5. Commit VERSION dan CHANGELOG
+      # ─────────────────────────────────────────
+      - name: Commit version files
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION CHANGELOG.md
+          git diff --staged --quiet && echo "Tidak ada perubahan" || \
+            git commit -m "ci: release v${{ env.VERSION }} [skip ci]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ─────────────────────────────────────────
+      # 6. Build IPK Package
+      # ─────────────────────────────────────────
+      - name: Build IPK
+        run: |
+          set -e
+          PKG_NAME="luci-app-informasi-wrt"
+          VERSION="${{ env.VERSION }}"
+          IPK_FILE="${PKG_NAME}_${VERSION}_all.ipk"
+
+          echo "📦 Building: $IPK_FILE"
+
+          # === Buat debian-binary ===
+          echo "2.0" > debian-binary
+
+          # === Buat control directory ===
+          mkdir -p ipk_work/control
+
+          # Update versi di control file
+          sed "s/^Version:.*/Version: $VERSION/" ipk_build/control > ipk_work/control/control
+
+          # Copy scripts
+          cp ipk_build/postinst ipk_work/control/postinst
+          cp ipk_build/prerm    ipk_work/control/prerm
+          chmod +x ipk_work/control/postinst
+          chmod +x ipk_work/control/prerm
+
+          # === Hitung Installed-Size ===
+          SIZE=$(du -sk usr etc www 2>/dev/null | awk '{sum+=$1} END{print sum}')
+          sed -i "s/^Installed-Size:.*/Installed-Size: $SIZE/" ipk_work/control/control
+
+          echo "📋 Control file:"
+          cat ipk_work/control/control
+
+          # === Buat tar archives ===
+          # control.tar.gz
+          cd ipk_work/control
+          tar --numeric-owner --group=0 --owner=0 -czf ../../control.tar.gz .
+          cd ../..
+
+          # data.tar.gz (konten yang akan diinstall ke sistem)
+          tar --numeric-owner --group=0 --owner=0 -czf data.tar.gz \
+            usr etc www
+
+          # === Buat IPK (format ar/tar) ===
+          tar --numeric-owner --group=0 --owner=0 \
+            -czf "$IPK_FILE" \
+            debian-binary control.tar.gz data.tar.gz
+
+          # Verifikasi
+          echo ""
+          echo "✅ IPK berhasil dibuat:"
+          ls -lh "$IPK_FILE"
+          echo "IPK_FILE=$IPK_FILE" >> $GITHUB_ENV
+
+      # ─────────────────────────────────────────
+      # 7. Verifikasi isi IPK
+      # ─────────────────────────────────────────
+      - name: Verify IPK contents
+        run: |
+          echo "📦 Isi IPK:"
+          tar -tzf "${{ env.IPK_FILE }}" || true
+
+          echo ""
+          echo "📋 Control info:"
+          tar -xzf "${{ env.IPK_FILE }}" control.tar.gz -O 2>/dev/null | \
+            tar -xzO -f - ./control 2>/dev/null || true
+
+      # ─────────────────────────────────────────
+      # 8. Upload sebagai Artifact GitHub
+      # ─────────────────────────────────────────
+      - name: Upload IPK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-informasi-wrt-${{ env.VERSION }}
+          path: ${{ env.IPK_FILE }}
+          retention-days: 30
+
+      # ─────────────────────────────────────────
+      # 9. Buat GitHub Release + Upload IPK
+      # ─────────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: "StatusWRT v${{ env.VERSION }}"
+          body_path: CHANGELOG.md
+          files: ${{ env.IPK_FILE }}
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ─────────────────────────────────────────
+      # 10. Summary
+      # ─────────────────────────────────────────
+      - name: Build Summary
+        run: |
+          echo "## ✅ Build Sukses!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Info | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Paket | luci-app-informasi-wrt |" >> $GITHUB_STEP_SUMMARY
+          echo "| Versi | v${{ env.VERSION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| File | ${{ env.IPK_FILE }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Ukuran | $(ls -lh ${{ env.IPK_FILE }} | awk '{print $5}') |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Cara Install di OpenWrt:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "opkg install ${{ env.IPK_FILE }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "Atau via Termux/SSH:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "scp ${{ env.IPK_FILE }} root@192.168.1.1:/tmp/" >> $GITHUB_STEP_SUMMARY
+          echo "ssh root@192.168.1.1 'opkg install /tmp/${{ env.IPK_FILE }}'" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,132 @@
+#!/bin/sh
+# postinst: Auto-install dependencies setelah install paket
+# Maintainer: irfanFRizki
+# Package: luci-app-informasi-wrt
+
+set -e
+
+LOGFILE="/tmp/luci-app-informasi-wrt-install.log"
+echo "[INFO] $(date) - Memulai instalasi luci-app-informasi-wrt" >> "$LOGFILE"
+
+# =====================================================
+# Fungsi helper
+# =====================================================
+pkg_installed() {
+    opkg list-installed 2>/dev/null | grep -q "^$1 "
+}
+
+pkg_install() {
+    local pkg="$1"
+    if pkg_installed "$pkg"; then
+        echo "[SKIP] $pkg sudah terinstall" >> "$LOGFILE"
+    else
+        echo "[INSTALL] Menginstall $pkg..." >> "$LOGFILE"
+        opkg install "$pkg" >> "$LOGFILE" 2>&1 && \
+            echo "[OK] $pkg berhasil diinstall" >> "$LOGFILE" || \
+            echo "[WARN] Gagal install $pkg (mungkin tidak tersedia)" >> "$LOGFILE"
+    fi
+}
+
+# =====================================================
+# Update opkg feeds
+# =====================================================
+echo "[INFO] Update opkg..." >> "$LOGFILE"
+opkg update >> "$LOGFILE" 2>&1 || echo "[WARN] opkg update gagal, lanjutkan..." >> "$LOGFILE"
+
+# =====================================================
+# Install dependencies utama LuCI
+# =====================================================
+echo "[INFO] Menginstall LuCI dependencies..." >> "$LOGFILE"
+for pkg in \
+    luci-base \
+    luci-compat \
+    luci-lib-base \
+    luci-lib-ip \
+    lua \
+    liblua5.1 \
+    rpcd \
+    rpcd-mod-rpcsys \
+    uhttpd \
+    ubus \
+    uci \
+    libuci-lua; do
+    pkg_install "$pkg"
+done
+
+# =====================================================
+# Install Python3 dan pip
+# =====================================================
+echo "[INFO] Menginstall Python3..." >> "$LOGFILE"
+for pkg in \
+    python3 \
+    python3-pip \
+    python3-light \
+    python3-base; do
+    pkg_install "$pkg"
+done
+
+# =====================================================
+# Install tools sistem untuk monitoring
+# =====================================================
+echo "[INFO] Menginstall system tools..." >> "$LOGFILE"
+for pkg in \
+    lsblk \
+    df \
+    htop \
+    curl \
+    wget \
+    bash \
+    coreutils \
+    procps-ng \
+    procps-ng-free \
+    procps-ng-top; do
+    pkg_install "$pkg"
+done
+
+# =====================================================
+# Install vnStat untuk monitoring bandwidth (jika ada)
+# =====================================================
+echo "[INFO] Mencoba install vnstat..." >> "$LOGFILE"
+pkg_install "vnstat" || true
+pkg_install "luci-app-vnstat" || true
+pkg_install "luci-app-vnstat2" || true
+
+# =====================================================
+# Bersihkan LuCI cache agar menu muncul
+# =====================================================
+echo "[INFO] Membersihkan LuCI cache..." >> "$LOGFILE"
+rm -rf /tmp/luci-indexcache 2>/dev/null || true
+rm -rf /tmp/luci-modulecache/ 2>/dev/null || true
+
+# =====================================================
+# Fix permission
+# =====================================================
+echo "[INFO] Setting permissions..." >> "$LOGFILE"
+chmod 644 /usr/lib/lua/luci/controller/informasi.lua 2>/dev/null || true
+chmod -R 644 /usr/lib/lua/luci/view/informasi/ 2>/dev/null || true
+chmod +x /etc/uci-defaults/99-luci-app-informasi-wrt 2>/dev/null || true
+
+# =====================================================
+# Jalankan uci-defaults
+# =====================================================
+if [ -f /etc/uci-defaults/99-luci-app-informasi-wrt ]; then
+    echo "[INFO] Menjalankan uci-defaults..." >> "$LOGFILE"
+    /etc/uci-defaults/99-luci-app-informasi-wrt >> "$LOGFILE" 2>&1 || true
+fi
+
+# =====================================================
+# Restart services
+# =====================================================
+echo "[INFO] Restart services..." >> "$LOGFILE"
+/etc/init.d/rpcd restart >> "$LOGFILE" 2>&1 || true
+/etc/init.d/uhttpd restart >> "$LOGFILE" 2>&1 || true
+
+echo "[DONE] $(date) - Instalasi selesai!" >> "$LOGFILE"
+echo ""
+echo "======================================================"
+echo "  luci-app-informasi-wrt berhasil diinstall!"
+echo "  Buka LuCI > Services > Informasi"
+echo "  Log: $LOGFILE"
+echo "======================================================"
+
+exit 0

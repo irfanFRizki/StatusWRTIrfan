@@ -1,0 +1,22 @@
+{
+  "luci-app-informasi-wrt": {
+    "description": "Grant UCI access for luci-app-informasi-wrt",
+    "read": {
+      "ubus": {
+        "network.interface": [ "dump", "status" ],
+        "network.device": [ "status" ],
+        "system": [ "info", "board" ],
+        "luci": [ "getNetwork" ]
+      },
+      "uci": [ "network", "system", "dhcp", "firewall" ],
+      "file": {
+        "/proc/meminfo": [ "read" ],
+        "/proc/loadavg": [ "read" ],
+        "/proc/uptime": [ "read" ],
+        "/sys/class/thermal/thermal_zone0/temp": [ "read" ],
+        "/tmp/syslog.log": [ "read" ]
+      }
+    },
+    "write": {}
+  }
+}

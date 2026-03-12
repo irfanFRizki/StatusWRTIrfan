@@ -1,0 +1,45 @@
+<%#
+Template: informasi/storage
+Storage Information
+-%>
+<%+header%>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<div class="container-fluid px-3">
+  <h4 class="mb-3"><i class="bi bi-hdd-stack text-warning"></i> Storage</h4>
+  <div class="card border-0 shadow-sm">
+    <div class="card-body" id="storage-container">
+      <p class="text-muted">Memuat...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+fetch('<%=luci.dispatcher.build_url("admin","services","informasi","api")%>?action=storage')
+  .then(r=>r.json())
+  .then(function(d){
+    if(!d.df){document.getElementById('storage-container').innerHTML='<p class="text-danger">Gagal memuat data storage.</p>';return;}
+    var lines=d.df.split('\n').slice(1).filter(l=>l.trim());
+    var html=lines.map(function(l){
+      var p=l.trim().split(/\s+/);
+      if(p.length<6)return'';
+      var pct=parseInt(p[4])||0;
+      var color=pct>90?'danger':pct>70?'warning':'success';
+      return '<div class="mb-4">'+
+        '<div class="d-flex justify-content-between align-items-center mb-1">'+
+        '<span class="fw-semibold"><i class="bi bi-hdd me-1"></i>'+p[5]+'</span>'+
+        '<span class="text-muted small">'+p[2]+' terpakai dari '+p[1]+'</span>'+
+        '</div>'+
+        '<div class="progress" style="height:10px;border-radius:5px">'+
+        '<div class="progress-bar bg-'+color+'" style="width:'+pct+'%" title="'+pct+'% used"></div>'+
+        '</div>'+
+        '<div class="d-flex justify-content-between mt-1">'+
+        '<small class="text-muted">Filesystem: '+p[0]+'</small>'+
+        '<small class="text-'+color+'">'+pct+'% terpakai</small>'+
+        '</div>'+
+      '</div>';
+    }).filter(Boolean).join('');
+    document.getElementById('storage-container').innerHTML=html||'<p class="text-muted">Tidak ada data.</p>';
+  });
+</script>
+<%+footer%>

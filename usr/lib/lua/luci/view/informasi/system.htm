@@ -1,0 +1,49 @@
+<%#
+Template: informasi/system
+System Information
+-%>
+<%+header%>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<div class="container-fluid px-3">
+  <h4 class="mb-3"><i class="bi bi-info-circle text-primary"></i> System Information</h4>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white"><b>Board Info</b></div>
+        <div class="card-body" id="board-info">
+          <div class="text-muted">Memuat...</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white"><b>CPU & Memory</b></div>
+        <div class="card-body" id="cpu-mem-info">
+          <div class="text-muted">Memuat...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+fetch('<%=luci.dispatcher.build_url("admin","services","informasi","api")%>?action=status')
+  .then(r=>r.json())
+  .then(function(d) {
+    var bi = document.getElementById('board-info');
+    bi.innerHTML =
+      '<p><b>Hostname:</b> '+d.hostname+'</p>'+
+      '<p><b>Uptime:</b> '+Math.floor(d.uptime/3600)+'h '+Math.floor((d.uptime%3600)/60)+'m</p>';
+
+    if (d.meminfo) {
+      var used=(d.meminfo.total-d.meminfo.free-(d.meminfo.buffered||0)-(d.meminfo.cached||0));
+      document.getElementById('cpu-mem-info').innerHTML =
+        '<p><b>Total RAM:</b> '+(d.meminfo.total/1024).toFixed(0)+' MB</p>'+
+        '<p><b>Used RAM:</b> '+(used/1024).toFixed(0)+' MB</p>'+
+        '<p><b>Free RAM:</b> '+(d.meminfo.free/1024).toFixed(0)+' MB</p>'+
+        '<p><b>Load Avg:</b> '+d.loadavg[0].toFixed(2)+' / '+d.loadavg[1].toFixed(2)+' / '+d.loadavg[2].toFixed(2)+'</p>';
+    }
+  });
+</script>
+<%+footer%>

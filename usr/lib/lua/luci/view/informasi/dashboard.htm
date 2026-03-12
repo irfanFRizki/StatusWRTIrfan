@@ -1,0 +1,285 @@
+<%#
+Template: informasi/dashboard
+LuCI App - Informasi WRT Dashboard
+-%>
+<%+header%>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<style>
+.stat-card { border-radius:12px; transition: transform .2s; }
+.stat-card:hover { transform: translateY(-3px); }
+.progress-sm { height: 6px; border-radius: 3px; }
+.badge-online { background:#198754; }
+.badge-offline { background:#dc3545; }
+#terminal-output {
+  background:#0d1117; color:#58d68d; font-family:monospace;
+  font-size:12px; padding:12px; border-radius:8px;
+  height:200px; overflow-y:auto; white-space:pre-wrap;
+}
+</style>
+
+<div class="container-fluid px-3">
+  <h4 class="mb-3"><i class="bi bi-speedometer2 text-primary"></i> Dashboard</h4>
+
+  <!-- Baris Utama -->
+  <div class="row g-3 mb-3">
+    <!-- CPU -->
+    <div class="col-md-6 col-xl-3">
+      <div class="card stat-card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <p class="text-muted small mb-1">CPU Load Avg</p>
+              <h3 class="mb-0" id="d-cpu">--</h3>
+            </div>
+            <div class="bg-primary bg-opacity-10 p-2 rounded-3">
+              <i class="bi bi-cpu text-primary fs-4"></i>
+            </div>
+          </div>
+          <div class="progress progress-sm">
+            <div class="progress-bar bg-primary" id="d-cpu-bar" style="width:0%"></div>
+          </div>
+          <small class="text-muted" id="d-cpu-sub">1m / 5m / 15m</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory -->
+    <div class="col-md-6 col-xl-3">
+      <div class="card stat-card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <p class="text-muted small mb-1">Memory</p>
+              <h3 class="mb-0" id="d-mem">--</h3>
+            </div>
+            <div class="bg-success bg-opacity-10 p-2 rounded-3">
+              <i class="bi bi-memory text-success fs-4"></i>
+            </div>
+          </div>
+          <div class="progress progress-sm">
+            <div class="progress-bar bg-success" id="d-mem-bar" style="width:0%"></div>
+          </div>
+          <small class="text-muted" id="d-mem-sub">--MB / --MB</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Uptime -->
+    <div class="col-md-6 col-xl-3">
+      <div class="card stat-card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <p class="text-muted small mb-1">Uptime</p>
+              <h3 class="mb-0" id="d-uptime">--</h3>
+            </div>
+            <div class="bg-warning bg-opacity-10 p-2 rounded-3">
+              <i class="bi bi-clock-history text-warning fs-4"></i>
+            </div>
+          </div>
+          <small class="text-muted" id="d-hostname">Hostname: --</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suhu -->
+    <div class="col-md-6 col-xl-3">
+      <div class="card stat-card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <p class="text-muted small mb-1">Temperature</p>
+              <h3 class="mb-0" id="d-temp">--°C</h3>
+            </div>
+            <div class="bg-danger bg-opacity-10 p-2 rounded-3">
+              <i class="bi bi-thermometer-half text-danger fs-4"></i>
+            </div>
+          </div>
+          <div class="progress progress-sm">
+            <div class="progress-bar bg-danger" id="d-temp-bar" style="width:0%"></div>
+          </div>
+          <small class="text-muted">Raspberry Pi 4B</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Network & Log -->
+  <div class="row g-3">
+    <!-- Network Interfaces -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 pb-0">
+          <h6 class="mb-0"><i class="bi bi-wifi text-primary"></i> Network Interfaces</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Interface</th>
+                  <th>IP Address</th>
+                  <th>Status</th>
+                  <th>RX / TX</th>
+                </tr>
+              </thead>
+              <tbody id="d-iface-table">
+                <tr><td colspan="4" class="text-center text-muted py-3">Memuat...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Log -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-0 pb-0 d-flex justify-content-between align-items-center">
+          <h6 class="mb-0"><i class="bi bi-terminal text-success"></i> System Log</h6>
+          <button class="btn btn-sm btn-outline-secondary" onclick="clearLog()">Clear</button>
+        </div>
+        <div class="card-body p-2">
+          <div id="terminal-output">Memuat log sistem...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disk Usage -->
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 pb-0">
+          <h6 class="mb-0"><i class="bi bi-hdd-stack text-warning"></i> Disk Usage</h6>
+        </div>
+        <div class="card-body" id="d-disk-container">
+          <p class="text-muted text-center">Memuat...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var API_URL = '<%=luci.dispatcher.build_url("admin","services","informasi","api")%>';
+
+  function fmtBytes(b) {
+    if (b > 1073741824) return (b/1073741824).toFixed(1)+'GB';
+    if (b > 1048576)    return (b/1048576).toFixed(1)+'MB';
+    return (b/1024).toFixed(0)+'KB';
+  }
+
+  function fmtUptime(s) {
+    var d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60);
+    return (d>0?d+'h ':'')+h+'j '+m+'m';
+  }
+
+  function fetchStatus() {
+    fetch(API_URL+'?action=status')
+      .then(r=>r.json())
+      .then(function(d) {
+        // CPU
+        if (d.loadavg) {
+          var pct = Math.min(Math.round(d.loadavg[0]*100), 100);
+          document.getElementById('d-cpu').textContent = d.loadavg[0].toFixed(2);
+          document.getElementById('d-cpu-bar').style.width = pct+'%';
+          document.getElementById('d-cpu-sub').textContent =
+            d.loadavg[0].toFixed(2)+' / '+d.loadavg[1].toFixed(2)+' / '+d.loadavg[2].toFixed(2);
+        }
+        // Memory
+        if (d.meminfo) {
+          var used=d.meminfo.total-d.meminfo.free-(d.meminfo.buffered||0)-(d.meminfo.cached||0);
+          var pct=Math.round(used/d.meminfo.total*100);
+          document.getElementById('d-mem').textContent = pct+'%';
+          document.getElementById('d-mem-bar').style.width = pct+'%';
+          document.getElementById('d-mem-sub').textContent =
+            fmtBytes(used*1024)+' / '+fmtBytes(d.meminfo.total*1024);
+        }
+        // Uptime
+        if (d.uptime) {
+          document.getElementById('d-uptime').textContent = fmtUptime(d.uptime);
+        }
+        if (d.hostname) {
+          document.getElementById('d-hostname').textContent = 'Hostname: '+d.hostname;
+        }
+      });
+
+    // Network
+    fetch(API_URL+'?action=network')
+      .then(r=>r.json())
+      .then(function(d) {
+        var tb = document.getElementById('d-iface-table');
+        var ifaces = d.interfaces || [];
+        if (!ifaces.length) {
+          tb.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Tidak ada interface</td></tr>';
+          return;
+        }
+        tb.innerHTML = ifaces.filter(function(i){ return i.up; }).map(function(i) {
+          var ip = (i.ipv4_address&&i.ipv4_address[0])?i.ipv4_address[0].address:'N/A';
+          var rx = i.statistics?fmtBytes(i.statistics.rx_bytes):'--';
+          var tx = i.statistics?fmtBytes(i.statistics.tx_bytes):'--';
+          return '<tr>'+
+            '<td><span class="fw-semibold">'+i.interface+'</span></td>'+
+            '<td><code>'+ip+'</code></td>'+
+            '<td><span class="badge badge-online">Online</span></td>'+
+            '<td>'+rx+' / '+tx+'</td>'+
+          '</tr>';
+        }).join('') || '<tr><td colspan="4" class="text-center text-muted">Tidak ada data</td></tr>';
+      });
+
+    // Storage
+    fetch(API_URL+'?action=storage')
+      .then(r=>r.json())
+      .then(function(d) {
+        if (!d.df) return;
+        var lines = d.df.split('\n').slice(1).filter(l=>l.trim());
+        var html = lines.map(function(l) {
+          var p = l.trim().split(/\s+/);
+          if (p.length < 6) return '';
+          var pct = parseInt(p[4]) || 0;
+          var color = pct>90?'danger':pct>70?'warning':'success';
+          return '<div class="mb-3">'+
+            '<div class="d-flex justify-content-between mb-1">'+
+            '<small class="fw-semibold">'+p[5]+'</small>'+
+            '<small class="text-muted">'+p[2]+' / '+p[1]+'</small>'+
+            '</div>'+
+            '<div class="progress" style="height:8px">'+
+            '<div class="progress-bar bg-'+color+'" style="width:'+pct+'%"></div>'+
+            '</div>'+
+            '<small class="text-muted">'+p[4]+' used ('+p[0]+')</small>'+
+          '</div>';
+        }).join('');
+        document.getElementById('d-disk-container').innerHTML = html || '<p class="text-muted">Tidak ada data</p>';
+      });
+  }
+
+  function fetchLog() {
+    fetch('/cgi-bin/luci/admin/services/informasi/api?action=log')
+      .then(r=>r.json())
+      .then(function(d) {
+        var el = document.getElementById('terminal-output');
+        if (d.log) {
+          el.textContent = d.log;
+          el.scrollTop = el.scrollHeight;
+        }
+      })
+      .catch(function() {
+        // Fallback: ambil dari sistem langsung
+        document.getElementById('terminal-output').textContent = 'Log tidak tersedia via API.';
+      });
+  }
+
+  function clearLog() {
+    document.getElementById('terminal-output').textContent = '';
+  }
+
+  fetchStatus();
+  fetchLog();
+  setInterval(fetchStatus, 10000);
+  setInterval(fetchLog, 30000);
+})();
+</script>
+
+<%+footer%>
