@@ -1,0 +1,13 @@
+## v1.0.12 - 2026-03-12
+
+* fix: hapus embedded repo & file build artifacts (irfanFRizki)
+* feat: tambah luci-app-informasi-wrt dengan menu Services & dashboard (irfanFRizki)
+* Update root (irfanFRizki)
+* remove ipk moved to BackupXwrt (irfanFRizki)
+* Delete install_status.sh (irfanFRizki)
+* Delete menu_backup.sh (irfanFRizki)
+* Delete VERSION (irfanFRizki)
+* Delete CHANGELOG.md (irfanFRizki)
+* Delete scripts directory (irfanFRizki)
+* Delete .github/workflows directory (irfanFRizki)
+
