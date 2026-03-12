@@ -1,78 +1,72 @@
-#!/bin/bash
-echo "Content-type: application/json"
+#!/bin/sh
+# www/cgi-bin/online
+# CGI wrapper untuk online.sh → output JSON
+# Dipanggil dari info.htm sebagai /cgi-bin/online
+# Maintainer: irfanFRizki
+
+echo "Content-Type: application/json"
+echo "Access-Control-Allow-Origin: *"
 echo ""
 
-# File leases dan neighbors
 LEASES_FILE="/tmp/dhcp.leases"
-NEIGH_FILE=$(ip neigh show)
+NEIGH_FILE=$(ip neigh show 2>/dev/null)
 
-# Fungsi untuk menentukan prioritas status
+# Cek apakah file leases ada
+if [ ! -f "$LEASES_FILE" ]; then
+    echo "[]"
+    exit 0
+fi
+
+# Fungsi urutan prioritas status
 get_priority() {
-    status=$(echo "$1" | tr '[:lower:]' '[:upper:]' | xargs)
-    case "$status" in
-        "TERHUBUNG") echo 1 ;;
+    case "$1" in
+        "TERHUBUNG")             echo 1 ;;
         "TERHUBUNG TIDAK AKTIF") echo 2 ;;
-        "TIDAK DIKETAHUI") echo 3 ;;
-        "TIDAK TERHUBUNG") echo 4 ;;
-        *) echo 5 ;;
+        "TIDAK DIKETAHUI")       echo 3 ;;
+        "TIDAK TERHUBUNG")       echo 4 ;;
+        *)                       echo 5 ;;
     esac
 }
 
-# Buat file temporer untuk menyimpan data dengan kunci urutan
-temp_file=$(mktemp)
+# Buat temp file
+TEMP=$(mktemp)
 
-# Simpan hostname dari file leases (gunakan array asosiatif)
-declare -A HOSTNAMES
-
-while read -r line; do
-    TIMESTAMP=$(echo "$line" | awk '{print $1}')
-    MAC=$(echo "$line" | awk '{print $2}')
+while IFS= read -r line; do
+    [ -z "$line" ] && continue
     IP=$(echo "$line" | awk '{print $3}')
+    MAC=$(echo "$line" | awk '{print $2}')
     HOSTNAME=$(echo "$line" | awk '{print $4}')
-    
-    if [[ -n "$MAC" ]]; then
-        HOSTNAMES["$MAC"]="$HOSTNAME"
-    fi
-    
-    # Default status
+    [ "$HOSTNAME" = "*" ] && HOSTNAME="Unknown"
+    [ -z "$HOSTNAME" ] && HOSTNAME="Unknown"
+
     STATUS="TIDAK TERHUBUNG"
-    
-    # Cek apakah IP ada di daftar ip neigh
-    if echo "$NEIGH_FILE" | grep -q "$IP"; then
-        STATE=$(echo "$NEIGH_FILE" | grep "$IP" | awk '{print $NF}' | tr '[:lower:]' '[:upper:]' | xargs)
+    if echo "$NEIGH_FILE" | grep -q "^$IP "; then
+        STATE=$(echo "$NEIGH_FILE" | grep "^$IP " | awk '{print $NF}' | tr '[:lower:]' '[:upper:]')
         case "$STATE" in
             "REACHABLE") STATUS="TERHUBUNG" ;;
-            "STALE") STATUS="TERHUBUNG TIDAK AKTIF" ;;
-            "FAILED") STATUS="TIDAK TERHUBUNG" ;;
-            *) STATUS="TIDAK DIKETAHUI" ;;
+            "STALE")     STATUS="TERHUBUNG TIDAK AKTIF" ;;
+            "FAILED")    STATUS="TIDAK TERHUBUNG" ;;
+            *)           STATUS="TIDAK DIKETAHUI" ;;
         esac
     fi
 
-    # Pastikan status konsisten (huruf besar tanpa spasi ekstra)
-    STATUS=$(echo "$STATUS" | tr '[:lower:]' '[:upper:]' | xargs)
-    
-    # Dapatkan nilai prioritas
-    priority=$(get_priority "$STATUS")
-    
-    # Buat objek JSON untuk perangkat ini
-    json_line="{\"ip\": \"$IP\", \"mac\": \"$MAC\", \"hostname\": \"${HOSTNAMES[$MAC]}\", \"status\": \"$STATUS\"}"
-    
-    # Simpan baris data dengan prefix nilai prioritas
-    echo "$priority|$json_line" >> "$temp_file"
+    PRIORITY=$(get_priority "$STATUS")
+
+    # Escape untuk JSON
+    HOSTNAME_ESC=$(echo "$HOSTNAME" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    printf '%s|%s|%s|%s|%s\n' "$PRIORITY" "$IP" "$MAC" "$HOSTNAME_ESC" "$STATUS" >> "$TEMP"
 done < "$LEASES_FILE"
 
-# Output sebagai array JSON, urut berdasarkan prioritas
+# Build JSON array
 echo "["
 first=1
-while IFS= read -r line; do
-    json_obj=$(echo "$line" | cut -d'|' -f2-)
-    if [ $first -eq 1 ]; then
-        echo "  $json_obj"
-        first=0
-    else
-        echo "  ,$json_obj"
-    fi
-done < <(sort -n -t'|' -k1,1 "$temp_file")
+sort -t'|' -k1,1n "$TEMP" | while IFS='|' read -r pri ip mac hostname status; do
+    [ "$first" = "0" ] && printf ','
+    printf '{"ip":"%s","mac":"%s","hostname":"%s","status":"%s"}' \
+        "$ip" "$mac" "$hostname" "$status"
+    first=0
+done
+echo ""
 echo "]"
 
-rm "$temp_file"
+rm -f "$TEMP"
