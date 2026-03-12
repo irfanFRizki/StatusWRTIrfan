@@ -1,3 +1,8 @@
+## v1.0.14 - 2026-03-12
+
+* feat: integrasi sistem allow/kick IP dengan controller lengkap (irfanFRizki)
+* Update README.md (irfanFRizki)
+
 ## v1.0.13 - 2026-03-12
 
 * fix: hapus subfolder StatusWRTIrfan dari tracking git (irfanFRizki)
